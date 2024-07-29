@@ -89,6 +89,9 @@ module constants
   public :: tref, pref
   public :: constants_initialized
 
+  public :: kPa_per_Pa
+  public :: Pa_per_kPa
+
 ! Declare derived constants
   integer(i_kind):: huge_i_kind
   integer(i_kind), parameter :: max_varname_length=20
@@ -117,6 +120,8 @@ module constants
   real(r_kind),parameter::  stndrd_atmos_ps = 1013.25e2_r_kind   ! 1976 US standard atmosphere ps   (Pa)
   real(r_kind),parameter::  tref   = 2.8000e+2_r_kind            ! reference T for total energy
   real(r_kind),parameter::  pref   = 1.0000e+5_r_kind            ! reference P for total energy
+  real(r_kind),parameter::  kPa_per_Pa = 0.001_r_kind            ! convert from Pa to cb
+  real(r_kind),parameter::  Pa_per_kPa = 1000._r_kind            ! convert from cb to Pa
 
 ! Numeric constants
 
