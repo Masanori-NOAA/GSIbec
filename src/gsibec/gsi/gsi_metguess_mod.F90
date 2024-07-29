@@ -193,7 +193,7 @@ module gsi_metguess_mod
 !
 ! !DESCRIPTION: Module to handle meteorological guess fields
 !               This still uses wired-in type arrays to hold the guess. Soon
-!               we'll generalize this.
+!               we''ll generalize this.
 !
 ! !REMARKS:
 !   1. VERY IMPORTANT: No object from this file is to be make
@@ -210,7 +210,8 @@ use m_kinds, only: i_kind,r_kind
 use constants, only: max_varname_length
 use m_mpimod, only : mype
 use mpeu_util,only: die
-use file_utility, only : get_lun
+!use file_utility, only : get_lun
+use mpeu_util, only: get_lun => luavail
 use gsi_bundlemod, only : GSI_BundleCreate
 use gsi_bundlemod, only : GSI_BundleGetPointer
 use gsi_bundlemod, only : GSI_Bundle
@@ -295,7 +296,7 @@ character(len=MAXSTR),allocatable :: usrname2d(:)  ! user-defined 2d field names
 character(len=MAXSTR),allocatable :: usrname3d(:)  ! user-defined 3d field names
 character(len=MAXSTR),allocatable :: usrname(:)    ! user-defined field names
 integer(i_kind),allocatable,dimension(:) :: i4crtm ! controls use of gas in CRTM:
-                                                   ! < 0 don't use in CRTM
+                                                   ! < 0 don''t use in CRTM
                                                    ! = 0 use predefined global mean
                                                    ! = 1 use gfs yearly global annual mean historical value
                                                    ! = 2 use gfs 3d background field
@@ -317,11 +318,12 @@ contains
 !
 ! !INTERFACE:
 !
-subroutine init_ (iamroot)
+subroutine init_ (iamroot,rcname)
 ! USES:
 implicit none
 ! !INPUT PARAMETER:
    logical,optional,intent(in) :: iamroot 
+   character(len=*),optional,intent(in) :: rcname 
 ! !DESCRIPTION: Define contents of Meteorological Guess Bundle through rc 
 !               file (typilcally embedded in anavinfo text file.
 !
@@ -341,8 +343,8 @@ implicit none
 !EOP
 !-------------------------------------------------------------------------
 !BOC
-!character(len=*),parameter:: rcname='anavinfo.txt'
-character(len=*),parameter:: rcname='anavinfo'  ! filename should have extension
+!character(len=*),parameter:: rcname_def='anavinfo.txt'
+character(len=*),parameter:: rcname_def='anavinfo'  ! filename should have extension
 character(len=*),parameter:: tbname='met_guess::'
 integer(i_kind) luin,i,ii,ntot,icrtmuse
 character(len=256),allocatable,dimension(:):: utable
@@ -359,7 +361,11 @@ if(present(iamroot)) iamroot_=iamroot
 
 ! load file
 luin=get_lun()
-open(luin,file=rcname,form='formatted')
+if(present(rcname)) then
+  open(luin,file=trim(rcname),form='formatted')
+else
+  open(luin,file=rcname_def,form='formatted')
+endif
 
 ! Scan file for desired table first
 ! and get size of table
@@ -405,7 +411,7 @@ if(ng2d > 0)then
             usrname2d(ng2d))
 end if
 
-   allocate(levels(nmguess),i4crtm(nmguess),usrname(nmguess),&
+allocate(levels(nmguess),i4crtm(nmguess),usrname(nmguess),&
          mguess(nmguess),metstype(nmguess))
 
 ! Now load information from table
@@ -497,22 +503,24 @@ implicit none
 !EOP
 !-------------------------------------------------------------------------
 !BOC
-if(.not.guess_initialized_) return
-
+ 
 if(allocated(mguess3d)) deallocate(mguess3d)
-if(allocated(mguess2d)) deallocate(mguess2d)
 if(allocated(metsty3d)) deallocate(metsty3d)
-if(allocated(metsty2d)) deallocate(metsty2d) 
 if(allocated(i4crtm3d)) deallocate(i4crtm3d)
-if(allocated(i4crtm2d)) deallocate(i4crtm2d)
-if(allocated(levels3d)) deallocate(levels2d)
-if(allocated(levels))   deallocate(levels)
-if(allocated(i4crtm))   deallocate(i4crtm)
+if(allocated(levels3d)) deallocate(levels3d)
 if(allocated(usrname3d))deallocate(usrname3d)
+
+if(allocated(mguess2d)) deallocate(mguess2d)
+if(allocated(metsty2d)) deallocate(metsty2d) 
+if(allocated(i4crtm2d)) deallocate(i4crtm2d)
+if(allocated(levels2d)) deallocate(levels2d)
 if(allocated(usrname2d))deallocate(usrname2d)
+
 if(allocated(usrname))  deallocate(usrname)
 if(allocated(mguess))   deallocate(mguess)
 if(allocated(metstype)) deallocate(metstype)
+if(allocated(levels))   deallocate(levels)
+if(allocated(i4crtm))   deallocate(i4crtm)
 
 guess_initialized_=.false.
 end subroutine final_
@@ -641,8 +649,7 @@ end subroutine final_
         call GSI_BundleDestroy ( GSI_MetGuess_Bundle(nt), ier )
         istatus=istatus+ier
      enddo
-     deallocate(GSI_MetGuess_Bundle,stat=istatus)
-     istatus=istatus+ier
+     if(associated(GSI_MetGuess_Bundle)) nullify(GSI_MetGuess_Bundle)
 
     if (istatus/=0) then
        if(mype==0) write(6,*)trim(myname_),':  deallocate error1, istatus=',istatus
@@ -709,6 +716,12 @@ end subroutine final_
   if(.not.guess_initialized_) return
   if(trim(desc)=='dim') then
      ivar = nmguess
+     istatus=0
+  else if(trim(desc)=='dim::2d') then
+     ivar = ng2d
+     istatus=0
+  else if(trim(desc)=='dim::3d') then
+     ivar = ng3d
      istatus=0
   else if(trim(desc)=='clouds') then
      ivar = ncloud
@@ -923,6 +936,19 @@ end subroutine final_
         deallocate(work)
      endif
   endif
+  if(desc(1:8)=='usrvar::') then
+     if(allocated(usrname)) then
+        labfound=.true.
+        is=len_trim(desc)
+        if(is>=9) then
+          i=getindex(usrname,desc(9:is))
+          if(i>0) then
+            ivar=usrname(i)
+            istatus=0
+          endif
+        endif
+     endif
+  endif
   if (.not.labfound) then
      call die(myname_,'label unavailable :'//trim(desc),99)
   endif
@@ -989,11 +1015,47 @@ end subroutine final_
         endif
      endif
   endif
+  if(trim(desc)=='gsinames::2d') then
+     labfound=.true.
+     if(size(ivar)>=size(mguess2d)) then
+        if(allocated(mguess2d))then
+           ivar = mguess2d
+           istatus=0
+        endif
+     endif
+  endif
+  if(trim(desc)=='gsinames::3d') then
+     labfound=.true.
+     if(size(ivar)>=size(mguess3d)) then
+        if(allocated(mguess3d))then
+           ivar = mguess3d
+           istatus=0
+        endif
+     endif
+  endif
   if(trim(desc)=='usrnames') then
      labfound=.true.
      if(size(ivar)>=size(usrname)) then
         if(allocated(usrname))then
            ivar = usrname
+           istatus=0
+        endif
+     endif
+  endif
+  if(trim(desc)=='usrnames::2d') then
+     labfound=.true.
+     if(size(ivar)>=size(usrname2d)) then
+        if(allocated(usrname2d))then
+           ivar = usrname2d
+           istatus=0
+        endif
+     endif
+  endif
+  if(trim(desc)=='usrnames::3d') then
+     labfound=.true.
+     if(size(ivar)>=size(usrname3d)) then
+        if(allocated(usrname3d))then
+           ivar = usrname3d
            istatus=0
         endif
      endif

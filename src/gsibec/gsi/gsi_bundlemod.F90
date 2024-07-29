@@ -1679,7 +1679,6 @@ CONTAINS
 !noBOC
     
     integer(i_kind) :: i, n1d, n2d, n3d
-
     istatus=0
     n1d = Bundle%n1d
     n2d = Bundle%n2d
