@@ -33,7 +33,7 @@ use gsi_4dvar, only: l4dvar, &
                      ladtest, lgrtest, lanczosave, ltcost, nwrvecs, lsqrtb
 use jfunc,     only: jiter,miter,niter,xhatsave,yhatsave,jiterstart
 use constants, only: zero,tiny_r_kind
-use m_m_mpimod,    only: mype
+use m_mpimod,    only: mype
 use obs_sensitivity, only: lobsensmin, lobsensfc, lobsensincr, &
                            fcsens, dot_prod_obs
 use obsmod,    only: lsaveobsens,l_do_adjoint

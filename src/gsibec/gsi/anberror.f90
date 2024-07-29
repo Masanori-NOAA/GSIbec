@@ -521,7 +521,7 @@ contains
 !$$$ end documentation block
 
     use gridmod, only: nsig1o,vlevs
-    use m_m_mpimod, only: levs_id,nvar_id,npe,ierror,gsi_mpi_comm_world, &
+    use m_mpimod, only: levs_id,nvar_id,npe,ierror,gsi_mpi_comm_world, &
            mpi_max,mpi_integer4
     use control_vectors, only: nrf_var
     use mpeu_util, only: getindex
@@ -818,7 +818,7 @@ subroutine halo_update_reg0(mype)
 !$$$ end documentation block
 
   use gridmod, only: lat2,lon2,istart,jstart,nlat,nlon
-  use m_m_mpimod, only: npe,mpi_integer4,mpi_sum,gsi_mpi_comm_world,ierror
+  use m_mpimod, only: npe,mpi_integer4,mpi_sum,gsi_mpi_comm_world,ierror
   use raflib, only: indexxi4
   implicit none
 
@@ -954,7 +954,7 @@ subroutine halo_update_reg(f,nvert)
 !$$$ end documentation block
 
   use gridmod, only: lat2,lon2
-  use m_m_mpimod, only: npe,mpi_rtype,gsi_mpi_comm_world,ierror
+  use m_mpimod, only: npe,mpi_rtype,gsi_mpi_comm_world,ierror
   implicit none
 
   integer(i_kind),intent(in   ) :: nvert

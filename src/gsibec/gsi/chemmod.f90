@@ -373,7 +373,7 @@ contains
     use gridmod, only: diagnostic_reg,regional,nlon,nlat,&
          tll2xy,txy2ll,rlats,rlons
     use convinfo, only: nconvtype,icuse,ioctype
-    use m_m_mpimod, only: npe
+    use m_mpimod, only: npe
     
     implicit none
     

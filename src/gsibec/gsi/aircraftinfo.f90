@@ -152,7 +152,7 @@ contains
 ! !USES:
 
     use constants, only: zero,zero_quad
-    use m_m_mpimod, only: mype
+    use m_mpimod, only: mype
     use obsmod, only: iadate
     use gsi_io, only: verbose
     implicit none

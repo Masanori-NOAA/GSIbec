@@ -43,7 +43,7 @@ subroutine init_mult_spc_wgts(jcap_in)
 
   use m_kinds, only: r_kind,i_kind
   use constants, only: zero,half,one,rearth,pi,tiny_r_kind
-  use m_m_mpimod, only: mype
+  use m_mpimod, only: mype
   use hybrid_ensemble_parameters, only: nsclgrp
   use hybrid_ensemble_parameters, only: spc_multwgt,spcwgt_params,r_ensloccov4scl
   implicit none

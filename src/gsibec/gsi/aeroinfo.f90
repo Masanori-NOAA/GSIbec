@@ -117,7 +117,7 @@ contains
 !
 !$$$ end documentation block
 
-    use m_m_mpimod, only: mype
+    use m_mpimod, only: mype
     use gsi_chemguess_mod, only: gsi_chemguess_get
     use gridmod, only: nsig
     implicit none
@@ -228,7 +228,7 @@ contains
 !
 ! program history log:
 !   2009-08-10  HCHuang  original code modified from ozinfo_read
-!   2010-07-10  Todling  mype from m_m_mpimod
+!   2010-07-10  Todling  mype from m_mpimod
 !
 !   input argument list:
 !
@@ -239,7 +239,7 @@ contains
 !   machine:  ibm rs/6000 sp
 !
 !$$$
-    use m_m_mpimod, only: mype
+    use m_mpimod, only: mype
     use obsmod, only: iout_aero
     implicit none
 

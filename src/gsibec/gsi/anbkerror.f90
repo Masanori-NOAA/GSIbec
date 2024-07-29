@@ -874,7 +874,7 @@ subroutine anbkgvar_lw(field,fld,fldwter,iflg)
   use gridmod, only: lat2,lon2,region_lat,region_lon, &
                      nlon_regional,nlat_regional,istart,jstart
   use guess_grids, only: isli2
-  use m_m_mpimod, only: mype
+  use m_mpimod, only: mype
   use constants, only: rad2deg
   implicit none
 
@@ -952,7 +952,7 @@ subroutine ansmoothrf(cstate)
 ! program history log:
 !   2005-02-14  parrish
 !   2008-12-04  sato - update for global mode
-!   2009-01-02  todling - get mype from m_m_mpimod directly
+!   2009-01-02  todling - get mype from m_mpimod directly
 !   2015-07-01  pondeca - rewrite to handle motley variables
 !
 !   input argument list:
@@ -969,7 +969,7 @@ subroutine ansmoothrf(cstate)
   use anberror, only: indices,indices_p,ngauss,pf2aP1, &
                       filter_all,filter_p2,filter_p3
   use patch2grid_mod, only: patch2grid, tpatch2grid
-  use m_m_mpimod, only:  npe
+  use m_mpimod, only:  npe
   use constants, only: zero
   use gridmod, only: nlat,nlon,lat2,lon2,nsig,regional
   use control_vectors, only: nvars,nrf,nrf_var,nrf_3d
@@ -1395,7 +1395,7 @@ subroutine ansmoothrf_reg_sub2slab_option(cstate)
   use m_kinds, only: r_kind,i_kind,r_single
   use anberror, only: filter_all,ngauss
   use anberror, only: pf2aP1
-  use m_m_mpimod, only: npe
+  use m_mpimod, only: npe
   use constants, only: zero,zero_single
   use gridmod, only: lat2,lon2,nsig
   use raflib, only: raf4_ad,raf4
@@ -1574,7 +1574,7 @@ subroutine ansmoothrf_reg_subdomain_option(cstate)
 !$$$
   use m_kinds, only: r_kind,i_kind,r_single
   use anberror, only: indices, filter_all,ngauss,halo_update_reg
-  use m_m_mpimod, only: mype,npe
+  use m_mpimod, only: mype,npe
   use constants, only: zero,zero_single
   use gridmod, only: istart,jstart,nsig
   use raflib, only: raf4_ad_wrap,raf4_wrap

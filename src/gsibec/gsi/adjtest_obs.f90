@@ -40,7 +40,7 @@ module adjtest_obs
 
   use jfunc, only: jiter
   use constants, only: zero, two
-  use m_m_mpimod, only: npe, ierror,gsi_mpi_comm_world, mpi_sum,mpi_integer4,mpi_rtype,mype
+  use m_mpimod, only: npe, ierror,gsi_mpi_comm_world, mpi_sum,mpi_integer4,mpi_rtype,mype
   use control_vectors, only: control_vector,allocate_cv,random_cv, deallocate_cv,assignment(=)
   use state_vectors, only: allocate_state,deallocate_state,prt_state_norms,dot_product
   use gsi_bundlemod, only : gsi_bundle,assignment(=)

@@ -259,7 +259,7 @@ contains
 !   2006-04-17  treadon - remove calculation of ke_vp
 !   2007-05-30  h.liu   - add coroz
 !   2008-07-10  jguo    - place read of bkgerr fields in m_berror_stats
-!   2008-12-29  todling - get mlat from dims in m_berror_stats; mype from m_m_mpimod
+!   2008-12-29  todling - get mlat from dims in m_berror_stats; mype from m_mpimod
 !   2009-02-25  zhu     - remove the error message
 !   2014-02-05  todling - add parameter to control overwrite of cw w/ q cov
 !
@@ -274,7 +274,7 @@ contains
 !
 !$$$
     use m_kinds, only: r_single
-    use m_m_mpimod, only: mype
+    use m_mpimod, only: mype
     use gridmod, only: istart,lat2,nlat,nsig
     use constants, only: zero
     use m_berror_stats,only: berror_set,berror_read_bal
@@ -375,7 +375,7 @@ contains
 !$$$
     use gridmod, only: lat2,lon2,nsig,twodvar_regional
     use guess_grids, only: ges_prslavg,ges_psfcavg
-    use m_m_mpimod, only: mype
+    use m_mpimod, only: mype
     use m_berror_stats_reg, only: berror_set_reg,berror_get_dims_reg,berror_read_bal_reg
     use constants, only: zero,half,one
     use directDA_radaruse_mod, only: l_decouple_sf_tps, l_decouple_sf_vp
@@ -1049,7 +1049,7 @@ subroutine strong_bk(st,vp,p,t,uvflag)
 !   machine:  ibm RS/6000 SP
 !
 !$$$
-  use m_m_mpimod, only: mype
+  use m_mpimod, only: mype
   use gridmod, only: latlon1n,latlon11
   use mod_vtrans,only: nvmodes_keep
   use mod_strong,only: nstrong
@@ -1118,7 +1118,7 @@ subroutine strong_bk_ad(st,vp,p,t,uvflag)
 !   machine:  ibm RS/6000 SP
 !
 !$$$
-  use m_m_mpimod, only: mype
+  use m_mpimod, only: mype
   use constants, only: zero
   use gridmod, only: latlon1n,latlon11
   use mod_vtrans,only: nvmodes_keep

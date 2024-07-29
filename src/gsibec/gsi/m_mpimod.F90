@@ -12,7 +12,7 @@ module m_mpimod
 
 ! !USES:
 
-  use m_m_kinds, only: i_kind
+  use m_kinds, only: i_kind
 
 #if defined(ibm_sp) || defined(_JEDI_)
 ! Include standard mpi includes file.

@@ -29,7 +29,7 @@ use m_kinds, only: r_kind,i_kind
 use gsi_4dvar, only: lsqrtb, nsubwin
 use constants, only: zero, two
 use jfunc, only: nrclen
-use m_m_mpimod, only: mype
+use m_mpimod, only: mype
 use control_vectors, only: control_vector,allocate_cv,random_cv, &
     deallocate_cv,dot_product,assignment(=)
 use state_vectors, only: allocate_state,deallocate_state,dot_product

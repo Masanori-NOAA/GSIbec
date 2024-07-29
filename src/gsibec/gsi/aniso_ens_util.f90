@@ -362,7 +362,7 @@ subroutine ens_intpcoeffs_reg(ngrds,igbox,iref,jref,igbox0f,ensmask,enscoeff,gbl
 !$$$
   use m_kinds, only: i_kind, r_kind
   use constants, only: zero, one, half, rad2deg
-  use m_m_mpimod, only: npe, mpi_sum, mpi_itype, gsi_mpi_comm_world
+  use m_mpimod, only: npe, mpi_sum, mpi_itype, gsi_mpi_comm_world
   use gridmod, only: nlat,nlon,tll2xy, &
                      region_lon, region_lat, &
                      rlon_min_dd,rlon_max_dd, &
@@ -903,7 +903,7 @@ subroutine pges_minmax(mype,nt,pmin,pmax)
   use m_kinds, only: i_kind, r_kind
   use gridmod, only: lat1,lon1,nsig,strip
   use guess_grids, only: ges_prsl
-  use m_m_mpimod,only: mpi_real8, mpi_min, mpi_max, gsi_mpi_comm_world
+  use m_mpimod,only: mpi_real8, mpi_min, mpi_max, gsi_mpi_comm_world
   implicit none
 
 ! Declare passed variables

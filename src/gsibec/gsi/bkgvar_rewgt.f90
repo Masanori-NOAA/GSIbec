@@ -43,7 +43,7 @@ subroutine bkgvar_rewgt(sfvar,vpvar,tvar,psvar,mype)
   use constants, only: one,zero,two,zero_quad,tiny_r_kind
   use gridmod, only: nlat,nlon,nsig,lat2,lon2
   use guess_grids, only: nfldsig
-  use m_m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_sum,mpi_rtype,mpi_max
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_sum,mpi_rtype,mpi_max
   use balmod, only: agvz,wgvz,bvz,pput
   use berror, only: bkgv_rewgtfct,bkgv_write,fpsproj,fut2ps
   use gsi_metguess_mod, only: gsi_metguess_bundle
@@ -664,7 +664,7 @@ subroutine gather_stuff2(f,g,mype,outpe)
 !
 !$$$
   use m_kinds, only: r_kind,i_kind
-  use m_m_mpimod, only: mpi_rtype,gsi_mpi_comm_world,ierror
+  use m_mpimod, only: mpi_rtype,gsi_mpi_comm_world,ierror
   use general_commvars_mod, only: g1
   implicit none
 

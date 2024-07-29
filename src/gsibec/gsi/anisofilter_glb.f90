@@ -118,7 +118,7 @@ module anisofilter_glb
 
   use guess_grids, only: ges_prsl,ntguessig,ges_tsen
 
-  use m_m_mpimod, only: npe,levs_id,nvar_id,ierror,&
+  use m_mpimod, only: npe,levs_id,nvar_id,ierror,&
                     mpi_real8,mpi_real4,mpi_integer4,&
                     mpi_sum,gsi_mpi_comm_world
 

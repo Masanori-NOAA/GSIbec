@@ -1,4 +1,4 @@
-module m_m_kinds
+module m_kinds
 !$$$  module documentation block
 !                .      .    .                                       .
 ! module:   m_kinds
@@ -110,4 +110,4 @@ module m_m_kinds
   integer, parameter, public  :: num_bytes_for_r_kind = &
        real_byte_sizes( default_real )
 
-end module m_m_kinds
+end module m_kinds

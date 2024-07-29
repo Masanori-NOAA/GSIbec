@@ -34,7 +34,7 @@ subroutine antest_maps0(mype,theta0f,z0f)
   use anberror, only: kvar_start,kvar_end,var_names,pf2aP1,indices
   use gridmod, only: nsig,nsig1o,nlon,nlat,istart,jstart,lat2,lon2
   use constants, only: zero_single,zero,one,rd_over_cp,r100
-  use m_m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,gsi_mpi_comm_world
+  use m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,gsi_mpi_comm_world
   use guess_grids, only: ntguessig,ges_prsl
   use fgrid2agrid_mod, only: fgrid2agrid
   use control_vectors, only: nvars
@@ -337,7 +337,7 @@ subroutine antest_maps0_subdomain_option(mype,theta0f,z0f)
   use anberror, only: kvar_start,kvar_end,var_names,levs_jdvar,indices,pf2aP1
   use gridmod, only: nsig,nlon,nlat,istart,jstart,lat2,lon2
   use constants, only: zero_single,zero,one,rd_over_cp,r100
-  use m_m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,gsi_mpi_comm_world
+  use m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,gsi_mpi_comm_world
   use guess_grids, only: ntguessig,ges_prsl
   use control_vectors, only: nvars
   use gsi_bundlemod, only: gsi_bundlecreate

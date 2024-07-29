@@ -9,7 +9,7 @@ SUBROUTINE aero_guess_at_obs_locations(&
   USE gsi_chemguess_mod, ONLY: gsi_chemguess_get
   USE gridmod, ONLY: istart,jstart,nlon,nlat,lon1
   USE constants, ONLY: max_varname_length, zero, one
-  USE m_m_mpimod, ONLY: mype
+  USE m_mpimod, ONLY: mype
   USE guess_grids, ONLY: hrdifsig,nfldsig
 
   IMPLICIT NONE
