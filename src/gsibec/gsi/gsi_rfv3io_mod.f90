@@ -385,10 +385,10 @@ subroutine gsi_rfv3io_get_grid_specs(ierr)
           ny_layout_e(nio)=nylen
        enddo
     endif
-    if(mype==0)write(6,*),'nx,ny=',nx,ny
-    if(mype==0)write(6,*),'ny_layout_len=',ny_layout_len
-    if(mype==0)write(6,*),'ny_layout_b=',ny_layout_b
-    if(mype==0)write(6,*),'ny_layout_e=',ny_layout_e
+   ! if(mype==0)write(6,*),'nx,ny=',nx,ny
+   ! if(mype==0)write(6,*),'ny_layout_len=',ny_layout_len
+   ! if(mype==0)write(6,*),'ny_layout_b=',ny_layout_b
+   ! if(mype==0)write(6,*),'ny_layout_e=',ny_layout_e
 
 !!!    get nx,ny,grid_lon,grid_lont,grid_lat,grid_latt,nz,ak,bk
 
@@ -432,10 +432,10 @@ subroutine gsi_rfv3io_get_grid_specs(ierr)
     endif
 ! check the grid type
     if( grid_type_fv3_regional == 1 ) then
-       if(mype==0) write(6,*) 'FV3 regional input grid is  E-W N-S grid'
+       !if(mype==0) write(6,*) 'FV3 regional input grid is  E-W N-S grid'
        grid_reverse_flag=.true.    ! grid is revered comparing to usual map view
     else if(grid_type_fv3_regional == 2) then
-       if(mype==0) write(6,*) 'FV3 regional input grid is  W-E S-N grid'
+       !if(mype==0) write(6,*) 'FV3 regional input grid is  W-E S-N grid'
        grid_reverse_flag=.false.   ! grid orientated just like we see on map view    
     else
        write(6,*) 'Error: FV3 regional input grid is unknown grid'
@@ -462,7 +462,7 @@ subroutine gsi_rfv3io_get_grid_specs(ierr)
        iret=nf90_inquire_dimension(gfile_loc,k,name,len)
        if(trim(name)=='xaxis_1') nz=len
     enddo
-    if(mype==0)write(6,'(" nz=",i5)') nz
+    !if(mype==0)write(6,'(" nz=",i5)') nz
 
     nsig=nz-1
 
@@ -498,11 +498,11 @@ subroutine gsi_rfv3io_get_grid_specs(ierr)
        aeta1_ll(i)=half*(ak(i)+ak(i+1))*0.001_r_kind
        aeta2_ll(i)=half*(bk(i)+bk(i+1))
     enddo
-    if(mype==0)then
-       do i=1,nz
-          write(6,'(" ak,bk(",i3,") = ",2f17.6)') i,ak(i),bk(i)
-       enddo
-    endif
+    !if(mype==0)then
+    !   do i=1,nz
+    !      write(6,'(" ak,bk(",i3,") = ",2f17.6)') i,ak(i),bk(i)
+    !   enddo
+    !endif
 
 !!!!!!! setup A grid and interpolation/rotation coeff.
     call generate_anl_grid(nx,ny,grid_lon,grid_lont,grid_lat,grid_latt)
@@ -1135,6 +1135,7 @@ subroutine read_fv3_netcdf_guess(fv3filenamegin)
     end if
     if (.not.allocated(name_metvars3d)) then
       allocate( name_metvars3d(GSI_MetGuess_Bundle(it)%n3d))
+write(6,*)"GSI_MetGuess_Bundle(it)%n3d=",GSI_MetGuess_Bundle(it)%n3d
     end if
     
     if (laeroana_fv3cmaq.or.laeroana_fv3smoke) then
@@ -1187,7 +1188,7 @@ subroutine read_fv3_netcdf_guess(fv3filenamegin)
            endif 
          endif ! iqr is the inital qr, need not to be in IO 
        endif
-      end do
+      end do 
       if (iuv /= 2.or. ndynvario3d<=0.or.ntracerio3d<=0 ) then
         write(6,*)"the set up for met variable is not as expected, abort"
         call stop2(222)
@@ -1521,8 +1522,8 @@ subroutine read_fv3_netcdf_guess(fv3filenamegin)
 
       do it=1,nfldsig
          ier=0
-write(6,*)"Test1"
          call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'ps' ,ges_ps ,istatus );ier=ier+istatus
+         
          call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'z' , ges_z ,istatus );ier=ier+istatus
          call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'u' , ges_u ,istatus );ier=ier+istatus
          call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'v' , ges_v ,istatus );ier=ier+istatus
@@ -1540,12 +1541,10 @@ write(6,*)"Test1"
                call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'iqr' ,ges_iqr ,istatus );ier=ier+istatus
                call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'qnr',ges_qnr ,istatus );ier=ier+istatus
             end if
-            if(if_model_dbz) then
+            if(if_model_dbz) &
                call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'dbz' , ges_dbz ,istatus );ier=ier+istatus
-            endif
-            if(if_model_fed) then
+            if(if_model_fed) &
                call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'fed' , ges_fed ,istatus );ier=ier+istatus
-            endif
          end if
          if (ier/=0) call die(trim(myname),'cannot get pointers for fv3 met-fields, ier =',ier)
    
@@ -1604,14 +1603,12 @@ write(6,*)"Test1"
          end if
 
          if( fv3sar_bg_opt == 0) then 
-write(6,*)"Test11"
-           call gsi_fv3ncdf_readuv(grd_fv3lam_uv,ges_u,ges_v,fv3filenamegin(it),.false.)
+            call gsi_fv3ncdf_readuv(grd_fv3lam_uv,ges_u,ges_v,fv3filenamegin(it),.false.)
          else
            call gsi_fv3ncdf_readuv_v1(grd_fv3lam_uv,ges_u,ges_v,fv3filenamegin(it),.false.)
          endif
 
          if( fv3sar_bg_opt == 0) then 
-write(6,*)"Test13"
             call gsi_fv3ncdf_read(grd_fv3lam_dynvar_ionouv,gsibundle_fv3lam_dynvar_nouv &
             & ,fv3filenamegin(it)%dynvars,fv3filenamegin(it),.false.)
             call gsi_fv3ncdf_read(grd_fv3lam_tracer_ionouv,gsibundle_fv3lam_tracer_nouv &
@@ -1704,7 +1701,6 @@ write(6,*)"Test13"
          endif !laeroana_fv3smoke 
 
          if( fv3sar_bg_opt == 0) then
-write(6,*)"Test22"
            call GSI_BundleGetPointer ( gsibundle_fv3lam_dynvar_nouv, 'delp'  ,ges_delp ,istatus );ier=ier+istatus
            if(istatus==0) ges_delp=ges_delp*0.001_r_kind
          endif
@@ -1729,7 +1725,6 @@ write(6,*)"Test22"
             enddo
          enddo
          if( fv3sar_bg_opt == 0) then
-write(6,*)"Test26"
            if (.not.allocated(ges_delp_bg))allocate(ges_delp_bg(lat2,lon2,nsig))
            if (.not.allocated(ges_ps_bg))allocate(ges_ps_bg(lat2,lon2))
            ges_delp_bg=ges_delp

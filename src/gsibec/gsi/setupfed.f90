@@ -105,7 +105,7 @@ subroutine setupfed(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,fed_diagsa
 ! Declare external calls for code analysis
   external:: tintrp2a1
   external:: tintrp2a11
-  external:: tintrp2a1116
+  !external:: tintrp2a1116
   external:: tintrp31
   external:: grdcrd1
   external:: stop2

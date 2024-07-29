@@ -365,10 +365,7 @@ subroutine setuprhsall(ndata,mype,init_pass,last_pass)
 
 
 ! Compute derived quantities on grid
-  if(.not.cmaq_regional) then
-write(6,*)"Test!!"
-    call compute_derived(mype,init_pass)
-  endif
+  if(.not.cmaq_regional) call compute_derived(mype,init_pass)
 
   ! ------------------------------------------------------------------------
 

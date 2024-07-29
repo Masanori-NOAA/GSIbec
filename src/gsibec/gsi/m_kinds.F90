@@ -1,12 +1,12 @@
 module m_kinds
 !$$$  module documentation block
 !                .      .    .                                       .
-! module:   m_kinds
+! module:   kinds
 !   prgmmr: treadon          org: np23                date: 2004-08-15
 !
-! abstract:  Module to hold specification m_kinds for variable declaration.
+! abstract:  Module to hold specification kinds for variable declaration.
 !            This module is based on (copied from) Paul vanDelst's 
-!            type_m_kinds module found in the community radiative transfer
+!            type_kinds module found in the community radiative transfer
 !            model
 !
 ! module history log:
@@ -49,7 +49,7 @@ module m_kinds
   integer, parameter, private :: llong_t = selected_int_kind(16)     ! llong integer
   integer, parameter, public  :: i_llong = max( llong_t, i_long )
 
-! Expected 8-bit byte sizes of the integer m_kinds
+! Expected 8-bit byte sizes of the integer kinds
   integer, parameter, public :: num_bytes_for_i_byte  = 1
   integer, parameter, public :: num_bytes_for_i_short = 2
   integer, parameter, public :: num_bytes_for_i_long  = 4
@@ -82,7 +82,7 @@ module m_kinds
   integer, parameter, private :: quad_t   = selected_real_kind(20) ! quad precision
   integer, parameter, public  :: r_quad   = max( quad_t, r_double )
 
-! Expected 8-bit byte sizes of the real m_kinds
+! Expected 8-bit byte sizes of the real kinds
   integer, parameter, public :: num_bytes_for_r_single = 4
   integer, parameter, public :: num_bytes_for_r_double = 8
   integer, parameter, public :: num_bytes_for_r_quad   = 16
@@ -109,5 +109,11 @@ module m_kinds
   integer, parameter, public  :: r_kind = real_kinds( default_real )
   integer, parameter, public  :: num_bytes_for_r_kind = &
        real_byte_sizes( default_real )
+  integer, parameter, public  :: dp = real_kinds( default_real )
+  integer, parameter, public  :: sp = r_single
+  integer,parameter, public :: spc=kind((1.0,1.0))
+  integer,parameter, public :: dpc=kind((1.0d0,1.0d0))
+  private:: one_dpi; integer(8),parameter:: one_dpi=1
+  integer,parameter , public :: dpi=kind(one_dpi)
 
 end module m_kinds
