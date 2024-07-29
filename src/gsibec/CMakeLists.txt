@@ -1,5 +1,6 @@
 # Build list of subdirs with files to add
-set(_subdirs gsi gsigeos gsigfs )
+#set(_subdirs gsi gsigeos gsigfs )
+set(_subdirs gsi )
 foreach( _subdir IN LISTS _subdirs )
     add_subdirectory( ${_subdir} )
     list( TRANSFORM ${_subdir}_src_files PREPEND ${_subdir}/ )
@@ -12,6 +13,7 @@ ecbuild_add_library( TARGET ${PROJECT_NAME}
                      INSTALL_HEADERS LISTED
                      LINKER_LANGUAGE ${${PROJECT_NAME}_LINKER_LANGUAGE})
 
+
 #if(OPENMP)
 #  target_link_libraries( ${PROJECT_NAME} PUBLIC OpenMP::OpenMP_Fortran )
 #endif()
@@ -19,12 +21,28 @@ target_link_libraries( ${PROJECT_NAME} PUBLIC NetCDF::NetCDF_Fortran )
 target_link_libraries( ${PROJECT_NAME} PUBLIC MPI::MPI_Fortran )
 target_link_libraries( ${PROJECT_NAME} PUBLIC ${LAPACK_LIBRARIES} )
 
+target_link_libraries( ${PROJECT_NAME} PUBLIC bacio::bacio_4)
+target_link_libraries( ${PROJECT_NAME} PUBLIC w3emc::w3emc_d)
+target_link_libraries( ${PROJECT_NAME} PUBLIC sigio::sigio)
+target_link_libraries( ${PROJECT_NAME} PUBLIC sfcio::sfcio)
+target_link_libraries( ${PROJECT_NAME} PUBLIC nemsio::nemsio)
+target_link_libraries( ${PROJECT_NAME} PUBLIC ncio::ncio)
+target_link_libraries( ${PROJECT_NAME} PUBLIC bufr::bufr_4)
+target_link_libraries( ${PROJECT_NAME} PUBLIC crtm )
+target_link_libraries( ${PROJECT_NAME} PUBLIC wrf_io::wrf_io)
+target_link_libraries( ${PROJECT_NAME} PUBLIC ncdiag::ncdiag)
+
 # NCEP spectral library
-if( ip_FOUND )
-    target_link_libraries( gsibec PUBLIC ip::ip_d)
-elseif( sp_FOUND )
+if( sp_FOUND )
     target_link_libraries( gsibec PUBLIC sp::sp_d)
 endif()
+
+list(APPEND GSI_C_defs
+  FortranByte=char
+  FortranInt=int
+  funder
+  "FortranLlong=long long")
+target_compile_definitions( ${PROJECT_NAME} PRIVATE ${GSI_C_defs})
 
 # Enable including of local header Fortran file templates
 target_include_directories( ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..> )
