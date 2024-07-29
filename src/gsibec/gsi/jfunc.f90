@@ -136,7 +136,8 @@ module jfunc
   public :: pseudo_q2
   public :: varq
   public :: cnvw_option
-  public :: hofx_2m_sfcfile
+  public :: hofx_2m_sfcfile  
+  public :: nclenz
 
   logical first,last,switch_on_derivatives,tendsflag,print_diag_pcg,tsensible,diag_precon
   logical clip_supersaturation,R_option
@@ -300,16 +301,16 @@ contains
     call set_pointer
 
 !   Allocate arrays used in minimization
-    if(.not.regional)then                    ! If global, use msig, mlat, and mlon
-       call berror_get_dims(msig,mlat,mlon)
-    else                                     ! If regional, use msig and mlat only
+!    if(.not.regional)then                    ! If global, use msig, mlat, and mlon
+!       call berror_get_dims(msig,mlat,mlon)
+!    else                                     ! If regional, use msig and mlat only
        call berror_get_dims_reg(msig,mlat)
-    endif
+!    endif
 
-    call allocate_cv(xhatsave)
-    call allocate_cv(yhatsave)
-    xhatsave=zero
-    yhatsave=zero
+!    call allocate_cv(xhatsave)
+!    call allocate_cv(yhatsave)
+!    xhatsave=zero
+!    yhatsave=zero
 
     if (getindex(cvars3d,'q')>0) then
         allocate(varq(1:mlat,1:nsig))
