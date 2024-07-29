@@ -83,6 +83,8 @@ module general_sub2grid_mod
    public :: general_suba2sube
 ! set passed variables to public
    public :: sub2grid_info
+   public :: general_deter_subdomain_withLayout ! TEMPORARY _RT
+   public :: general_deter_subdomain_nolayout 
 
    interface general_sub2grid
      module procedure general_sub2grid_r_single_rank11
@@ -624,7 +626,7 @@ end subroutine get_iuse_pe
 !
 !$$$
   use m_kinds, only: i_kind
-  use m_mpimod, only: nxPE, nyPE
+  use m_mpimod, only: nxpe, nype
   use mpeu_util, only: die
   implicit none
 
@@ -647,12 +649,12 @@ end subroutine get_iuse_pe
 ! end if
 ! If a layout is provided, use it for the domain decomposition
 ! ------------------------------------------------------------
-  if ( nxPE > 0 .AND. nyPE > 0 ) then
+  if ( nxpe > 0 .AND. nype > 0 ) then
 
      if( npe/=nxpe*nype ) then
          call die(myname_,'NPE inconsistent from  NxPE NyPE ',npe)
      endif
-     call general_deter_subdomain_withLayout(npe,nxPE,nyPE,mype,nlat,nlon,regional, &
+     call general_deter_subdomain_withLayout(npe,nxpe,nype,mype,nlat,nlon,regional, &
                     periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart)
 
 ! Otherwise, use NCEP original algorithm
@@ -879,7 +881,6 @@ end subroutine get_iuse_pe
 !     point per mpi task (pe)
       npts=nlat*nlon
       anperpe=real(npts,r_kind)/real(npe,r_kind)
-
 !     Start with square subdomains
       nrnc=sqrt(anperpe)
       iinum=nlon/nrnc
