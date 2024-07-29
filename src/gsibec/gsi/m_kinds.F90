@@ -56,10 +56,10 @@ module m_kinds
   integer, parameter, public :: num_bytes_for_i_llong = 8
 
 ! Define arrays for default definition
-  integer, parameter, private :: num_i_m_kinds = 4
-  integer, parameter, dimension( num_i_m_kinds ), private :: integer_types = (/ &
+  integer, parameter, private :: num_i_kinds = 4
+  integer, parameter, dimension( num_i_kinds ), private :: integer_types = (/ &
        i_byte, i_short, i_long,  i_llong  /) 
-  integer, parameter, dimension( num_i_m_kinds ), private :: integer_byte_sizes = (/ &
+  integer, parameter, dimension( num_i_kinds ), private :: integer_byte_sizes = (/ &
        num_bytes_for_i_byte, num_bytes_for_i_short, &
        num_bytes_for_i_long, num_bytes_for_i_llong  /)
 
@@ -88,10 +88,10 @@ module m_kinds
   integer, parameter, public :: num_bytes_for_r_quad   = 16
 
 ! Define arrays for default definition
-  integer, parameter, private :: num_r_m_kinds = 3
-  integer, parameter, dimension( num_r_m_kinds ), private :: real_m_kinds = (/ &
+  integer, parameter, private :: num_r_kinds = 3
+  integer, parameter, dimension( num_r_kinds ), private :: real_kinds = (/ &
        r_single, r_double, r_quad    /) 
-  integer, parameter, dimension( num_r_m_kinds ), private :: real_byte_sizes = (/ &
+  integer, parameter, dimension( num_r_kinds ), private :: real_byte_sizes = (/ &
        num_bytes_for_r_single, num_bytes_for_r_double, &
        num_bytes_for_r_quad    /)
 
@@ -106,7 +106,7 @@ module m_kinds
 #ifdef _REAL16_
   integer, parameter, private :: default_real = 3  ! 3=quad
 #endif
-  integer, parameter, public  :: r_kind = real_m_kinds( default_real )
+  integer, parameter, public  :: r_kind = real_kinds( default_real )
   integer, parameter, public  :: num_bytes_for_r_kind = &
        real_byte_sizes( default_real )
 
