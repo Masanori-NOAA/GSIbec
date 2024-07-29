@@ -41,8 +41,11 @@ subroutine setupt(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diagsav
 
   use obsmod, only: netcdf_diag, binary_diag, dirname
   use obsmod, only: l_obsprvdiag
-  use nc_diag_write_mod, only: nc_diag_init, nc_diag_header, nc_diag_metadata, &
-       nc_diag_write, nc_diag_data2d, nc_diag_metadata_to_single
+  use nc_diag_write_mod, only: nc_diag_init, nc_diag_metadata, &
+       nc_diag_write!, nc_diag_data2d, nc_diag_metadata_to_single
+  use ncdw_metadata, only: nc_diag_metadata_to_single
+  use ncdw_data2d, only: nc_diag_data2d
+  use ncdw_lheader, only: nc_diag_header
   use nc_diag_read_mod, only: nc_diag_read_init, nc_diag_read_get_dim, nc_diag_read_close
 
   use qcmod, only: npres_print,dfact,dfact1,ptop,pbot,buddycheck_t

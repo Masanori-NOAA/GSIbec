@@ -60,9 +60,13 @@ subroutine setupaod(obsLL,odiagLL,lunin,mype,nchanl,nreal,nobs,&
   use obsmod, only: ianldate,mype_diaghdr,nchan_total, &
            dplat,lobsdiagsave,lobsdiag_allocated,&
            dirname,time_offset,luse_obsdiag
-  use nc_diag_write_mod, only: nc_diag_init, nc_diag_header, nc_diag_metadata, &
-       nc_diag_write, nc_diag_data2d, nc_diag_chaninfo_dim_set, nc_diag_chaninfo, &
-       nc_diag_metadata_to_single
+  use nc_diag_write_mod, only: nc_diag_init, nc_diag_metadata, &
+       nc_diag_write!, nc_diag_data2d, nc_diag_metadata_to_single
+  use ncdw_metadata, only: nc_diag_metadata_to_single
+  use ncdw_data2d, only: nc_diag_data2d
+  use ncdw_lheader, only: nc_diag_header
+  use ncdw_chaninfo, only: nc_diag_chaninfo_dim_set, nc_diag_chaninfo
+
   use nc_diag_read_mod, only: nc_diag_read_init, nc_diag_read_get_dim, nc_diag_read_close
   use gsi_4dvar, only: nobs_bins,hr_obsbin
   use gridmod, only: nsig,get_ij

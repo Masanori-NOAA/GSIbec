@@ -269,9 +269,12 @@ contains
   use m_obsLList, only: obsLList
   use obsmod, only: luse_obsdiag,dval_use
   use obsmod, only: netcdf_diag, binary_diag, dirname
-  use nc_diag_write_mod, only: nc_diag_init, nc_diag_header, nc_diag_metadata, &
-       nc_diag_write, nc_diag_data2d, nc_diag_chaninfo_dim_set, &
-       nc_diag_chaninfo, nc_diag_metadata_to_single
+  use nc_diag_write_mod, only: nc_diag_init, nc_diag_metadata, &
+       nc_diag_write!, nc_diag_data2d, nc_diag_metadata_to_single
+  use ncdw_metadata, only: nc_diag_metadata_to_single
+  use ncdw_data2d, only: nc_diag_data2d
+  use ncdw_lheader, only: nc_diag_header
+  use ncdw_chaninfo, only: nc_diag_chaninfo_dim_set, nc_diag_chaninfo
   use gsi_4dvar, only: nobs_bins,hr_obsbin,l4dvar
   use gridmod, only: nsig,regional,get_ij
   use satthin, only: super_val1

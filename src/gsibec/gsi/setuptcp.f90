@@ -56,8 +56,11 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
              nobskeep,lobsdiag_allocated,oberror_tune,perturb_obs,tcp_posmatch,tcp_box, &
              time_offset,rmiss_single,lobsdiagsave,lobsdiag_forenkf,ianldate
   use obsmod, only: netcdf_diag, binary_diag, dirname
-  use nc_diag_write_mod, only: nc_diag_init, nc_diag_header, nc_diag_metadata, &
-       nc_diag_write, nc_diag_data2d, nc_diag_metadata_to_single
+  use nc_diag_write_mod, only: nc_diag_init, nc_diag_metadata, &
+       nc_diag_write!, nc_diag_data2d, nc_diag_metadata_to_single
+  use ncdw_metadata, only: nc_diag_metadata_to_single
+  use ncdw_data2d, only: nc_diag_data2d
+  use ncdw_lheader, only: nc_diag_header
   use nc_diag_read_mod, only: nc_diag_read_init, nc_diag_read_get_dim, nc_diag_read_close
   use m_obsNode, only: obsNode
   use m_tcpNode, only: tcpNode

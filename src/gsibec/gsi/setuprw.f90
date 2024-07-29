@@ -116,8 +116,11 @@ subroutine setuprw(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diagsa
                     if_vterminal, ens_hx_dbz_cut, if_model_dbz, &
                     doradaroneob,oneobddiff,oneobvalue, if_vrobs_raw, if_use_w_vr
   use obsmod, only: netcdf_diag, binary_diag, dirname,ianldate
-  use nc_diag_write_mod, only: nc_diag_init, nc_diag_header, nc_diag_metadata, &
-       nc_diag_write, nc_diag_data2d, nc_diag_metadata_to_single
+  use nc_diag_write_mod, only: nc_diag_init, nc_diag_metadata, &
+       nc_diag_write!, nc_diag_data2d, nc_diag_metadata_to_single
+  use ncdw_metadata, only: nc_diag_metadata_to_single
+  use ncdw_data2d, only: nc_diag_data2d
+  use ncdw_lheader, only: nc_diag_header
   use nc_diag_read_mod, only: nc_diag_read_init, nc_diag_read_get_dim, nc_diag_read_close
   use m_obsNode, only: obsNode
   use m_rwNode, only: rwNode
