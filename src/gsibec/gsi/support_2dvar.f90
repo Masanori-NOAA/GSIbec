@@ -3512,8 +3512,10 @@ end module hilbertcurve
       integer(i_kind) i,j,ip,jp
       real(r_single) dx,dy,dxm,dym
 
-      i  = ifix(yy)
-      j  = ifix(xx)
+      !i  = ifix(yy)
+      !j  = ifix(xx)
+      i  = int(yy)
+      j  = int(xx)
       
       dx = xx - real(j,r_single)
       dy = yy - real(i,r_single)
