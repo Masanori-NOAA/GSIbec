@@ -843,10 +843,10 @@ contains
 !EOP
 !-------------------------------------------------------------------------
     implicit none
-
     allocate(rlats(nlat),rlons(nlon),coslon(nlon),sinlon(nlon),&
              wgtlats(nlat),rbs2(nlat),corlats(nlat),wgtfactlats(nlat))
-    allocate(ak5(nsig+1),bk5(nsig+1),ck5(nsig+1),tref5(nsig))
+    if(.not.allocated(ak5)) &
+            allocate(ak5(nsig+1),bk5(nsig+1),ck5(nsig+1),tref5(nsig))
     return
   end subroutine create_grid_vars
     
