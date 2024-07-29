@@ -59,7 +59,7 @@ module pcpinfo
   public :: init_pcp
   public :: pcpinfo_read
   public :: pcpinfo_write
-  public :: create_pcp_random
+!  public :: create_pcp_random
   public :: destroy_pcp_random
 ! set passed variables to public
   public :: npcptype,npredp,tinym1_obs,pg_pcp,b_pcp,diag_pcp,iusep
@@ -290,7 +290,7 @@ contains
     return
   end subroutine pcpinfo_write
 
-  subroutine create_pcp_random(iadate,mype)
+!  subroutine create_pcp_random(iadate,mype)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    create_pcp_random
@@ -319,54 +319,54 @@ contains
 !   machine:  ibm rs/6000 sp
 !
 !$$$
-    use gridmod, only: ijn_s,displs_s,itotsub,&
-       lat2,lon2,nlat,nlon
-    use general_commvars_mod, only: ltosj_s,ltosi_s
-    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype,npe
-    use mersenne_twister, only: random_setseed, random_number
-    implicit none
+!    use gridmod, only: ijn_s,displs_s,itotsub,&
+!       lat2,lon2,nlat,nlon
+!    use general_commvars_mod, only: ltosj_s,ltosi_s
+!    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype,npe
+!    use mersenne_twister, only: random_setseed, random_number
+!    implicit none
 
 ! Declare passed variables
-    integer(i_kind)             ,intent(in   ) :: mype
-    integer(i_kind),dimension(5),intent(in   ) :: iadate    
+!    integer(i_kind)             ,intent(in   ) :: mype
+!    integer(i_kind),dimension(5),intent(in   ) :: iadate    
 
 ! Declare local variables
-    integer(i_kind) i,j,k,mm1,myper,iseed
+!    integer(i_kind) i,j,k,mm1,myper,iseed
     
-    real(r_kind) rseed
-    real(r_kind),allocatable,dimension(:):: rwork,rgrid1
-    real(r_kind),allocatable,dimension(:,:):: rgrid2
+!    real(r_kind) rseed
+!    real(r_kind),allocatable,dimension(:):: rwork,rgrid1
+!    real(r_kind),allocatable,dimension(:,:):: rgrid2
 
 ! Compute random number for precipitation forward model.  
-    mm1=mype+1
-    allocate(xkt2d(lat2,lon2))
-    allocate(rwork(itotsub))
-    myper=npe-1
-    if (mype==myper) then
-       rseed = 1e6_r_kind*iadate(1) + 1e4_r_kind*iadate(2) + 1e2_r_kind*iadate(3) + iadate(4)
-       iseed=rseed
-       write(6,*)'CREATE_PCP_RANDOM:  iseed=',iseed
-       call random_setseed(iseed)
-       allocate(rgrid1(nlat*nlon),rgrid2(nlat,nlon))
-       call random_number(rgrid1)
-       k=0
-       do j=1,nlon
-          do i=1,nlat
-             k=k+1
-             rgrid2(i,j)=rgrid1(k)
-          end do
-       end do
-       do k=1,itotsub
-          i=ltosi_s(k); j=ltosj_s(k)
-          rwork(k)=rgrid2(i,j)
-       end do
-       deallocate(rgrid1,rgrid2)
-    endif
-    call mpi_scatterv(rwork,ijn_s,displs_s,mpi_rtype,xkt2d,ijn_s(mm1),&
-         mpi_rtype,myper,gsi_mpi_comm_world,ierror)
-    deallocate(rwork)
-    return
-  end subroutine create_pcp_random
+!    mm1=mype+1
+!    allocate(xkt2d(lat2,lon2))
+!    allocate(rwork(itotsub))
+!    myper=npe-1
+!    if (mype==myper) then
+!       rseed = 1e6_r_kind*iadate(1) + 1e4_r_kind*iadate(2) + 1e2_r_kind*iadate(3) + iadate(4)
+!       iseed=rseed
+!       write(6,*)'CREATE_PCP_RANDOM:  iseed=',iseed
+!       call random_setseed(iseed)
+!       allocate(rgrid1(nlat*nlon),rgrid2(nlat,nlon))
+!       call random_number(rgrid1)
+!       k=0
+!       do j=1,nlon
+!          do i=1,nlat
+!             k=k+1
+!             rgrid2(i,j)=rgrid1(k)
+!          end do
+!       end do
+!       do k=1,itotsub
+!          i=ltosi_s(k); j=ltosj_s(k)
+!          rwork(k)=rgrid2(i,j)
+!       end do
+!       deallocate(rgrid1,rgrid2)
+!    endif
+!    call mpi_scatterv(rwork,ijn_s,displs_s,mpi_rtype,xkt2d,ijn_s(mm1),&
+!         mpi_rtype,myper,gsi_mpi_comm_world,ierror)
+!    deallocate(rwork)
+!    return
+!  end subroutine create_pcp_random
 
 
   subroutine destroy_pcp_random
