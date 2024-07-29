@@ -13,15 +13,21 @@ module guess_grids
 ! !USES:
  
   use m_kinds, only: r_single,r_kind,i_kind
+  use m_mpimod, only: mype
   use constants, only: max_varname_length
-
+  use constants, only: kPa_per_Pa,Pa_per_kPa
+  use constants, only: grav
+  use constants, only: constoz
+  use constants, only: fv,zero,one,max_varname_length
+  use gridmod, only: nlon,nlat,lon2,lat2,nsig,idsl5
+  use gridmod, only: ak5,bk5
   use gsi_bundlemod, only : gsi_bundlegetpointer
 
   ! meteorological guess (beyond standard ones)
   use gsi_metguess_mod, only: gsi_metguess_create_grids
   use gsi_metguess_mod, only: gsi_metguess_destroy_grids
   use gsi_metguess_mod, only: gsi_metguess_get
-  use gsi_metguess_mod, only: gsi_metguess_bundle
+  use gsi_metguess_mod, only: gsi_metguess_bundle !Temp
 
   ! chem trace gases
   use gsi_chemguess_mod, only: gsi_chemguess_create_grids
@@ -132,6 +138,11 @@ module guess_grids
   public :: create_chemges_grids
   public :: destroy_chemges_grids
   public :: get_ref_gesprs
+
+  public :: gsiguess_init
+  public :: gsiguess_set
+  public :: gsiguess_bkgcov_init
+
 ! set passed variables to public
   public :: ntguessig,ges_prsi,ges_psfcavg,ges_prslavg
   public :: isli2,ges_prsl,nfldsig
@@ -286,10 +297,23 @@ module guess_grids
      module procedure guess_grids_stats2d_
   end interface
 
+  interface gsiguess_set
+    module procedure guess_basics2_
+    module procedure guess_basics3_
+  end interface gsiguess_set
+
+  interface gsiguess_bkgcov_init  ! WARNING: this does not belog here
+    module procedure bkgcov_init_
+  end interface gsiguess_bkgcov_init
+
+  interface gsiguess_init; module procedure init_; end interface
 
   logical,save:: sfc_grids_allocated_=.false.
   logical,save:: ges_grids_allocated_=.false.
   logical,save:: gesfinfo_created_=.false.
+
+  logical, save :: gesgrid_initialized_ = .false.
+  logical, save :: gesgrid_iamset_ = .false.
 
   character(len=*),parameter::myname='guess_grids'
 
@@ -2633,5 +2657,567 @@ contains
 100 format(a,': range,sum = ',1P3E16.4)
 99  format(a,': avg, rms = ',1P2E16.4)
    end subroutine print4r8_
-    
+
+!--------------------------------------------------------
+  subroutine guess_basics2_(vname,islot,var)
+  character(len=*),intent(in) :: vname
+  integer(i_kind), intent(in) :: islot
+  real(r_kind),dimension(:,:) :: var
+  character(len=*), parameter :: myname_ = myname//'*guess_basics2_'
+  real(r_kind),dimension(:,:),pointer::ptr
+  integer jj,ier
+  jj=islot
+  call gsi_bundlegetpointer(gsi_metguess_bundle(jj),trim(vname),ptr,ier)
+  if (ier/=0) then
+    call die(myname_,'pointer to '//trim(vname)//" not found",ier)
+  endif
+  ptr=var
+  if ( trim(vname) == 'ps' ) ptr=kPa_per_Pa*ptr ! RT_TBD: is this the best place for this?
+  if ( trim(vname) == 'z'  ) ptr=ptr/grav       ! RT_TBD: is this the best place for this?
+  end subroutine guess_basics2_
+!--------------------------------------------------------
+  subroutine guess_basics3_(vname,islot,var)
+  character(len=*),intent(in)   :: vname
+  integer(i_kind), intent(in) :: islot
+  real(r_kind),dimension(:,:,:) :: var
+  character(len=*), parameter :: myname_ = myname//'*guess_basics3_'
+  real(r_kind),dimension(:,:,:),pointer::ptr
+  character(len=80) :: uvar
+  integer jj,ier
+  jj=islot
+  call gsi_bundlegetpointer(gsi_metguess_bundle(jj),trim(vname),ptr,ier)
+  if (ier/=0) then
+    call die(myname_,'pointer to '//trim(vname)//" not found",ier)
+  endif
+  ptr=var
+  if ( trim(vname) == 'oz' ) then
+      call gsi_metguess_get ( 'usrvar::o3ppmv', uvar, ier )
+      if (trim(uvar)=='o3ppmv') then
+         ptr=ptr/constoz   ! RT_TBD: is this the best place for this?
+      endif
+  endif
+  if ( trim(vname) == 'delp' ) ptr=kPa_per_Pa*ptr
+  end subroutine guess_basics3_
+!--------------------------------------------------------
+subroutine init_(mockbkg)
+  logical,optional :: mockbkg
+  integer ier
+  logical mockbkg_
+  call create_metguess_grids_(mype,ier)
+  mockbkg_=.false.
+  if (present(mockbkg)) then
+    if(mockbkg) mockbkg_ = .true.
+  endif
+  if(mockbkg_) then
+    call guess_basics0_
+    if (mype==0) then
+       print *, "Generating mock guess-fields -- for testing only"
+   endif
+  else
+    if (mype==0) then
+       print *, "User expected to provide guess-fields (viz. gsiguess_set)"
+    endif
+  endif
+end subroutine init_
+!--------------------------------------------------------
+subroutine other_set_(need)
+  use compact_diffs, only: cdiff_created
+  use compact_diffs, only: cdiff_initialized
+  use compact_diffs, only: create_cdiff_coefs
+  use compact_diffs, only: inisph
+  use xhat_vordivmod, only: xhat_vordiv_calc2
+  use gridmod, only: eta1_ll
+  implicit none
+  character(len=*), optional, intent(inout) :: need(:)
+  character(len=*), parameter :: myname_ = myname//'*other_set_'
+  integer it,ier,istatus,i
+  real(r_kind),dimension(:,:,:),pointer :: ges_u=>NULL()
+  real(r_kind),dimension(:,:,:),pointer :: ges_v=>NULL()
+  real(r_kind),dimension(:,:,:),pointer :: ges_div=>NULL()
+  real(r_kind),dimension(:,:,:),pointer :: ges_vor=>NULL()
+  real(r_kind),dimension(:,:,:),pointer :: ges_delp=>NULL()
+  real(r_kind),dimension(:,:),pointer :: ges_ps=>NULL()
+! this if alloc below are here only because saber does not delete its obj properly
+  if(.not.allocated(ges_tsen)) allocate(ges_tsen(lat2,lon2,nsig,nfldsig))
+  if(.not.allocated(ges_prsi)) allocate(ges_prsi(lat2,lon2,nsig+1,nfldsig))
+  if(.not.allocated(ges_lnprsi)) allocate(ges_lnprsi(lat2,lon2,nsig+1,nfldsig))
+  if(.not.allocated(ges_prsl)) allocate(ges_prsl(lat2,lon2,nsig,nfldsig))
+  if(.not.allocated(ges_lnprsl)) allocate(ges_lnprsl(lat2,lon2,nsig,nfldsig))
+  if(.not.allocated(ges_qsat)) allocate(ges_qsat(lat2,lon2,nsig,nfldsig))
+  if(.not.allocated(ges_teta)) allocate(ges_teta(lat2,lon2,nsig,nfldsig))
+  if(.not.allocated(geop_hgtl)) allocate(geop_hgtl(lat2,lon2,nsig,nfldsig))
+  if(.not.allocated(geop_hgti)) allocate(geop_hgti(lat2,lon2,nsig+1,nfldsig))
+  if(.not.allocated(isli2)) allocate(isli2(lat2,lon2))
+  if(.not.allocated(fact_tv)) allocate(fact_tv(lat2,lon2,nsig))
+  if(.not.allocated(tropprs)) allocate(tropprs(lat2,lon2))
+  if(.not.allocated(ges_prslavg)) allocate(ges_prslavg(nsig))
+  ges_tsen=zero
+  ges_prsl=zero
+  ges_lnprsl=zero
+  ges_qsat=zero
+  ges_teta=zero
+  geop_hgtl=zero
+  geop_hgti=zero
+  ges_prsi=zero
+  ges_lnprsi=zero
+  tropprs=zero
+  fact_tv=one
+  ges_prslavg=zero
+  it = size(GSI_MetGuess_Bundle)
+  ! better fix units here?
+  if (present(need)) then
+    if(mype==0) then
+       print *, 'vars still needing to be filled ', need
+    endif
+    if (size(need)<1) then
+        gesgrid_iamset_ = .true.
+        return
+    endif
+  endif
+  if (present(need)) then
+    if (any(need=='tsen')) then
+       call load_guess_tsen_
+       where(need=='tsen')
+          need='filled-'//need
+       endwhere
+    endif
+    if (any(need=='tv')) then
+       call load_guess_tv_
+       where(need=='tv')
+          need='filled-'//need
+       endwhere
+    endif
+    if (any(need=='cw')) then
+       call load_guess_cw_
+       where(need=='cw')
+          need='filled-'//need
+       endwhere
+    endif
+    if (any(need=='ps')) then
+       call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'ps' ,ges_ps ,istatus )
+       call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'delp' ,ges_delp ,istatus )
+       ges_prsi(:,:,nsig+1,it)=eta1_ll(nsig+1)
+       do i=nsig,1,-1
+         ges_prsi(:,:,i,it)=ges_delp(:,:,i)+ges_prsi(:,:,i+1,it)
+       enddo
+       ges_ps(:,:)=ges_prsi(:,:,1,it)
+       where(need=='ps')
+          need='filled-'//need
+       endwhere
+    endif
+  else
+    call load_guess_tsen_(mock=.true.)
+  endif
+  if (present(need)) then
+    if (any(need(1:8)=='unfilled')) then
+      if(mype==0) then
+         print *, 'some vars still not filled: ', need
+      endif
+      call die (myname_,': not all needed GSI guess fields present',99)
+    endif
+  endif
+  call load_prsges
+  call load_geop_hgt
+  if (present(need)) then
+    if (any(need=='vor').or.any(need=='div')) then
+!      if(.not.cdiff_created()) call create_cdiff_coefs()
+!      if(.not.cdiff_initialized()) call inisph(rearth,rlats(2),wgtlats(2),nlon,nlat-2)
+       ier=0
+       call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'u', ges_u, &
+                                   istatus );ier=ier+istatus
+       call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'v', ges_v, &
+                                   istatus );ier=ier+istatus
+       call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'vor', ges_vor, &
+                                   istatus );ier=ier+istatus
+       call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'div', ges_div, &
+                                   istatus );ier=ier+istatus
+       if(ier==0) then
+          call xhat_vordiv_calc2 (ges_u,ges_v,ges_vor,ges_div)
+       endif
+       where(need=='vor')
+          need='filled-'//need
+       endwhere
+       where(need=='div')
+          need='filled-'//need
+       endwhere
+!      call write_bkgvars_grid(ges_u,ges_v,ges_u,ges_u(:,:,1),&
+!                             'wind.grd',mype) ! debug
+!      call write_bkgvars_grid(ges_div,ges_vor,ges_div,ges_div(:,:,1),&
+!                             'divo.grd',mype) ! debug
+    endif
+  endif
+! fill in land-water-ice mask
+!  call lwi_mask_(it)
+
+  gesgrid_iamset_ = .true.
+end subroutine other_set_
+!--------------------------------------------------------
+subroutine bkgcov_init_(need)
+  implicit none
+  character(len=*), optional, intent(inout) :: need(:)
+  logical, save :: init_pass = .true.
+  call other_set_(need=need)  ! a little out of place, but ...
+  call compute_derived(mype,init_pass) ! this belongs in a state set
+  init_pass = .false.
+  gesgrid_initialized_ = .true.
+end subroutine bkgcov_init_
+
+  subroutine load_guess_tsen_(mock)
+  implicit none
+  logical,optional,intent(in) :: mock
+  character(len=*), parameter :: myname_ = myname//'*load_guess_tsen_'
+  real(r_kind),dimension(:,:,:),pointer::tsen=>NULL()
+  real(r_kind),dimension(:,:,:),pointer::tv=>NULL()
+  real(r_kind),dimension(:,:,:),pointer::q =>NULL()
+  integer jj,ier,istatus
+  logical gesgrid_iamset,mock_
+  mock_=.false.
+  gesgrid_iamset=.true.
+  if (present(mock)) then
+     if(mock) mock_=.true.
+  endif
+  do jj=1,nfldsig
+     istatus=0
+     if (mock_) then
+        call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'tv',tv,ier); istatus=ier+istatus
+        call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'q' , q,ier); istatus=ier+istatus
+        if (istatus/=0) then
+           ! call die(myname_,'cannot retrieve pointers',istatus)
+           gesgrid_iamset=.false.
+           exit
+        else
+           ges_tsen(:,:,:,jj) = tv/(one+fv*q)
+        endif
+     else
+        call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'tsen',tsen,ier)
+        if(ier==0) then
+!          ges_tsen(:,:,:,jj) = tsen ! warning: assumes this has been filled in properly in JEDI
+!          cycle
+!       else
+           call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'tv',tv,ier); istatus=ier+istatus
+           call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'q' , q,ier); istatus=ier+istatus
+           if (istatus/=0) then
+              ! call die(myname_,'cannot retrieve pointers',istatus)
+              gesgrid_iamset=.false.
+              exit
+           else
+              ges_tsen(:,:,:,jj) = tv/(one+fv*q)
+           endif
+        endif
+     endif
+  enddo
+  if(.not.gesgrid_iamset) then
+    if (mype==0) call tell (myname_, ': warning, tsen pointer not set, could be an issue')
+  endif
+  end subroutine load_guess_tsen_
+
+  subroutine load_guess_tv_
+  implicit none
+  character(len=*), parameter :: myname_ = myname//'*load_guess_tv_'
+  real(r_kind),dimension(:,:,:),pointer::tsen=>NULL()
+  real(r_kind),dimension(:,:,:),pointer::tv=>NULL()
+  real(r_kind),dimension(:,:,:),pointer::q =>NULL()
+  integer jj,ier,istatus
+  logical gesgrid_iamset
+  gesgrid_iamset=.true.
+  do jj=1,nfldsig
+     istatus=0
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'tv',tv,ier); istatus=ier+istatus
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'q' , q,ier); istatus=ier+istatus
+     if (istatus/=0) then
+        gesgrid_iamset=.false.
+        cycle
+        !call die(myname_,'cannot retrieve pointers',istatus)
+     endif
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'tsen',tsen,ier)
+     if (ier==0) then
+        if(allocated(ges_tsen)) ges_tsen(:,:,:,jj) = tsen  ! make sure this is local array
+        tv=tsen*(one+fv*q)
+     else
+        if(allocated(ges_tsen)) then
+           tv=ges_tsen(:,:,:,jj)*(one+fv*q)
+        else
+           gesgrid_iamset=.false.
+           cycle
+           !call die(myname_,': cannot define ges_tsen',99)
+        endif
+     endif
+  enddo
+  if(.not.gesgrid_iamset) then
+    if(mype==0) call tell (myname_, ': warning, tv pointer not set, could be an issue')
+  endif
+  end subroutine load_guess_tv_
+
+  subroutine load_guess_cw_
+  implicit none
+  character(len=*), parameter :: myname_ = myname//'*load_guess_cw_'
+  real(r_kind),dimension(:,:,:),pointer::cw=>NULL()
+  real(r_kind),dimension(:,:,:),pointer::qi=>NULL()
+  real(r_kind),dimension(:,:,:),pointer::ql=>NULL()
+  integer jj,istatus,ier
+  do jj=1,nfldsig
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'cw',cw,ier)
+     !if (ier/=0) call die(myname_, ': expecting CW in met guess')
+     istatus=0
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'qi',qi,ier); istatus=ier+istatus
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'ql',ql,ier); istatus=ier+istatus
+     if(istatus==0) then
+       cw = qi+ql
+     else
+       cw = zero
+     endif
+  enddo
+  end subroutine load_guess_cw_
+
+  subroutine guess_basics0_
+  real(r_kind),dimension(:,:,:),pointer::tv=>NULL()
+  real(r_kind),dimension(:,:,:),pointer::tsen=>NULL()
+  real(r_kind),dimension(:,:,:),pointer::u =>NULL()
+  real(r_kind),dimension(:,:,:),pointer::v =>NULL()
+  real(r_kind),dimension(:,:,:),pointer::q =>NULL()
+  real(r_kind),dimension(:,:,:),pointer::oz=>NULL()
+  real(r_kind),dimension(:,:  ),pointer::ps=>NULL()
+  real(r_kind),dimension(:,:  ),pointer::z =>NULL()
+  integer jj,ier
+  do jj=1,nfldsig
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'u',u,ier)
+     if (ier==0) then
+        u = 20. ! m/s
+     endif
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'v',v,ier)
+     if (ier==0) then
+        v = 20. ! m/s
+     endif
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'tv',tv,ier)
+     if (ier==0) then
+        tv = 300. ! K
+     endif
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'tsen',tsen,ier)
+     if (ier==0) then
+        tsen = 300. ! K
+     endif
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'q' , q,ier)
+     if (ier==0) then
+        q = 1.e-6 ! kg/kg
+     endif
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'oz',oz,ier)
+     if (ier==0) then
+        oz = 0.25/constoz ! mol/mol
+     endif
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'ps',ps,ier)
+     if (ier==0) then
+        ps = 100000. * kPa_per_Pa ! cbar(=kPa)
+     endif
+     call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'phis',z,ier)
+     if (ier==0) then
+        z = 100.
+     endif
+  enddo
+  end subroutine guess_basics0_
+
+!-------------------------------------------------------------------------
+!    NOAA/NCEP, National Centers for Environmental Prediction GSI        !
+!-------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: create_metguess_grids --- initialize meterological guess
+!
+! !INTERFACE:
+!
+  subroutine create_metguess_grids_(mype,istatus)
+
+! !USES:
+  use gridmod, only: lat2,lon2,nsig
+  implicit none
+
+! !INPUT PARAMETERS:
+
+  integer(i_kind), intent(in)  :: mype
+
+! !OUTPUT PARAMETERS:
+
+  integer(i_kind), intent(out) :: istatus
+
+! !DESCRIPTION: initialize meteorological background fields beyond
+!               the standard ones - wired-in this module.
+!
+! !REVISION HISTORY:
+!   2011-04-29  todling
+!   2013-10-30  todling - update interface
+!
+! !REMARKS:
+!   language: f90
+!   machine:  ibm rs/6000 sp; Linux Cluster
+!
+! !AUTHOR:
+!   todling         org: w/nmc20     date: 2011-04-29
+!
+!EOP
+!-------------------------------------------------------------------------
+   character(len=*),parameter::myname_=myname//'*create_metguess_grids_'
+   integer(i_kind) :: nmguess                   ! number of meteorol. fields (namelist)
+   character(len=max_varname_length),allocatable:: mguess(:)   ! names of meterol. fields
+
+   istatus=0
+
+!  When proper connection to ESMF is complete,
+!  the following will not be needed here
+!  ------------------------------------------
+   call gsi_metguess_get('dim',nmguess,istatus)
+   if(istatus/=0) then
+      if(mype==0) write(6,*) myname_, ': trouble getting number of met-guess fields'
+      return
+   endif
+   if(nmguess==0) return
+   if (nmguess>0) then
+       allocate (mguess(nmguess))
+       call gsi_metguess_get('gsinames',mguess,istatus)
+       if(istatus/=0) then
+          if(mype==0) write(6,*) myname_, ': trouble getting name of met-guess fields'
+          return
+       endif
+       deallocate (mguess)
+
+!      Allocate memory for guess fields
+!      --------------------------------
+       call gsi_metguess_create_grids(lat2,lon2,nsig,nfldsig,istatus)
+       if(istatus/=0) then
+          if(mype==0) write(6,*) myname_, ': trouble allocating mem for met-guess'
+          return
+       endif
+   endif
+
+  end subroutine create_metguess_grids_
+
+!-------------------------------------------------------------------------
+!    NOAA/NCEP, National Centers for Environmental Prediction GSI        !
+!-------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: load_prsges --- Populate guess pressure arrays
+!
+! !INTERFACE:
+!
+  subroutine load_prsges_
+
+! !USES:
+
+    use constants,only: zero,one,rd_over_cp,one_tenth,half,ten,rd,r1000
+    use gridmod,  only: lat2,lon2,nsig,idvc5
+    use gridmod,  only: ck5,tref5
+    implicit none
+
+! !DESCRIPTION: populate guess pressure arrays
+!
+! !REVISION HISTORY:
+!   2003-10-15  kleist
+!   2004-03-22  parrish, regional capability added
+!   2004-05-14  kleist, documentation
+!   2004-07-15  todling, protex-compliant prologue; added onlys
+!   2004-07-28  treadon - remove subroutine call list, pass variables via modules
+!   2005-05-24  pondeca - add regional surface analysis option
+!   2006-04-14  treadon - unify global calculations to use ak5,bk5
+!   2006-04-17  treadon - add ges_psfcavg and ges_prslavg for regional
+!   2006-07-31  kleist  - use ges_ps instead of ln(ps)
+!   2007-05-08  kleist  - add fully generalized coordinate for pressure calculation
+!   2011-07-07  todling - add cap for log(pressure) calculation
+!   2017-03-23  Hu      - add code to use hybrid vertical coodinate in WRF MASS
+!                         core
+!
+! !REMARKS:
+!   language: f90
+!   machine:  ibm rs/6000 sp; SGI Origin 2000; Compaq/HP
+!
+! !AUTHOR:
+!   kleist          org: w/nmc20     date: 2003-10-15
+!
+!EOP
+!-------------------------------------------------------------------------
+
+!   Declare local parameter
+    character(len=*),parameter::myname_=myname//'*load_prsges'
+    real(r_kind),parameter:: r1013=1013.0_r_kind
+
+!   Declare local variables
+    real(r_kind) kap1,kapr,trk
+    real(r_kind),dimension(:,:)  ,pointer::ges_ps=>NULL()
+    real(r_kind),dimension(:,:,:),pointer::ges_tv=>NULL()
+    real(r_kind) pinc(lat2,lon2)
+    integer(i_kind) i,j,k,ii,jj,itv,ips,kp
+    logical ihaveprs(nfldsig)
+
+    kap1=rd_over_cp+one
+    kapr=one/rd_over_cp
+
+    ihaveprs=.false.
+    do jj=1,nfldsig
+       call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'ps' ,ges_ps,ips)
+       if(ips/=0) call die(myname_,': ps not available in guess, abort',ips)
+       call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'tv' ,ges_tv,itv)
+       if(idvc5==3) then
+          if(itv/=0) call die(myname_,': tv must be present when idvc5=3, abort',itv)
+       endif
+
+!!!!!!!!!!!!  load delp to ges_prsi in read_fv3_netcdf_guess !!!!!!!!!!!!!!!!!
+
+       do k=1,nsig+1
+          do j=1,lon2
+             do i=1,lat2
+                   if (idvc5==1 .or. idvc5==2) then
+                      ges_prsi(i,j,k,jj)=ak5(k)+(bk5(k)*ges_ps(i,j))
+                   else if (idvc5==3) then
+                      if (k==1) then
+                         ges_prsi(i,j,k,jj)=ges_ps(i,j)
+                      else if (k==nsig+1) then
+                         ges_prsi(i,j,k,jj)=zero
+                      else
+                         trk=(half*(ges_tv(i,j,k-1)+ges_tv(i,j,k))/tref5(k))**kapr
+                                                  ges_prsi(i,j,k,jj)=ak5(k)+(bk5(k)*ges_ps(i,j))+(ck5(k)*trk)
+                         call die(myname_,'opt removed ',99)
+                      end if
+                   end if
+                ges_prsi(i,j,k,jj)=max(ges_prsi(i,j,k,jj),zero)
+             end do
+          end do
+       end do
+       ihaveprs(jj)=.true.
+    end do
+
+
+!      load mid-layer pressure by using phillips vertical interpolation
+       if (idsl5/=2) then
+          do jj=1,nfldsig
+             if(.not.ihaveprs(jj)) then
+                call tell(myname,'3d pressure has not been calculated somehow',99)
+                exit ! won't die ...
+             endif
+             do j=1,lon2
+                do i=1,lat2
+                   do k=1,nsig
+                      ges_prsl(i,j,k,jj)=((ges_prsi(i,j,k,jj)**kap1-ges_prsi(i,j,k+1,jj)**kap1)/&
+                           (kap1*(ges_prsi(i,j,k,jj)-ges_prsi(i,j,k+1,jj))))**kapr
+                   end do
+                end do
+             end do
+          end do
+
+!      load mid-layer pressure by simple averaging
+       else
+          do jj=1,nfldsig
+             if(.not.ihaveprs(jj)) then
+                call tell(myname,'3d pressure has not been calculated somehow',99)
+                exit ! won't die ...
+             endif
+             do j=1,lon2
+                do i=1,lat2
+                   do k=1,nsig
+                      ges_prsl(i,j,k,jj)=(ges_prsi(i,j,k,jj)+ges_prsi(i,j,k+1,jj))*half
+                   end do
+                end do
+             end do
+          end do
+       endif
+
+    return
+  end subroutine load_prsges_
 end module guess_grids
