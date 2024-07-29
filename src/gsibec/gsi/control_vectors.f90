@@ -1285,7 +1285,7 @@ subroutine prt_norms_vars(xcv,sgrep)
      enddo
 
      call stats_allreduce(vdot(iv),vsum(iv),vmin(iv),vmax(iv),  &
-                          vnum(iv),MPI_comm_world)
+                          vnum(iv),gsi_mpi_comm_world)
      nv=max(vnum(iv),1)
   
      if(mype==0) then
@@ -1307,7 +1307,7 @@ subroutine prt_norms_vars(xcv,sgrep)
      enddo
 
      call stats_allreduce(vdot(iv),vsum(iv),vmin(iv),vmax(iv),  &
-                          vnum(iv),MPI_comm_world)
+                          vnum(iv),gsi_mpi_comm_world)
      nv=max(vnum(iv),1)
   
      if(mype==0) then
