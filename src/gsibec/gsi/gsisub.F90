@@ -82,8 +82,7 @@ subroutine gsisub(init_pass,last_pass)
   use m_mpimod, only: mype,npe,gsi_mpi_comm_world,ierror
   use radinfo, only: radinfo_read
   use correlated_obsmod, only: corr_ob_initialize,corr_ob_finalize
-  use pcpinfo, only: pcpinfo_read,create_pcp_random,&
-       destroy_pcp_random
+  use pcpinfo, only: pcpinfo_read,destroy_pcp_random
   use aeroinfo, only: aeroinfo_read
   use convinfo, only: convinfo_read
   use ozinfo, only: ozinfo_read
@@ -173,7 +172,7 @@ subroutine gsisub(init_pass,last_pass)
 
 ! Compute random number for precipitation forward model.  
   if(init_pass) then
-     call create_pcp_random(iadate,mype)
+!     call create_pcp_random(iadate,mype)
      if(print_verbose)then
         call tell('gsisub','returned from create_pcp_random()')
      end if
