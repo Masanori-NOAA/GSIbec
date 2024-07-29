@@ -104,8 +104,8 @@ module hybrid_ensemble_isotropic
   use string_utility, only: StrUpCase
 
 ! For MGBF
-  use mg_intstate
-  use mg_timers
+!  use mg_intstate
+!  use mg_timers
 
   implicit none
 
@@ -182,8 +182,8 @@ module hybrid_ensemble_isotropic
   integer(r_kind) :: nval_loc_en
 
 ! For MGBF
-  type (mg_intstate_type), allocatable, dimension(:) :: obj_mgbf
-  real(r_kind), allocatable, dimension(:,:,:) :: work_mgbf
+!  type (mg_intstate_type), allocatable, dimension(:) :: obj_mgbf
+!  real(r_kind), allocatable, dimension(:,:,:) :: work_mgbf
 
 !    following is for special subdomain to slab variables used when internally generating ensemble members
 
@@ -1742,7 +1742,7 @@ end subroutine normal_new_factorization_rf_y
     use hybrid_ensemble_parameters, only: l_hyb_ens,n_ens,ntlevs_ens
     use hybrid_ensemble_parameters, only: en_perts,ps_bar
     use hybrid_ensemble_parameters, only: ntotensgrp
-    use hybrid_ensemble_parameters, only: l_mgbf_loc
+    !use hybrid_ensemble_parameters, only: l_mgbf_loc
     implicit none
 
     integer(i_kind) istatus,n,m,ig
@@ -1761,7 +1761,7 @@ end subroutine normal_new_factorization_rf_y
        enddo
        deallocate(ps_bar)
        deallocate(en_perts)
-       if(l_mgbf_loc) call print_mg_timers("mgbf_timing_cpu.csv", print_cpu, mype)
+       !if(l_mgbf_loc) call print_mg_timers("mgbf_timing_cpu.csv", print_cpu, mype)
     end if
     return
 
@@ -3735,45 +3735,45 @@ subroutine bkgcov_a_en_new_factorization(ig,a_en)
 !   because recursive filter is applied for ig>naensgrp
 !   to separate scales for scale-dependent localization
 !   even in MGBF-based localization)
-  if(l_mgbf_loc.and.ig<=naensgrp) then
+!  if(l_mgbf_loc.and.ig<=naensgrp) then
 
 ! Apply vertical smoother on each ensemble member
-     allocate(work_mgbf(obj_mgbf(1)%km_a_all,obj_mgbf(1)%nm,obj_mgbf(1)%mm))
-     work_mgbf=zero
-     iadvance=1 ; iback=2
-!$omp parallel do schedule(static,1) private(k,ii,is,ie)
-     do k=1,n_ens
-        ii=(k-1)*grd_loc%nsig
-        is=ii+1
-        ie=ii+grd_loc%nsig
-        if(.not.obj_mgbf(1)%l_vertical_filter) call new_factorization_rf_z(a_en(k)%r3(ipnt)%q,iadvance,iback,1)
-        call map_work_mgbf(a_en(k)%r3(ipnt)%q,work_mgbf(is:ie,:,:),iadvance,1)
-     enddo
+!     allocate(work_mgbf(obj_mgbf(1)%km_a_all,obj_mgbf(1)%nm,obj_mgbf(1)%mm))
+!     work_mgbf=zero
+!     iadvance=1 ; iback=2
+!!$omp parallel do schedule(static,1) private(k,ii,is,ie)
+!     do k=1,n_ens
+!        ii=(k-1)*grd_loc%nsig
+!        is=ii+1
+!        ie=ii+grd_loc%nsig
+!        if(.not.obj_mgbf(1)%l_vertical_filter) call new_factorization_rf_z(a_en(k)%r3(ipnt)%q,iadvance,iback,1)
+!        call map_work_mgbf(a_en(k)%r3(ipnt)%q,work_mgbf(is:ie,:,:),iadvance,1)
+!     enddo
 
 ! Mapping from analysis grid to filter grid
-     call obj_mgbf(1)%anal_to_filt_allmap(work_mgbf)
+!     call obj_mgbf(1)%anal_to_filt_allmap(work_mgbf)
 
 ! Apply horizontal smoother for number of horizontal scales
-     call obj_mgbf(1)%filtering_procedure(obj_mgbf(1)%mgbf_proc,0)
+!     call obj_mgbf(1)%filtering_procedure(obj_mgbf(1)%mgbf_proc,0)
 
 ! Mapping from filter grid to analysis grid
-     call obj_mgbf(1)%filt_to_anal_allmap(work_mgbf)
+!     call obj_mgbf(1)%filt_to_anal_allmap(work_mgbf)
 
 ! Apply vertical smoother on each ensemble member
-     iadvance=2 ; iback=1
-!$omp parallel do schedule(static,1) private(k,ii,is,ie)
-     do k=1,n_ens
-        ii=(k-1)*grd_loc%nsig
-        is=ii+1
-        ie=ii+grd_loc%nsig
-        call map_work_mgbf(a_en(k)%r3(ipnt)%q,work_mgbf(is:ie,:,:),iadvance,1)
-        if(.not.obj_mgbf(1)%l_vertical_filter) call new_factorization_rf_z(a_en(k)%r3(ipnt)%q,iadvance,iback,1)
-     enddo
-     deallocate(work_mgbf)
+!     iadvance=2 ; iback=1
+!!$omp parallel do schedule(static,1) private(k,ii,is,ie)
+!     do k=1,n_ens
+!        ii=(k-1)*grd_loc%nsig
+!        is=ii+1
+!        ie=ii+grd_loc%nsig
+!        call map_work_mgbf(a_en(k)%r3(ipnt)%q,work_mgbf(is:ie,:,:),iadvance,1)
+!        if(.not.obj_mgbf(1)%l_vertical_filter) call new_factorization_rf_z(a_en(k)%r3(ipnt)%q,iadvance,iback,1)
+!     enddo
+!     deallocate(work_mgbf)
 
 ! Recursive/Spectral filter-based localization(ig<=naensgrp)
 ! or scale-separation(ig>naensgrp)
-  else
+!  else
 
 ! Apply vertical smoother on each ensemble member
 ! To avoid my having to touch the general sub2grid and grid2sub,
@@ -3824,7 +3824,7 @@ subroutine bkgcov_a_en_new_factorization(ig,a_en)
      enddo
      deallocate(a_en_work)
 
-  endif
+  !endif
 
   return
 end subroutine bkgcov_a_en_new_factorization
@@ -3892,39 +3892,39 @@ subroutine ckgcov_a_en_new_factorization(ig,z,a_en)
   endif
 
 ! MGBF-based localization (now available only in regional=.true.)
-  if(l_mgbf_loc) then
+!  if(l_mgbf_loc) then
 
 ! Apply horizontal smoother for number of horizontal scales
-     ii=0
-     do k=1,obj_mgbf(ig)%km_all
-        do j=1-obj_mgbf(ig)%hy,obj_mgbf(ig)%jm+obj_mgbf(ig)%hy
-           do i=1-obj_mgbf(ig)%hx,obj_mgbf(ig)%im+obj_mgbf(ig)%hx
-              ii=ii+1
-              obj_mgbf(ig)%VALL(k,i,j)=z(ii)
-           enddo
-        enddo
-     enddo
-     call obj_mgbf(ig)%filtering_procedure(obj_mgbf(ig)%mgbf_proc,1)
+!     ii=0
+!     do k=1,obj_mgbf(ig)%km_all
+!        do j=1-obj_mgbf(ig)%hy,obj_mgbf(ig)%jm+obj_mgbf(ig)%hy
+!           do i=1-obj_mgbf(ig)%hx,obj_mgbf(ig)%im+obj_mgbf(ig)%hx
+!              ii=ii+1
+!              obj_mgbf(ig)%VALL(k,i,j)=z(ii)
+!           enddo
+!        enddo
+!     enddo
+!     call obj_mgbf(ig)%filtering_procedure(obj_mgbf(ig)%mgbf_proc,1)
 
 ! Mapping from filter grid to analysis grid
-     allocate(work_mgbf(obj_mgbf(ig)%km_a_all,obj_mgbf(ig)%nm,obj_mgbf(ig)%mm))
-     work_mgbf=zero
-     call obj_mgbf(ig)%filt_to_anal_allmap(work_mgbf)
+!     allocate(work_mgbf(obj_mgbf(ig)%km_a_all,obj_mgbf(ig)%nm,obj_mgbf(ig)%mm))
+!     work_mgbf=zero
+!     call obj_mgbf(ig)%filt_to_anal_allmap(work_mgbf)
 
 ! Apply vertical smoother on each ensemble member
-     iadvance=2 ; iback=1
-!$omp parallel do schedule(static,1) private(k,ii,is,ie)
-     do k=1,n_ens
-        ii=(k-1)*grd_loc%nsig
-        is=ii+1
-        ie=ii+grd_loc%nsig
-        call map_work_mgbf(a_en(k)%r3(ipnt)%q,work_mgbf(is:ie,:,:),iadvance,ig)
-        if(.not.obj_mgbf(ig)%l_vertical_filter) call new_factorization_rf_z(a_en(k)%r3(ipnt)%q,iadvance,iback,ig)
-     enddo
-     deallocate(work_mgbf)
+!     iadvance=2 ; iback=1
+!!$omp parallel do schedule(static,1) private(k,ii,is,ie)
+!     do k=1,n_ens
+!        ii=(k-1)*grd_loc%nsig
+!        is=ii+1
+!        ie=ii+grd_loc%nsig
+!        call map_work_mgbf(a_en(k)%r3(ipnt)%q,work_mgbf(is:ie,:,:),iadvance,ig)
+!        if(.not.obj_mgbf(ig)%l_vertical_filter) call new_factorization_rf_z(a_en(k)%r3(ipnt)%q,iadvance,iback,ig)
+!     enddo
+!     deallocate(work_mgbf)
 
 ! Recursive/Spectral filter-based localization
-  else
+!  else
 
      if(grd_loc%kend_loc+1-grd_loc%kbegin_loc==0) then
 !     no work to be done on this processor, but hwork still has allocated space, since
@@ -3974,7 +3974,7 @@ subroutine ckgcov_a_en_new_factorization(ig,z,a_en)
 
      enddo
 
-  endif
+!  endif
 
   return
 end subroutine ckgcov_a_en_new_factorization
@@ -4047,39 +4047,39 @@ subroutine ckgcov_a_en_new_factorization_ad(ig,z,a_en)
   endif
 
 ! MGBF-based localization (now available only in regional=.true.)
-  if(l_mgbf_loc) then
+!  if(l_mgbf_loc) then
 
 ! Apply vertical smoother on each ensemble member
-     allocate(work_mgbf(obj_mgbf(ig)%km_a_all,obj_mgbf(ig)%nm,obj_mgbf(ig)%mm))
-     work_mgbf=zero
-     iadvance=1 ; iback=2
-!$omp parallel do schedule(static,1) private(k,ii,is,ie)
-     do k=1,n_ens
-        ii=(k-1)*grd_loc%nsig
-        is=ii+1
-        ie=ii+grd_loc%nsig
-        if(.not.obj_mgbf(ig)%l_vertical_filter) call new_factorization_rf_z(a_en(k)%r3(ipnt)%q,iadvance,iback,ig)
-        call map_work_mgbf(a_en(k)%r3(ipnt)%q,work_mgbf(is:ie,:,:),iadvance,ig)
-     enddo
+!     allocate(work_mgbf(obj_mgbf(ig)%km_a_all,obj_mgbf(ig)%nm,obj_mgbf(ig)%mm))
+!     work_mgbf=zero
+!     iadvance=1 ; iback=2
+!!$omp parallel do schedule(static,1) private(k,ii,is,ie)
+!     do k=1,n_ens
+!        ii=(k-1)*grd_loc%nsig
+!        is=ii+1
+!        ie=ii+grd_loc%nsig
+!        if(.not.obj_mgbf(ig)%l_vertical_filter) call new_factorization_rf_z(a_en(k)%r3(ipnt)%q,iadvance,iback,ig)
+!        call map_work_mgbf(a_en(k)%r3(ipnt)%q,work_mgbf(is:ie,:,:),iadvance,ig)
+!     enddo
 
 ! Mapping from analysis grid to filter grid
-     call obj_mgbf(ig)%anal_to_filt_allmap(work_mgbf)
-     deallocate(work_mgbf)
+!     call obj_mgbf(ig)%anal_to_filt_allmap(work_mgbf)
+!     deallocate(work_mgbf)
 
 ! Apply horizontal smoother for number of horizontal scales
-     call obj_mgbf(ig)%filtering_procedure(obj_mgbf(ig)%mgbf_proc,-1)
-     ii=0
-     do k=1,obj_mgbf(ig)%km_all
-        do j=1-obj_mgbf(ig)%hy,obj_mgbf(ig)%jm+obj_mgbf(ig)%hy
-           do i=1-obj_mgbf(ig)%hx,obj_mgbf(ig)%im+obj_mgbf(ig)%hx
-              ii=ii+1
-              z(ii)=obj_mgbf(ig)%VALL(k,i,j)
-           enddo
-        enddo
-     enddo
+!     call obj_mgbf(ig)%filtering_procedure(obj_mgbf(ig)%mgbf_proc,-1)
+!     ii=0
+!     do k=1,obj_mgbf(ig)%km_all
+!        do j=1-obj_mgbf(ig)%hy,obj_mgbf(ig)%jm+obj_mgbf(ig)%hy
+!           do i=1-obj_mgbf(ig)%hx,obj_mgbf(ig)%im+obj_mgbf(ig)%hx
+!              ii=ii+1
+!              z(ii)=obj_mgbf(ig)%VALL(k,i,j)
+!           enddo
+!        enddo
+!     enddo
 
 ! Recursive/Spectral filter-based localization
-  else
+!  else
 
 ! Apply vertical smoother on each ensemble member
      iadvance=1 ; iback=2
@@ -4125,12 +4125,12 @@ subroutine ckgcov_a_en_new_factorization_ad(ig,z,a_en)
         end if
      end if
 
-  endif
+!  endif
 
   return
 end subroutine ckgcov_a_en_new_factorization_ad
 
-subroutine map_work_mgbf(f,g,iadvance,ig)
+!subroutine map_work_mgbf(f,g,iadvance,ig)
 !$$$  subprogram documentation block
 !                .      .    .
 ! subprogram:    map_work_mgbf
@@ -4156,48 +4156,48 @@ subroutine map_work_mgbf(f,g,iadvance,ig)
 !
 !$$$ end documentation block
 
-  use constants, only: zero
-  use hybrid_ensemble_parameters, only: grd_loc
-  implicit none
+!  use constants, only: zero
+!  use hybrid_ensemble_parameters, only: grd_loc
+!  implicit none
 
-  integer(i_kind),intent(in   ) :: iadvance,ig
-  real(r_kind)   ,intent(inout) :: f(grd_loc%lat2,grd_loc%lon2,grd_loc%nsig)
-  real(r_kind)   ,intent(inout) :: g(grd_loc%nsig,obj_mgbf(ig)%nm,obj_mgbf(ig)%mm)
+!  integer(i_kind),intent(in   ) :: iadvance,ig
+!  real(r_kind)   ,intent(inout) :: f(grd_loc%lat2,grd_loc%lon2,grd_loc%nsig)
+!  real(r_kind)   ,intent(inout) :: g(grd_loc%nsig,obj_mgbf(ig)%nm,obj_mgbf(ig)%mm)
 
-  real(r_kind) :: work_tmp(grd_loc%lon2,grd_loc%lat2)
-  integer(i_kind) i,j,k
+!  real(r_kind) :: work_tmp(grd_loc%lon2,grd_loc%lat2)
+!  integer(i_kind) i,j,k
 
-  if(iadvance == 1) then
-     do k=1,grd_loc%nsig
-        do j=1,grd_loc%lat2
-           do i=1,grd_loc%lon2
-              work_tmp(i,j)=f(j,i,k)
-           enddo
-        enddo
-        do j=1,obj_mgbf(ig)%mm
-           do i=1,obj_mgbf(ig)%nm
-              g(k,i,j)=work_tmp(i+1,j+1)
-           enddo
-        enddo
-     enddo
-  elseif(iadvance == 2) then
-     do k=1,grd_loc%nsig
-        work_tmp=zero
-        do j=1,obj_mgbf(ig)%mm
-           do i=1,obj_mgbf(ig)%nm
-              work_tmp(i+1,j+1)=g(k,i,j)
-           enddo
-        enddo
-        do j=1,grd_loc%lat2
-           do i=1,grd_loc%lon2
-              f(j,i,k)=work_tmp(i,j)
-           enddo
-        enddo
-     enddo
-  endif
-  return
+!  if(iadvance == 1) then
+!     do k=1,grd_loc%nsig
+!        do j=1,grd_loc%lat2
+!           do i=1,grd_loc%lon2
+!              work_tmp(i,j)=f(j,i,k)
+!           enddo
+!        enddo
+!        do j=1,obj_mgbf(ig)%mm
+!           do i=1,obj_mgbf(ig)%nm
+!              g(k,i,j)=work_tmp(i+1,j+1)
+!           enddo
+!        enddo
+!     enddo
+!  elseif(iadvance == 2) then
+!     do k=1,grd_loc%nsig
+!        work_tmp=zero
+!        do j=1,obj_mgbf(ig)%mm
+!           do i=1,obj_mgbf(ig)%nm
+!              work_tmp(i+1,j+1)=g(k,i,j)
+!           enddo
+!        enddo
+!        do j=1,grd_loc%lat2
+!           do i=1,grd_loc%lon2
+!              f(j,i,k)=work_tmp(i,j)
+!           enddo
+!        enddo
+!     enddo
+!  endif
+!  return
 
-end subroutine map_work_mgbf
+!end subroutine map_work_mgbf
 
 ! ------------------------------------------------------------------------------
 ! ------------------------------------------------------------------------------
@@ -4538,13 +4538,13 @@ subroutine hybens_localization_setup
    call normal_new_factorization_rf_z
 
    if ( regional ) then ! convert s_ens_h from km to grid units.
-      if ( l_mgbf_loc ) then
-         allocate(obj_mgbf(naensgrp))
-         do ig=1,naensgrp
-            write(mgbfname(9:10),'(i2.2)') ig
-            call obj_mgbf(ig)%mg_initialize(trim(mgbfname))
-         enddo
-      endif
+!      if ( l_mgbf_loc ) then
+!         allocate(obj_mgbf(naensgrp))
+!         do ig=1,naensgrp
+!            write(mgbfname(9:10),'(i2.2)') ig
+!            call obj_mgbf(ig)%mg_initialize(trim(mgbfname))
+!         enddo
+!      endif
       ! Even for MGBF-localization, recursive filter is applied for scale-separation
       ! in scale-dependent localization, so init_rf_[xy] should be called in nsclgrp>1
       if( .not. l_mgbf_loc .or. nsclgrp > 1 ) then
@@ -4767,13 +4767,13 @@ subroutine hybens_localization_setup
    ! nval_loc_en is the number of horizontally-filtered variables in the domain of each processor,
    ! which is the same as nval_lenz_en (horizontally-global and vertically-local) in recursive/spectral filter
    ! but horizontally-local and vertically-global in MGBF.
-   if ( l_mgbf_loc ) then
-      nval_loc_en = maxval( obj_mgbf(1:naensgrp)%km_all &
-           & * (obj_mgbf(1:naensgrp)%im + obj_mgbf(1:naensgrp)%hx*2) &
-           & * (obj_mgbf(1:naensgrp)%jm + obj_mgbf(1:naensgrp)%hy*2) )
-   else
+!   if ( l_mgbf_loc ) then
+!      nval_loc_en = maxval( obj_mgbf(1:naensgrp)%km_all &
+!           & * (obj_mgbf(1:naensgrp)%im + obj_mgbf(1:naensgrp)%hx*2) &
+!           & * (obj_mgbf(1:naensgrp)%jm + obj_mgbf(1:naensgrp)%hy*2) )
+!   else
       nval_loc_en = nval_lenz_en
-   endif
+!   endif
 
    ! setup vertical weighting for ensemble contribution to psfc
    call setup_pwgt
