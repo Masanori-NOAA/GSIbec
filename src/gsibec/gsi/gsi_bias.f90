@@ -83,7 +83,7 @@ contains
     use m_kinds, only: r_kind,r_single
     use gridmod, only: itotsub,nlon,nlat,lat2,lon2,nsig,displs_s,ijn_s
     use constants, only: zero
-    use m_mpimod, only: mpi_rtype,ierror,mpi_comm_world
+    use m_mpimod, only: mpi_rtype,ierror,gsi_mpi_comm_world
     use gsi_bundlemod, only: gsi_bundle
     use gsi_bundlemod, only: gsi_bundlegetpointer
     use m_gsiBiases, only: bvars2d,bvars3d
@@ -141,7 +141,7 @@ contains
           call reorder21(grid4,work)
        endif
        call mpi_scatterv(work,ijn_s,displs_s,mpi_rtype,&
-            sub_z(1,1,n),ijn_s(mm1),mpi_rtype,mype_in,mpi_comm_world,ierror)
+            sub_z(1,1,n),ijn_s(mm1),mpi_rtype,mype_in,gsi_mpi_comm_world,ierror)
 
 
 !   2d fields:
@@ -153,7 +153,7 @@ contains
           call gsi_bundlegetpointer(bundle(n),bvars2d(nv),ptr2d,ierror)
           if(ierror/=0) call die('trouble in reading 2d bias estimates')
           call mpi_scatterv(work,ijn_s,displs_s,mpi_rtype,&
-               ptr2d,ijn_s(mm1),mpi_rtype,mype_in,mpi_comm_world,ierror)
+               ptr2d,ijn_s(mm1),mpi_rtype,mype_in,gsi_mpi_comm_world,ierror)
        enddo
     
 
@@ -167,7 +167,7 @@ contains
                 call reorder21(grid4,work)
              endif
              call mpi_scatterv(work,ijn_s,displs_s,mpi_rtype,&
-                  work3d(1,1,k),ijn_s(mm1),mpi_rtype,mype_in,mpi_comm_world,ierror)
+                  work3d(1,1,k),ijn_s(mm1),mpi_rtype,mype_in,gsi_mpi_comm_world,ierror)
              do j=1,lon2
                 do i=1,lat2
                    ptr3d(i,j,k) = work3d(i,j,k)
@@ -208,7 +208,7 @@ contains
     use m_kinds, only: r_kind,r_single
     
     use m_mpimod, only: mpi_rtype
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
     
@@ -319,7 +319,7 @@ contains
        call strip(sub_z(:,:,n),zsm)
        call mpi_gatherv(zsm,ijn(mm1),mpi_rtype,&
             work,ijn,displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        if (mype==mype_out) then
           call reorder12(work,grid4)
           call wryte(lunout,nb,grid4)
@@ -334,7 +334,7 @@ contains
 !         Create global grid by gathering from subdomains
           call mpi_gatherv(work2dm,ijn(mm1),mpi_rtype,&
                work,ijn,displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
 !         Write full grid field to output file
           if (mype==mype_out) then
              call reorder12(work,grid4)
@@ -353,7 +353,7 @@ contains
 !            Create global grid by gathering from subdomains
              call mpi_gatherv(work3dm(1,k),ijn(mm1),mpi_rtype,&
                   work,ijn,displs_g,mpi_rtype,&
-                  mype_out,mpi_comm_world,ierror)
+                  mype_out,gsi_mpi_comm_world,ierror)
 !            Write slice of 3d field to output file
              if (mype==mype_out) then
                 call reorder12(work,grid4)

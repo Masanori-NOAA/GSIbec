@@ -41,7 +41,7 @@ contains
   !$$$  end documentation block
   
     use m_kinds, only: r_kind,r_single,i_kind
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype,npe
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype,npe
     use guess_grids, only: nfldsig,nfldsfc,ntguessig,ntguessfc,&
          ifilesig,ifilesfc,hrdifsig,hrdifsfc,create_gesfinfo
     use guess_grids, only: hrdifsig_all,hrdifsfc_all
@@ -187,7 +187,7 @@ contains
   
   
   ! Broadcast guess file information to all tasks
-    call mpi_bcast(time_ges,404,mpi_rtype,npem1,mpi_comm_world,ierror)
+    call mpi_bcast(time_ges,404,mpi_rtype,npem1,gsi_mpi_comm_world,ierror)
   
     nfldsig   = nint(time_ges(201,1))
   !!nfldsfc   = nint(time_ges(201,2))
@@ -283,7 +283,7 @@ contains
   !$$$  end documentation block
   
     use m_kinds, only: r_kind,r_single,i_kind
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype,npe
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype,npe
     use guess_grids, only: nfldsig,nfldsfc,ntguessig,ntguessfc,&
          ifilesig,ifilesfc,hrdifsig,hrdifsfc,create_gesfinfo
     use guess_grids, only: hrdifsig_all,hrdifsfc_all
@@ -430,7 +430,7 @@ contains
   
   
   ! Broadcast guess file information to all tasks
-    call mpi_bcast(time_ges,404,mpi_rtype,npem1,mpi_comm_world,ierror)
+    call mpi_bcast(time_ges,404,mpi_rtype,npem1,gsi_mpi_comm_world,ierror)
   
     nfldsig   = nint(time_ges(201,1))
   !!nfldsfc   = nint(time_ges(201,2))

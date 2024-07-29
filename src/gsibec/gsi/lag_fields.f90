@@ -549,7 +549,7 @@ module lag_fields
 !
 !$$$ end documentation block
  
-    use m_mpimod, only: mype,mpi_comm_world,mpi_rtype
+    use m_mpimod, only: mype,gsi_mpi_comm_world,mpi_rtype
     use gridmod, only: strip,reorder
     use gsi_bundlemod, only : gsi_bundlegetpointer
     use gsi_metguess_mod, only : gsi_metguess_get,gsi_metguess_bundle
@@ -587,9 +587,9 @@ module lag_fields
     ! gather the fields only for the predefined level range
     do k=lag_kfirst,lag_klast
        call mpi_allgatherv(ustrip(1,k),ijn(mype+1),mpi_rtype,&
-         worku,ijn,displs_g,mpi_rtype,mpi_comm_world,ierror)
+         worku,ijn,displs_g,mpi_rtype,gsi_mpi_comm_world,ierror)
        call mpi_allgatherv(vstrip(1,k),ijn(mype+1),mpi_rtype,&
-         workv,ijn,displs_g,mpi_rtype,mpi_comm_world,ierror)
+         workv,ijn,displs_g,mpi_rtype,gsi_mpi_comm_world,ierror)
        call reorder(worku,1,1)
        call reorder(workv,1,1)
        do i=1,iglobal
@@ -633,7 +633,7 @@ module lag_fields
 !
 !$$$ end documentation block
 
-    use m_mpimod, only: mype,mpi_comm_world,mpi_rtype
+    use m_mpimod, only: mype,gsi_mpi_comm_world,mpi_rtype
     use gridmod, only: strip,reorder,lat2,lon2
     implicit none
 
@@ -660,9 +660,9 @@ module lag_fields
     ! gather the fields only for the predefined level range
     do k=lag_kfirst,lag_klast
        call mpi_allgatherv(ustrip(1,k),ijn(mype+1),mpi_rtype,&
-         worku,ijn,displs_g,mpi_rtype,mpi_comm_world,ierror)
+         worku,ijn,displs_g,mpi_rtype,gsi_mpi_comm_world,ierror)
        call mpi_allgatherv(vstrip(1,k),ijn(mype+1),mpi_rtype,&
-         workv,ijn,displs_g,mpi_rtype,mpi_comm_world,ierror)
+         workv,ijn,displs_g,mpi_rtype,gsi_mpi_comm_world,ierror)
        call reorder(worku,1,1)
        call reorder(workv,1,1)
        do i=1,iglobal
@@ -709,7 +709,7 @@ module lag_fields
 !
 !$$$ end documentation block
 
-    use m_mpimod, only: mype,mpi_comm_world,mpi_rtype,mpi_sum
+    use m_mpimod, only: mype,gsi_mpi_comm_world,mpi_rtype,mpi_sum
     use gridmod, only: reorder2
     implicit none
 
@@ -734,9 +734,9 @@ module lag_fields
     ! Sum the adjoint increments calculated on the whole grid by each
     ! processors
     call mpi_allreduce(lag_u_full(1,1,itt),worku,iglobal*lag_kcount,&
-      mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+      mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
     call mpi_allreduce(lag_v_full(1,1,itt),workv,iglobal*lag_kcount,&
-      mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+      mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
     ! print *,'Mype',mype,'Contribution total worku',sum(worku)
 
     ! Extract the part of the previously reduced grid for the given subdomain

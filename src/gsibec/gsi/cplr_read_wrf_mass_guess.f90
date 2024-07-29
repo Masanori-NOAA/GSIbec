@@ -98,7 +98,7 @@ contains
   !
   !$$$  end documentation block
     use m_kinds, only: r_kind,r_single,i_long,i_llong,i_kind
-    use m_mpimod, only: mpi_sum,mpi_integer,mpi_comm_world,npe,ierror, &
+    use m_mpimod, only: mpi_sum,mpi_integer,gsi_mpi_comm_world,npe,ierror, &
          mpi_offset_kind,mpi_info_null,mpi_mode_rdonly,mpi_status_size
     use guess_grids, only: &
          fact10,soil_type,veg_frac,veg_type,sfct,sno,soil_temp,soil_moi,&
@@ -752,7 +752,7 @@ contains
 !         end if
           
           allocate(ibuf((im+1)*(jm+1),kbegin(mype):kend(mype)))
-          call mpi_file_open(mpi_comm_world,trim(wrfges),mpi_mode_rdonly,mpi_info_null,mfcst,ierror)
+          call mpi_file_open(gsi_mpi_comm_world,trim(wrfges),mpi_mode_rdonly,mpi_info_null,mfcst,ierror)
           
   !                                    read geopotential
           if(kord(i_fis)/=1) then
@@ -1262,7 +1262,7 @@ contains
   
        
        call mpi_reduce(num_doubtful_sfct,num_doubtful_sfct_all,1,mpi_integer,mpi_sum,&
-            0,mpi_comm_world,ierror)
+            0,gsi_mpi_comm_world,ierror)
        if(print_verbose)then
           write(6,*)' in read_wrf_mass_guess, num_doubtful_sfct_all = ',num_doubtful_sfct_all
           write(6,*)' in read_wrf_mass_guess, num_doubtful_sfct_all = ',num_doubtful_sfct_all
@@ -1381,7 +1381,7 @@ contains
   !
   !$$$
     use m_kinds, only: r_kind,r_single,i_kind
-    use m_mpimod, only: mpi_sum,mpi_integer,mpi_real4,mpi_comm_world,npe,ierror
+    use m_mpimod, only: mpi_sum,mpi_integer,mpi_real4,gsi_mpi_comm_world,npe,ierror
     use guess_grids, only: &
          fact10,soil_type,veg_frac,veg_type,sfct,sno,soil_temp,soil_moi,&
          isli,nfldsig,ifilesig,ges_tsen,sfc_rough,ntguessig
@@ -1902,7 +1902,7 @@ contains
   !          Distribute to local domains everytime we have npe fields
              if(mod(icount,npe) == 0.or.icount==num_all_fields) then
                 call mpi_alltoallv(tempa,ijn_s,displs_s,mpi_real4, &
-                     all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,mpi_comm_world,ierror)
+                     all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,gsi_mpi_comm_world,ierror)
                 icount_prev=icount+1
              end if
           end do
@@ -2351,7 +2351,7 @@ contains
        end do
        
        call mpi_reduce(num_doubtful_sfct,num_doubtful_sfct_all,1,mpi_integer,mpi_sum,&
-            0,mpi_comm_world,ierror)
+            0,gsi_mpi_comm_world,ierror)
        if(print_verbose) then
           write(6,*)' in read_wrf_mass_guess, num_doubtful_sfct_all = ',num_doubtful_sfct_all
           write(6,*)' in read_wrf_mass_guess, num_doubtful_sfct_all = ',num_doubtful_sfct_all
@@ -2412,7 +2412,7 @@ contains
   !
   !$$$
   
-    use m_mpimod, only: ierror,mpi_comm_world,mpi_real4,npe
+    use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_real4,npe
     use gridmod, only: ijn_s,itotsub,lat2,lon2
     use m_kinds, only: r_single,i_kind
     implicit none
@@ -2446,7 +2446,7 @@ contains
   ! then alltoallv and i think we are done??
   
     call mpi_alltoallv(tempa,sendcounts,sdispls,mpi_real4, &
-         all_loc,recvcounts,rdispls,mpi_real4,mpi_comm_world,ierror)
+         all_loc,recvcounts,rdispls,mpi_real4,gsi_mpi_comm_world,ierror)
   
   end subroutine generic_grid2sub
   subroutine reorder2_s(work,k_in)
@@ -2638,7 +2638,7 @@ contains
   
   !  flip around from ikj to ijk, moving result from jbuf to ibuf
   
-    use m_mpimod, only: mpi_comm_world,mpi_integer
+    use m_mpimod, only: gsi_mpi_comm_world,mpi_integer
     use m_kinds, only: i_long,i_kind
     implicit none
     
@@ -2679,7 +2679,7 @@ contains
        end do
        sendcount=ii
        call mpi_gatherv(sendbuf,sendcount,mpi_integer,recvbuf,recvcounts, &
-            displs,mpi_integer,ipe,mpi_comm_world,ierror)
+            displs,mpi_integer,ipe,gsi_mpi_comm_world,ierror)
        if(ipe==mype) then
           ii=0
           do n=0,npe-1

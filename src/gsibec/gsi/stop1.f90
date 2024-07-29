@@ -23,7 +23,7 @@ subroutine stop2(ierror_code)
 !
 !$$$
   use m_kinds, only: i_kind
-  use m_mpimod, only: mpi_comm_world,ierror,mype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mype
   use gsi_io, only: verbose
   implicit none
 
@@ -37,7 +37,7 @@ subroutine stop2(ierror_code)
      write(0,*)'****STOP2****  ABORTING EXECUTION w/code=',ierror_code
   endif
      
-  call mpi_abort(mpi_comm_world,ierror_code,ierror)
+  call mpi_abort(gsi_mpi_comm_world,ierror_code,ierror)
   stop
   return
 end subroutine stop2

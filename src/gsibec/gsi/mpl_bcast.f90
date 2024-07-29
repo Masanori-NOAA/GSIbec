@@ -12,7 +12,7 @@ subroutine mpl_bcast(root,klen,pvals)
 !   pvals - array of values to be reduced (overwritten)
 !$$$
 use m_kinds, only: r_kind,i_kind
-use m_mpimod, only: ierror,mpi_comm_world,mpi_rtype,npe
+use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_rtype,npe
 implicit none
 
 ! Declare passed variables
@@ -23,7 +23,7 @@ real(r_kind)   ,intent(inout) :: pvals(klen)
 ! ----------------------------------------------------------
 
 if (npe>1.and.klen>0) then
-   call mpi_bcast(pvals,klen,mpi_rtype,root,mpi_comm_world,ierror)
+   call mpi_bcast(pvals,klen,mpi_rtype,root,gsi_mpi_comm_world,ierror)
    if (ierror/=0) then
       write(6,*)'mpl_bcast: MPI error'
       call stop2(154)

@@ -47,7 +47,7 @@ contains
       use gridmod, only: aeta1_ll,aeta2_ll,pdtop_ll,pt_ll
       use constants, only: zero,one,half,zero_single, &
                            one_tenth,ten
-      use m_mpimod, only: mpi_comm_world,ierror,mype
+      use m_mpimod, only: gsi_mpi_comm_world,ierror,mype
       use hybrid_ensemble_parameters, only: n_ens,grd_ens,nlat_ens,nlon_ens, &
                                             merge_two_grid_ensperts,uv_hyb_ens, &
                                             grid_ratio_ens,write_ens_sprd
@@ -883,9 +883,9 @@ contains
       end do
   
       if(write_ens_sprd)then
-         call mpi_barrier(mpi_comm_world,ierror)
+         call mpi_barrier(gsi_mpi_comm_world,ierror)
          call wrf_mass%ens_spread_dualres_regional(mype,en_perts,nelen,en_bar)
-         call mpi_barrier(mpi_comm_world,ierror)
+         call mpi_barrier(gsi_mpi_comm_world,ierror)
       end if
   !
   ! CONVERT ENSEMBLE MEMBERS TO ENSEMBLE PERTURBATIONS
@@ -901,9 +901,9 @@ contains
   
      test=.false.
      if(test)then
-         call mpi_barrier(mpi_comm_world,ierror)
+         call mpi_barrier(gsi_mpi_comm_world,ierror)
          call this%ens_member_mean_dualres_regional(en_bar,mype,en_perts,nelen)
-         call mpi_barrier(mpi_comm_world,ierror)
+         call mpi_barrier(gsi_mpi_comm_world,ierror)
       end if
   !
      call gsi_bundledestroy(en_bar,istatus)
@@ -1282,7 +1282,7 @@ contains
                            one_tenth,h300,ten,half
       use gridmod, only: half_grid,filled_grid,half_nmm_grid2a,fill_nmm_grid2a3
       use hybrid_ensemble_parameters, only: q_hyb_ens
-      use m_mpimod, only: ierror,mpi_integer,mpi_sum,mpi_comm_world,npe,mpi_rtype, &
+      use m_mpimod, only: ierror,mpi_integer,mpi_sum,gsi_mpi_comm_world,npe,mpi_rtype, &
            mpi_offset_kind,mpi_info_null,mpi_mode_rdonly,mpi_status_size
       use general_sub2grid_mod, only: sub2grid_info
       use gsi_io, only: lendian_in
@@ -1508,7 +1508,7 @@ contains
   
       allocate(ibuf(im*jm,kbegin(mype):kend(mype)))
   
-      call mpi_file_open(mpi_comm_world,trim(wrfens),mpi_mode_rdonly,mpi_info_null,mfcst,ierror)
+      call mpi_file_open(gsi_mpi_comm_world,trim(wrfens),mpi_mode_rdonly,mpi_info_null,mfcst,ierror)
   
   !                                  read temps
       if(kord(i_t)/=1) then
@@ -1701,7 +1701,7 @@ contains
   !
   !$$$
        use m_kinds, only: r_kind,r_single,i_kind
-       use m_mpimod, only: ierror,mpi_integer,mpi_sum,mpi_real4,mpi_comm_world,npe
+       use m_mpimod, only: ierror,mpi_integer,mpi_sum,mpi_real4,gsi_mpi_comm_world,npe
        use gridmod, only: half_grid,filled_grid,fill_nmm_grid2a3,half_nmm_grid2a
        use constants, only: zero,one,ten,one_tenth,half,zero_single,fv
        use gsi_io, only: lendian_in
@@ -1845,7 +1845,7 @@ contains
      !    Distribute to local domains everytime we have npe fields
           if(mod(icount,npe) == 0.or.icount == num_all_fields) then
              call mpi_alltoallv(tempa,grd%ijn_s,grd%displs_s,mpi_real4, &
-                  all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,mpi_comm_world,ierror)
+                  all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,gsi_mpi_comm_world,ierror)
              icount_prev=icount+1
           end if
      
@@ -2278,7 +2278,7 @@ contains
   !
   !$$$
   
-    use m_mpimod, only: ierror,mpi_comm_world,mpi_real4,npe
+    use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_real4,npe
     use m_kinds, only: r_single,i_kind
     use general_sub2grid_mod, only: sub2grid_info
     implicit none
@@ -2313,7 +2313,7 @@ contains
   ! then alltoallv and i think we are done??
   
     call mpi_alltoallv(tempa,sendcounts,sdispls,mpi_real4, &
-         all_loc,recvcounts,rdispls,mpi_real4,mpi_comm_world,ierror)
+         all_loc,recvcounts,rdispls,mpi_real4,gsi_mpi_comm_world,ierror)
   
   end subroutine generic_grid2sub_ens
   
@@ -2793,7 +2793,7 @@ contains
   
     use m_kinds, only: r_kind,i_kind
     use constants, only: zero
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     use general_sub2grid_mod, only: sub2grid_info
     implicit none
   
@@ -2815,7 +2815,7 @@ contains
     call this%strip_grd(grd,sub,zsm)
     call mpi_gatherv(zsm,grd%ijn(mm1),mpi_rtype, &
                    work1,grd%ijn,grd%displs_g,mpi_rtype, &
-                   gridpe,mpi_comm_world,ierror)
+                   gridpe,gsi_mpi_comm_world,ierror)
     if(mype==gridpe) then
       do k=1,grd%iglobal
         i=grd%ltosi(k) ; j=grd%ltosj(k)

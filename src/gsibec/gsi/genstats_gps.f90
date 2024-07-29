@@ -255,7 +255,7 @@ subroutine genstats_gps(bwork,awork,toss_gps_sub,conv_diagsave,mype)
   use gridmod, only: nsig,regional
   use constants, only: tiny_r_kind,half,wgtlim,one,two,zero,five,four
   use qcmod, only: npres_print,ptop,pbot
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_rtype,mpi_sum,mpi_max
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_rtype,mpi_sum,mpi_max
   use jfunc, only: jiter,miter,jiterstart
   use gsi_4dvar, only: nobs_bins
   use convinfo, only: nconvtype
@@ -309,7 +309,7 @@ subroutine genstats_gps(bwork,awork,toss_gps_sub,conv_diagsave,mype)
 ! maximum global value for each profile
   toss_gps=zero
   call mpi_allreduce(toss_gps_sub,toss_gps,nprof_gps,mpi_rtype,mpi_max,&
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
 ! If netcdf diag, initialize it
   if (conv_diagsave.and.netcdf_diag) call init_netcdf_diag_
@@ -340,7 +340,7 @@ subroutine genstats_gps(bwork,awork,toss_gps_sub,conv_diagsave,mype)
 ! Reduce sub-domain specific QC'd profile height to maximum global value for each profile
   dobs_height=zero
   call mpi_allreduce(dobs_height_sub,dobs_height,nprof_gps,mpi_rtype,mpi_max,&
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
 
 ! Compute superobs factor on sub-domains using global QC'd profile height
@@ -403,11 +403,11 @@ subroutine genstats_gps(bwork,awork,toss_gps_sub,conv_diagsave,mype)
   high_gps = zero
 ! Reduce sub-domain specifc superobs factors to global values for each profile
   call mpi_allreduce(super_gps_sub,super_gps,nsig*nprof_gps,mpi_rtype,mpi_sum,&
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
 ! Reduce sub-domain specific high_gps values to global values for each profile
   call mpi_allreduce(high_gps_sub,high_gps,nprof_gps,mpi_rtype,mpi_max,&
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
 ! Convert high_gps from meters to kilometers
   high_gps = r1em3*high_gps

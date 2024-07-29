@@ -392,7 +392,7 @@ contains
 !
 !$$$
     use m_kinds, only: r_single
-    use m_mpimod, only: ierror, mpi_comm_world,mpi_real4
+    use m_mpimod, only: ierror, gsi_mpi_comm_world,mpi_real4
     use gridmod, only: nlat,nlon,nsig,itotsub,&
          displs_s,ijn_s,latlon11,iglobal
     use general_commvars_mod, only: ltosi_s,ltosj_s
@@ -462,7 +462,7 @@ contains
           end if
           i=(k-1)*latlon11 + 1
           call mpi_scatterv(fieldy,ijn_s,displs_s,mpi_real4,&
-                   yhatsave_r4(i),ijn_s(mm1),mpi_real4,myper,mpi_comm_world,ierror)
+                   yhatsave_r4(i),ijn_s(mm1),mpi_real4,myper,gsi_mpi_comm_world,ierror)
        end do  !end do over val_levs_ens`
 
        do i=1,nclen1
@@ -532,7 +532,7 @@ contains
 !
 !$$$
     use m_kinds, only: r_single
-    use m_mpimod, only: ierror, mpi_comm_world, mpi_real4
+    use m_mpimod, only: ierror, gsi_mpi_comm_world, mpi_real4
     use gridmod, only: ijn,latlon11,displs_g,nsig,&
          nlat,nlon,lat1,lon1,itotsub,iglobal
     use general_commvars_mod, only: ltosj,ltosi 
@@ -584,7 +584,7 @@ contains
        call strip1(yhatsave%values(ie:is),field)
        call mpi_gatherv(field,ijn(mm1),mpi_real4,&
             fieldy,ijn,displs_g,mpi_real4,mypew,&
-            mpi_comm_world,ierror)
+            gsi_mpi_comm_world,ierror)
 
        if(mype == mypew)then
 ! Transfer to global arrays

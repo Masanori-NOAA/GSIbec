@@ -5,7 +5,7 @@ subroutine general_reload(grd,g_z,g_ps,g_tv,g_vor,g_div,g_u,g_v,g_q,g_oz,g_cwmr,
            icount,iflag,ilev,work,uvflag,vdflag,g_cf)  
 ! !USES:
   use m_kinds, only: r_kind,i_kind
-  use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_rtype
   use general_sub2grid_mod, only: sub2grid_info
 
   implicit none
@@ -49,7 +49,7 @@ subroutine general_reload(grd,g_z,g_ps,g_tv,g_vor,g_div,g_u,g_v,g_q,g_oz,g_cwmr,
 
    call mpi_alltoallv(work,grd%sendcounts_s,grd%sdispls_s,mpi_rtype,&
         sub,grd%recvcounts_s,grd%rdispls_s,mpi_rtype,&
-        mpi_comm_world,ierror)
+        gsi_mpi_comm_world,ierror)
 
 !$omp parallel do  schedule(dynamic,1) private(k,i,j,ij,klev)
    do k=1,icount
@@ -194,7 +194,7 @@ subroutine general_reload2(grd,g_z,g_ps,g_tv,g_vor,g_div,g_u,g_v,g_q,g_oz, &
 ! !USES:
 
   use m_kinds, only: r_kind,i_kind
-  use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_rtype
   use general_sub2grid_mod, only: sub2grid_info
   implicit none
 
@@ -238,7 +238,7 @@ subroutine general_reload2(grd,g_z,g_ps,g_tv,g_vor,g_div,g_u,g_v,g_q,g_oz, &
 
    call mpi_alltoallv(work,grd%sendcounts_s,grd%sdispls_s,mpi_rtype,&
         sub,grd%recvcounts_s,grd%rdispls_s,mpi_rtype,&
-        mpi_comm_world,ierror)
+        gsi_mpi_comm_world,ierror)
 
 !$omp parallel do  schedule(dynamic,1) private(k,i,j,ij,klev)
    do k=1,icount
@@ -416,7 +416,7 @@ end subroutine general_reload2
 subroutine general_reload_sfc(grd,g_t2m, g_q2m,g_ps,icount,iflag,work)
 ! !USES:
   use m_kinds, only: r_kind,i_kind
-  use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_rtype
   use general_sub2grid_mod, only: sub2grid_info
 
   implicit none
@@ -443,7 +443,7 @@ subroutine general_reload_sfc(grd,g_t2m, g_q2m,g_ps,icount,iflag,work)
 
    call mpi_alltoallv(work,grd%sendcounts_s,grd%sdispls_s,mpi_rtype,&
         sub,grd%recvcounts_s,grd%rdispls_s,mpi_rtype,&
-        mpi_comm_world,ierror)
+        gsi_mpi_comm_world,ierror)
 
 !$omp parallel do  schedule(dynamic,1) private(k,i,j,ij)
 
@@ -1956,7 +1956,7 @@ subroutine general_read_gfsatm_nc(grd,sp_a,filename,uvflag,vordivflag,zflag, &
    use m_kinds, only: r_kind,r_single,i_kind
    use general_sub2grid_mod, only: sub2grid_info
    use general_specmod, only: spec_vars
-   use m_mpimod, only: npe,mype,mpi_comm_world,ierror,mpi_integer,mpi_max,setcomm
+   use m_mpimod, only: npe,mype,gsi_mpi_comm_world,ierror,mpi_integer,mpi_max,setcomm
    use constants, only: zero,one,fv,r0_01
    use egrid2agrid_mod,only: g_egrid2agrid,g_create_egrid2agrid,egrid2agrid_parm,destroy_egrid2agrid
    use general_commvars_mod, only: fill2_ns,filluv2_ns
@@ -2059,7 +2059,7 @@ subroutine general_read_gfsatm_nc(grd,sp_a,filename,uvflag,vordivflag,zflag, &
    if (procuse) mype_read(mype+1) = mype
 
    mype_read_max = -1
-   call mpi_allreduce(mype_read,mype_read_max,npe,mpi_integer,mpi_max,mpi_comm_world,ierror)
+   call mpi_allreduce(mype_read,mype_read_max,npe,mpi_integer,mpi_max,gsi_mpi_comm_world,ierror)
 
    nread=0
    mype_read_rank=-1

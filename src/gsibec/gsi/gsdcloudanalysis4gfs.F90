@@ -62,7 +62,7 @@ subroutine  gsdcloudanalysis4gfs(mype)
   use guess_grids, only: isli,soil_temp,isli2
   use guess_grids, only: ges_tsen,ges_prsl
   use jfunc, only: tsensible
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_real4
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_real4
   use rapidrefresh_cldsurf_mod, only: dfi_radar_latent_heat_time_period,   &
                                       metar_impact_radius,                 &
                                       metar_impact_radius_lowCloud,        &
@@ -559,7 +559,7 @@ subroutine  gsdcloudanalysis4gfs(mype)
   enddo
   call strip(all_loc,strp)
   call mpi_allgatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,gsi_mpi_comm_world,ierror)
   ierror=0
   if(ierror /= 0 ) then
      write(*,*) 'MPI error: cloud analysis=',mype

@@ -28,7 +28,7 @@ subroutine read_cmaq_files(mype)
 !$$$ end documentation block
   
   use m_kinds, only: i_kind,r_kind,r_single
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype,npe
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype,npe
   use guess_grids, only: nfldsig,nfldsfc,ntguessig,ntguessfc,&
        ifilesig,ifilesfc,hrdifsig,hrdifsfc,create_gesfinfo
   use guess_grids, only: hrdifsig_all,hrdifsfc_all
@@ -132,7 +132,7 @@ subroutine read_cmaq_files(mype)
   end if
   
 ! broadcast guess file information to all tasks
-  call mpi_bcast(time_ges,404,mpi_rtype,npem1,mpi_comm_world,ierror)
+  call mpi_bcast(time_ges,404,mpi_rtype,npem1,gsi_mpi_comm_world,ierror)
   nfldsig   = nint(time_ges(201,1))
   
   nfldsfc   = 1
@@ -200,7 +200,7 @@ subroutine read_cmaq_guess(mype)
   
   use m_kinds, only: r_kind,r_single,i_kind
   
-  use m_mpimod, only: mpi_real4,mpi_comm_world,npe,ierror
+  use m_mpimod, only: mpi_real4,gsi_mpi_comm_world,npe,ierror
   use guess_grids, only: nfldsig,ifilesig,ges_tsen
   use guess_grids, only: isli,fact10,sfct,dsfct,sno,veg_type,veg_frac,&
        soil_type,soil_temp,soil_moi,sfc_rough
@@ -365,7 +365,7 @@ subroutine read_cmaq_guess(mype)
 !          distribute to local domains everytime we have npe fields
         if(mod(icount,npe) == 0.or.icount==num_all_fields) then
            call mpi_alltoallv(tempa,ijn_s,displs_s,mpi_real4, &
-                all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,mpi_comm_world,ierror)
+                all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,gsi_mpi_comm_world,ierror)
            icount_prev=icount+1
         end if
      end do
@@ -553,7 +553,7 @@ subroutine write_cmaq(mype)
 !$$$
   use m_kinds, only: r_kind,r_single,i_kind
   use guess_grids, only: ntguessig,ifilesig
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_real4
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_real4
   use gridmod, only: lat2,iglobal,itotsub,&
        lon2,nsig,lon1,lat1,nlon_regional,nlat_regional,ijn,displs_g,&
        strip
@@ -667,7 +667,7 @@ subroutine write_cmaq(mype)
         call strip(all_loc(:,:,k),strp)
         
         call mpi_gatherv(strp,ijn(mype+1),mpi_real4,&
-             tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
         
         if(mype == 0) then
 
@@ -709,7 +709,7 @@ subroutine write_cmaq(mype)
         call strip(incr(:,:,k),strp)
 
         call mpi_gatherv(strp,ijn(mype+1),mpi_real4,&
-             tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,im*jm
@@ -725,7 +725,7 @@ subroutine write_cmaq(mype)
      
   endif
   
-  call mpi_barrier(mpi_comm_world,ierror)
+  call mpi_barrier(gsi_mpi_comm_world,ierror)
   
   deallocate(temp1)  
   deallocate(all_loc)

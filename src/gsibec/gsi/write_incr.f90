@@ -65,7 +65,7 @@ contains
     use m_kinds, only: r_kind,i_kind
 
     use m_mpimod, only: mpi_rtype
-    use m_mpimod, only: mpi_comm_world, mpi_info_null
+    use m_mpimod, only: gsi_mpi_comm_world, mpi_info_null
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
 
@@ -233,7 +233,7 @@ contains
     
     ! create the output netCDF file
     call nccheck_incr(nf90_create(path=trim(filename)//".nc", cmode=ior(nf90_netcdf4, nf90_mpiio), ncid=ncid_out, &
-                                 comm = mpi_comm_world, info = mpi_info_null))
+                                 comm = gsi_mpi_comm_world, info = mpi_info_null))
     ! create dimensions based on analysis resolution, not guess
     call nccheck_incr(nf90_def_dim(ncid_out, "lon", grd%nlon, lon_dimid))
     call nccheck_incr(nf90_def_dim(ncid_out, "lat", grd%nlat-2, lat_dimid))
@@ -380,7 +380,7 @@ contains
       nccount = (/ grd%lon1, grd%lat1-1, grd%nsig /)
       j2 = grd%lat1-1       
     end if
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
     allocate(out3d(nccount(1),nccount(2),grd%nsig))
     ! u increment
     do k=1,grd%nsig
@@ -393,7 +393,7 @@ contains
     end do
     call nccheck_incr(nf90_put_var(ncid_out, uvarid, sngl(out3d), &
                       start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
 !    ! v increment
     do k=1,grd%nsig
        krev = grd%nsig+1-k
@@ -405,7 +405,7 @@ contains
     end do
     call nccheck_incr(nf90_put_var(ncid_out, vvarid, sngl(out3d), &
                       start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
 !    ! delp increment
     do k=1,grd%nsig
        krev = grd%nsig+1-k
@@ -416,7 +416,7 @@ contains
     end do
     call nccheck_incr(nf90_put_var(ncid_out, delpvarid, sngl(out3d), &
                      start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
     ! delz increment
     do k=1,grd%nsig
        krev = grd%nsig+1-k
@@ -428,7 +428,7 @@ contains
     end do
     call nccheck_incr(nf90_put_var(ncid_out, delzvarid, sngl(out3d), &
                       start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
     ! Temperature Increment
     do k=1,grd%nsig
        krev = grd%nsig+1-k
@@ -440,7 +440,7 @@ contains
     end do
     call nccheck_incr(nf90_put_var(ncid_out, tvarid, sngl(out3d), &
                       start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
     ! specific humidity increment
     do k=1,grd%nsig
        krev = grd%nsig+1-k
@@ -452,7 +452,7 @@ contains
     end do
     call nccheck_incr(nf90_put_var(ncid_out, sphumvarid, sngl(out3d), &
                       start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
     ! liquid water increment
     if (iql>0) then
        do k=1,grd%nsig
@@ -465,7 +465,7 @@ contains
        end do
        call nccheck_incr(nf90_put_var(ncid_out, liqwatvarid, sngl(out3d), &
                          start = ncstart, count = nccount))
-       call mpi_barrier(mpi_comm_world,ierror)
+       call mpi_barrier(gsi_mpi_comm_world,ierror)
     endif
     ! ozone increment
     do k=1,grd%nsig
@@ -478,7 +478,7 @@ contains
     end do
        call nccheck_incr(nf90_put_var(ncid_out, o3varid, sngl(out3d), &
                          start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
     ! ice mixing ratio increment
     if (iqi>0) then
        do k=1,grd%nsig
@@ -491,7 +491,7 @@ contains
        end do
        call nccheck_incr(nf90_put_var(ncid_out, icvarid, sngl(out3d), &
                          start = ncstart, count = nccount))
-       call mpi_barrier(mpi_comm_world,ierror)
+       call mpi_barrier(gsi_mpi_comm_world,ierror)
     endif
     ! rain water mixing ratio increment
     if (iqr>0) then
@@ -505,7 +505,7 @@ contains
        end do
        call nccheck_incr(nf90_put_var(ncid_out, qrvarid, sngl(out3d), &
                          start = ncstart, count = nccount))
-       call mpi_barrier(mpi_comm_world,ierror)
+       call mpi_barrier(gsi_mpi_comm_world,ierror)
     endif
     ! snow water mixing ratio increment
     if (iqs>0) then
@@ -519,7 +519,7 @@ contains
        end do
        call nccheck_incr(nf90_put_var(ncid_out, qsvarid, sngl(out3d), &
                          start = ncstart, count = nccount))
-       call mpi_barrier(mpi_comm_world,ierror)
+       call mpi_barrier(gsi_mpi_comm_world,ierror)
     endif
     ! graupel mixing ratio increment
     if (iqg>0) then
@@ -533,7 +533,7 @@ contains
        end do
        call nccheck_incr(nf90_put_var(ncid_out, qgvarid, sngl(out3d), &
                          start = ncstart, count = nccount))
-       call mpi_barrier(mpi_comm_world,ierror)
+       call mpi_barrier(gsi_mpi_comm_world,ierror)
     endif
 !    ! cleanup and exit
     call nccheck_incr(nf90_close(ncid_out))

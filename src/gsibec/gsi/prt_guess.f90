@@ -33,7 +33,7 @@ subroutine prt_guess(sgrep)
 !
 !$$$ end documentation block
   use m_kinds, only: r_kind,i_kind
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_rtype,npe,mype
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_rtype,npe,mype
   use constants, only: zero
   use gridmod, only: lat1,lon1,nsig
   use gridmod, only: regional
@@ -189,7 +189,7 @@ subroutine prt_guess(sgrep)
 
 ! Gather contributions
   call mpi_gather(zloc,3*nvars+3,mpi_rtype, &
-                   & zall,3*nvars+3,mpi_rtype,0, mpi_comm_world,ierror)
+                   & zall,3*nvars+3,mpi_rtype,0, gsi_mpi_comm_world,ierror)
 
   if (mype==0) then
      zmin=zero
@@ -263,7 +263,7 @@ subroutine prt_guess2(sgrep)
 !
 !$$$ end documentation block
   use m_kinds, only: r_kind,i_kind
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_rtype,npe,mype
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_rtype,npe,mype
   use constants, only: zero
   use gridmod, only: lat1,lon1,nsig
   use guess_grids, only: ges_tsen,ges_prsl,sfct
@@ -542,7 +542,7 @@ subroutine prt_guess2(sgrep)
 
 ! Gather contributions
   call mpi_allgather(zloc,3*nvars+3,mpi_rtype, &
-                   & zall,3*nvars+3,mpi_rtype, mpi_comm_world,ierror)
+                   & zall,3*nvars+3,mpi_rtype, gsi_mpi_comm_world,ierror)
 
   if (mype==0) then
      zmin=zero
@@ -742,7 +742,7 @@ subroutine prt_guesschem(sgrep)
 !
 !$$$ end documentation block
   use m_kinds, only: r_kind,i_kind
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_rtype,npe,mype
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_rtype,npe,mype
   use constants, only: zero
   use gridmod, only: lat1,lon1,nsig
   use guess_grids, only: ntguessig
@@ -795,7 +795,7 @@ subroutine prt_guesschem(sgrep)
 
 ! Gather contributions
   call mpi_allgather(zloc,3*nvars+1,mpi_rtype, &
-                   & zall,3*nvars+1,mpi_rtype, mpi_comm_world,ierror)
+                   & zall,3*nvars+1,mpi_rtype, gsi_mpi_comm_world,ierror)
 
   if (mype==0) then
      zmin=zero

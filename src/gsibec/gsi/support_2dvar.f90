@@ -528,7 +528,7 @@ subroutine read_2d_files(mype)
 !$$$
 
   use m_kinds, only: r_kind,i_kind
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype,npe
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype,npe
   use guess_grids, only: nfldsig,nfldsfc,ntguessig,ntguessfc,&
        ifilesig,ifilesfc,hrdifsig,hrdifsfc,create_gesfinfo
   use guess_grids, only: hrdifsig_all,hrdifsfc_all
@@ -626,7 +626,7 @@ subroutine read_2d_files(mype)
   end if
 
 ! Broadcast guess file information to all tasks
-  call mpi_bcast(time_ges,202,mpi_rtype,npem1,mpi_comm_world,ierror)
+  call mpi_bcast(time_ges,202,mpi_rtype,npem1,gsi_mpi_comm_world,ierror)
 
   nfldsig   = nint(time_ges(201))
   nfldsfc   = nfldsig
@@ -720,7 +720,7 @@ subroutine read_2d_guess(mype)
 !
 !$$$
   use m_kinds, only: r_kind,i_kind,r_single
-  use m_mpimod, only: mpi_sum,mpi_integer,mpi_real4,mpi_comm_world,npe,ierror
+  use m_mpimod, only: mpi_sum,mpi_integer,mpi_real4,gsi_mpi_comm_world,npe,ierror
   use guess_grids, only: fact10,soil_type,veg_frac,veg_type,sfct,sno,soil_temp,soil_moi,&
        isli,nfldsig,ifilesig,ges_tsen,sfc_rough
   use gridmod, only: lon1,lat1,nlat_regional,nlon_regional,&
@@ -1123,7 +1123,7 @@ subroutine read_2d_guess(mype)
 !       Distribute to local domains everytime we have npe fields
         if(mod(icount,npe) == 0.or.icount==num_all_fields) then
            call mpi_alltoallv(tempa,ijn_s,displs_s,mpi_real4, &
-                all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,mpi_comm_world,ierror)
+                all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,gsi_mpi_comm_world,ierror)
            icount_prev=icount+1
         end if
      end do
@@ -1397,7 +1397,7 @@ subroutine read_2d_guess(mype)
         end do
      end do
 
-     call mpi_barrier(mpi_comm_world,ierror)
+     call mpi_barrier(gsi_mpi_comm_world,ierror)
      if(use_similarity_2dvar) then
        call init_aux2dvarflds(mype)
      endif
@@ -1454,7 +1454,7 @@ subroutine wr2d_binary(mype)
 
   use guess_grids, only: ntguessig,ifilesig,&
        ges_tsen
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_real4
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_real4
   use gridmod, only: lat2,iglobal,itotsub,strip,&
        lon2,nsig,lon1,lat1,nlon_regional,nlat_regional,ijn,displs_g
   use obsmod, only: use_similarity_2dvar
@@ -1646,7 +1646,7 @@ subroutine wr2d_binary(mype)
   endif
   call strip(all_loc(:,:,i_psfc),strp)
   call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-       tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+       tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
   if(mype == 0) then
      call fill_mass_grid2t(temp1,im,jm,tempb,2)
      do i=1,iglobal
@@ -1669,7 +1669,7 @@ subroutine wr2d_binary(mype)
      if(mype == 0) read(iog)temp1
      call strip(all_loc(:,:,kt),strp)
      call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-          tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+          tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
      if(mype == 0) then
         call fill_mass_grid2t(temp1,im,jm,tempb,2)
         do i=1,iglobal
@@ -1690,7 +1690,7 @@ subroutine wr2d_binary(mype)
      endif
      call strip(all_loc(:,:,kq),strp)
      call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-          tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+          tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
      if(mype == 0) then
         call fill_mass_grid2t(temp1,im,jm,tempb,2)
         do i=1,iglobal
@@ -1702,7 +1702,7 @@ subroutine wr2d_binary(mype)
 
      call strip(all_loc_qsatg(:,:,k),strp)
      call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-          tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+          tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
      if(mype == 0) then
         call fill_mass_grid2t(temp1_prh,im,jm,tempb,2)
         do i=1,iglobal
@@ -1711,7 +1711,7 @@ subroutine wr2d_binary(mype)
      end if
      call strip(all_loc_prh(:,:,k),strp)
      call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-          tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+          tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
      if(mype == 0) then
         do i=1,iglobal
            tempa(i)=tempa(i)-tempb(i)
@@ -1728,7 +1728,7 @@ subroutine wr2d_binary(mype)
      if(mype == 0) read(iog)temp1
      call strip(all_loc(:,:,ku),strp)
      call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-          tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+          tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
      if(mype == 0) then
         call fill_mass_grid2t(temp1,im,jm,tempb,2)
         do i=1,iglobal
@@ -1746,7 +1746,7 @@ subroutine wr2d_binary(mype)
      if(mype == 0) read(iog)temp1
      call strip(all_loc(:,:,kv),strp)
      call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-          tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+          tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
      if(mype == 0) then
         call fill_mass_grid2t(temp1,im,jm,tempb,2)
         do i=1,iglobal
@@ -1827,7 +1827,7 @@ subroutine wr2d_binary(mype)
         if(mype==0) read(iog)temp1
         call strip(all_loc(:,:,iaux(k)),strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-             tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
         if(mype == 0) then
            call fill_mass_grid2t(temp1,im,jm,tempb,2)
            do i=1,iglobal
@@ -1852,7 +1852,7 @@ subroutine wr2d_binary(mype)
   do k=1,nsig
      call strip(all_loc_qsatg(:,:,k),strp)
      call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-          tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+          tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
      if(mype == 0) then
         temp1=zero_single
         call unfill_mass_grid2t(tempa,im,jm,temp1)

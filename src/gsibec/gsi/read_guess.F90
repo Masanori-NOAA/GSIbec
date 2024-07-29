@@ -119,7 +119,7 @@ subroutine read_guess(iyear,month,idd,mype)
   use guess_grids, only:geom_hgti,geom_hgti_bg
 
   use gsi_rfv3io_mod, only: bg_fv3regfilenameg
-  use m_mpimod, only: mpi_comm_world
+  use m_mpimod, only: gsi_mpi_comm_world
 
   implicit none
 

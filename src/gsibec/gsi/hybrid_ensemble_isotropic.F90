@@ -1216,7 +1216,7 @@ end subroutine normal_new_factorization_rf_y
     use get_fv3_regional_ensperts_mod, only: get_fv3_regional_ensperts_class
     use get_wrf_nmm_ensperts_mod, only: get_wrf_nmm_ensperts_class
     use hybrid_ensemble_parameters, only: region_lat_ens,region_lon_ens
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
 
     implicit none
 
@@ -1468,7 +1468,7 @@ end subroutine normal_new_factorization_rf_y
 
     use m_kinds, only: r_kind,i_kind,i_llong
     use gridmod, only: vlevs,nnnn1o,regional
-    use m_mpimod, only: mype,mpi_rtype,mpi_comm_world,ierror
+    use m_mpimod, only: mype,mpi_rtype,gsi_mpi_comm_world,ierror
     use hybrid_ensemble_parameters, only: uv_hyb_ens,grd_ens,grd_anl,p_e2a
     use general_sub2grid_mod, only: general_suba2sube
     use constants, only: zero,one
@@ -1507,7 +1507,7 @@ end subroutine normal_new_factorization_rf_y
              enddo
           enddo
        end if
-       call mpi_bcast(seed,nval2f*nscl,mpi_rtype,0,mpi_comm_world,ierror)
+       call mpi_bcast(seed,nval2f*nscl,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
     end if
 
@@ -2452,7 +2452,7 @@ end subroutine normal_new_factorization_rf_y
 !$$$
 
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only: npe,mype,mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: npe,mype,gsi_mpi_comm_world,ierror,mpi_rtype
     use gridmod, only: nlat,nlon,nnnn1o,regional,vlevs
     use berror, only: nx,ny,nf
     implicit none
@@ -2550,7 +2550,7 @@ end subroutine normal_new_factorization_rf_y
        enddo
     enddo
     call mpi_alltoallv(zsub,nsend_sd2h,ndsend_sd2h,mpi_rtype,&
-                       z,nrecv_sd2h,ndrecv_sd2h,mpi_rtype,mpi_comm_world,ierror)
+                       z,nrecv_sd2h,ndrecv_sd2h,mpi_rtype,gsi_mpi_comm_world,ierror)
     do i=1,nval2f*(nv_1-nv_0+1)
        i_recv(i)=nint(z(i))
     enddo
@@ -2561,7 +2561,7 @@ end subroutine normal_new_factorization_rf_y
        enddo
     enddo
     call mpi_alltoallv(zsub,nsend_sd2h,ndsend_sd2h,mpi_rtype,&
-                       z,nrecv_sd2h,ndrecv_sd2h,mpi_rtype,mpi_comm_world,ierror)
+                       z,nrecv_sd2h,ndrecv_sd2h,mpi_rtype,gsi_mpi_comm_world,ierror)
     do i=1,nval2f*(nv_1-nv_0+1)
        k_recv(i)=nint(z(i))
     enddo
@@ -2599,7 +2599,7 @@ end subroutine normal_new_factorization_rf_y
   use m_kinds, only: r_kind,i_kind
   use gridmod, only: vlevs
   use constants, only: zero
-  use m_mpimod, only: mpi_rtype,ierror,mpi_comm_world
+  use m_mpimod, only: mpi_rtype,ierror,gsi_mpi_comm_world
   implicit none
 
   real(r_kind),dimension(nh_0:nh_1,vlevs,nscl),intent(in   ) :: zsub
@@ -2622,7 +2622,7 @@ end subroutine normal_new_factorization_rf_y
         enddo
      enddo
      call mpi_alltoallv(zsub1,nsend_sd2h,ndsend_sd2h,mpi_rtype,&
-                        work,nrecv_sd2h,ndrecv_sd2h,mpi_rtype,mpi_comm_world,ierror)
+                        work,nrecv_sd2h,ndrecv_sd2h,mpi_rtype,gsi_mpi_comm_world,ierror)
      do ii=1,nval2f*(nv_1-nv_0+1)
         i=i_recv(ii) ; k=k_recv(ii)
         z(i,k,is)=work(ii)
@@ -4994,7 +4994,7 @@ subroutine sub2grid_1(sub,grid,gridpe,mype)
   use gridmod, only: nlat,nlon,lat2,lon2,lat1,lon1,&
          iglobal,ijn,displs_g,itotsub,strip
   use general_commvars_mod, only: ltosi,ltosj
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
   integer(i_kind)                  ,intent(in   ) :: gridpe,mype
@@ -5013,7 +5013,7 @@ subroutine sub2grid_1(sub,grid,gridpe,mype)
   call strip(sub,zsm)
   call mpi_gatherv(zsm,ijn(mm1),mpi_rtype, &
                  work1,ijn,displs_g,mpi_rtype, &
-                 gridpe,mpi_comm_world,ierror)
+                 gridpe,gsi_mpi_comm_world,ierror)
   if(mype == gridpe) then
      do k=1,iglobal
         i=ltosi(k) ; j=ltosj(k)
@@ -5268,7 +5268,7 @@ subroutine general_sub2grid_1_ens(sub,grid,gridpe,mype,grd)
 
   use m_kinds, only: r_kind,i_kind
   use constants, only: zero
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   use general_sub2grid_mod, only: sub2grid_info
   implicit none
 
@@ -5292,7 +5292,7 @@ subroutine general_sub2grid_1_ens(sub,grid,gridpe,mype,grd)
   enddo
   call mpi_gatherv(zsm,grd%ijn(mm1),mpi_rtype, &
                  work1,grd%ijn,grd%displs_g,mpi_rtype, &
-                 gridpe,mpi_comm_world,ierror)
+                 gridpe,gsi_mpi_comm_world,ierror)
   if(mype == gridpe) then
      do k=1,grd%iglobal
         i=grd%ltosi(k) ; j=grd%ltosj(k)
@@ -5332,7 +5332,7 @@ subroutine sub2grid_1_ens(sub,grid,gridpe,mype)
   use m_kinds, only: r_kind,i_kind
   use constants, only: zero
   use hybrid_ensemble_parameters, only: grd_ens
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
   integer(i_kind)                  ,intent(in   ) :: gridpe,mype
@@ -5354,7 +5354,7 @@ subroutine sub2grid_1_ens(sub,grid,gridpe,mype)
   enddo
   call mpi_gatherv(zsm,grd_ens%ijn(mm1),mpi_rtype, &
                  work1,grd_ens%ijn,grd_ens%displs_g,mpi_rtype, &
-                 gridpe,mpi_comm_world,ierror)
+                 gridpe,gsi_mpi_comm_world,ierror)
   if(mype == gridpe) then
      do k=1,grd_ens%iglobal
         i=grd_ens%ltosi(k) ; j=grd_ens%ltosj(k)
@@ -5719,7 +5719,7 @@ subroutine setup_pwgt
 
    use m_kinds, only: r_kind,i_kind
    use constants,only: zero,one
-   use m_mpimod, only: mype,mpi_comm_world,mpi_rtype,mpi_sum
+   use m_mpimod, only: mype,gsi_mpi_comm_world,mpi_rtype,mpi_sum
    use gridmod, only: lat2,lon2,nsig,regional
    use general_sub2grid_mod, only: general_suba2sube
    use balmod, only: wgvk

@@ -79,7 +79,7 @@ contains
   !
   !$$$
     use m_kinds, only: r_kind,r_single,i_long,i_llong,i_kind
-    use m_mpimod, only: mpi_byte,mpi_integer4,mpi_real4,mpi_comm_world,npe,ierror, &
+    use m_mpimod, only: mpi_byte,mpi_integer4,mpi_real4,gsi_mpi_comm_world,npe,ierror, &
          mpi_offset_kind,mpi_info_null,mpi_mode_rdwr,mpi_status_size
     use guess_grids, only: dsfct,&
          ntguessfc,ntguessig,ifilesig,ges_tsen
@@ -248,7 +248,7 @@ contains
   
   !     open wrf file for mpi-io reading and writing
     wrfanl = 'wrf_inout'
-    call mpi_file_open(mpi_comm_world,trim(wrfanl),mpi_mode_rdwr,mpi_info_null,mfcst,ierror)
+    call mpi_file_open(gsi_mpi_comm_world,trim(wrfanl),mpi_mode_rdwr,mpi_info_null,mfcst,ierror)
   
   !     update START_DATE record so it contains new analysis time in place of old starting time
     call mpi_file_read_at(mfcst,offset_start_date,chdrbuf,length_start_date,mpi_byte,status,ierror)
@@ -1076,7 +1076,7 @@ contains
           if(igtype(k)==3) call wrf_mass_guess%expand_ibuf(ibuf(1,k),im  ,jm+1,im+1,jm+1)
        end if
     end do
-  ! call mpi_barrier(mpi_comm_world,ierror)
+  ! call mpi_barrier(gsi_mpi_comm_world,ierror)
   
   !   5.  tempa --> updated ibuf --> jbuf --> write out
   
@@ -1453,7 +1453,7 @@ contains
   !   machine:  ibm RS/6000 SP
   !
   !$$$
-    use m_mpimod, only: ierror,mpi_comm_world,mpi_real4,npe
+    use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_real4,npe
     use gridmod, only: ijn,itotsub,lat1,lon1
     use m_kinds, only: r_single,i_kind
     implicit none
@@ -1481,7 +1481,7 @@ contains
     end do
   
     call mpi_alltoallv(all_loc,recvcounts,rdispls,mpi_real4, &
-                  tempa,sendcounts,sdispls,mpi_real4,mpi_comm_world,ierror)
+                  tempa,sendcounts,sdispls,mpi_real4,gsi_mpi_comm_world,ierror)
   
     call this%reorder_s(tempa,kend_loc-kbegin_loc+1)
   
@@ -1674,7 +1674,7 @@ contains
   
   !  flip around from ijk to ikj, moving result from ibuf to jbuf
   
-    use m_mpimod, only: mpi_comm_world,mpi_integer4
+    use m_mpimod, only: gsi_mpi_comm_world,mpi_integer4
     use m_kinds, only: i_long,i_kind
     implicit none
   
@@ -1725,7 +1725,7 @@ contains
        end do
        sendcount=ii
        call mpi_scatterv(recvbuf,recvcounts,displs,mpi_integer4, &
-                         sendbuf,sendcount,mpi_integer4,ipe,mpi_comm_world,ierror)
+                         sendbuf,sendcount,mpi_integer4,ipe,gsi_mpi_comm_world,ierror)
        ii=0
        do k=k_t_start,k_t_end
           do j=jbegin_loc,jend_loc
@@ -1866,7 +1866,7 @@ contains
     use guess_grids, only: ntguessfc,ntguessig,ifilesig,dsfct,&
          ges_tsen, ges_w_btlev
     use wrf_mass_guess_mod, only: ges_tten
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_real4
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_real4
     use gridmod, only: pt_ll,eta1_ll,lat2,iglobal,itotsub,update_regsfc,&
          lon2,nsig,nsig_soil,lon1,lat1,nlon_regional,nlat_regional,ijn,displs_g,&
          aeta1_ll,strip,eta2_ll,aeta2_ll
@@ -2384,7 +2384,7 @@ contains
     if(mype == 0) read(lendian_in)temp1
     call strip(all_loc(:,:,i_psfc),strp)
     call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-         tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+         tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
     if(mype == 0) then
        call fill_mass_grid2t(temp1,im,jm,tempb,2)
        do i=1,iglobal
@@ -2410,7 +2410,7 @@ contains
        if(mype == 0) read(lendian_in)temp1
        call strip(all_loc(:,:,kt),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
           call fill_mass_grid2t(temp1,im,jm,tempb,2)
           do i=1,iglobal
@@ -2452,7 +2452,7 @@ contains
        if(mype == 0) read(lendian_in)temp1
        call strip(all_loc(:,:,kq),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
           call fill_mass_grid2t(temp1,im,jm,tempb,2)
           do i=1,iglobal
@@ -2474,7 +2474,7 @@ contains
        if(mype == 0) read(lendian_in)temp1u
        call strip(all_loc(:,:,ku),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
           call fill_mass_grid2u(temp1u,im,jm,tempb,2)
           do i=1,iglobal
@@ -2492,7 +2492,7 @@ contains
        if(mype == 0) read(lendian_in)temp1v
        call strip(all_loc(:,:,kv),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
           call fill_mass_grid2v(temp1v,im,jm,tempb,2)
           do i=1,iglobal
@@ -2511,7 +2511,7 @@ contains
         if(mype == 0) read(lendian_in)temp1
         call strip(all_loc(:,:,kw),strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-             tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
         if(mype == 0) then
            call fill_mass_grid2t(temp1,im,jm,tempb,2)
            do i=1,iglobal
@@ -2612,7 +2612,7 @@ contains
        if (mype==0)write(6,*)' at 9.1 in wrwrfmassa,max,min(temp1)=',maxval(temp1),minval(temp1)
        call strip(all_loc(:,:,i_sst),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
           if(mype == 0) write(6,*)' at 9.2 in wrwrfmassa,max,min(tempa)=',maxval(tempa),minval(tempa)
           call fill_mass_grid2t(temp1,im,jm,tempb,2)
@@ -2658,7 +2658,7 @@ contains
           if(mype == 0) read(lendian_in)temp1
           call strip(all_loc(:,:,ksmois),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call fill_mass_grid2t(temp1,im,jm,tempb,2)
              do i=1,iglobal
@@ -2681,7 +2681,7 @@ contains
           if(mype == 0) read(lendian_in)temp1
           call strip(all_loc(:,:,ktslb),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call fill_mass_grid2t(temp1,im,jm,tempb,2)
              do i=1,iglobal
@@ -2710,7 +2710,7 @@ contains
        if (mype==0)write(6,*)' at 10.0 in wrwrfmassa,max,min(temp1)=',maxval(temp1),minval(temp1)
        call strip(all_loc(:,:,i_skt),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
           call fill_mass_grid2t(temp1,im,jm,tempb,2)
           do i=1,iglobal
@@ -2741,7 +2741,7 @@ contains
        call strip(all_loc(:,:,i_q2),strp)
        tempa=zero_single
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
           write(6,*)' at 10.12 in wrwrfmassa,max,min(tempa)=', &
                             maxval(tempa),minval(tempa)
@@ -2765,7 +2765,7 @@ contains
        call strip(all_loc(:,:,i_soilt1),strp)
        tempa=zero_single
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
            write(6,*)' at 10.2 in wrwrfmassa,max,min(tempa)=',maxval(tempa),minval(tempa)
           call fill_mass_grid2t(temp1,im,jm,tempb,2)
@@ -2786,7 +2786,7 @@ contains
        if (mype==0)write(6,*)' at 10.5 in wrwrfmassa,max,min(temp1)=',maxval(temp1),minval(temp1)
        call strip(all_loc(:,:,i_th2),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
            write(6,*)' at 10.6 in wrwrfmassa,max,min(tempa)=',maxval(tempa),minval(tempa)
           call fill_mass_grid2t(temp1,im,jm,tempb,2)
@@ -2813,7 +2813,7 @@ contains
           if(mype == 0) read(lendian_in)temp1
           call strip(all_loc(:,:,kqc),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call fill_mass_grid2t(temp1,im,jm,tempb,2)
              do i=1,iglobal
@@ -2831,7 +2831,7 @@ contains
           if(mype == 0) read(lendian_in)temp1
           call strip(all_loc(:,:,kqr),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call fill_mass_grid2t(temp1,im,jm,tempb,2)
              do i=1,iglobal
@@ -2849,7 +2849,7 @@ contains
           if(mype == 0) read(lendian_in)temp1
           call strip(all_loc(:,:,kqs),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call fill_mass_grid2t(temp1,im,jm,tempb,2)
              do i=1,iglobal
@@ -2867,7 +2867,7 @@ contains
           if(mype == 0) read(lendian_in)temp1
           call strip(all_loc(:,:,kqi),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call fill_mass_grid2t(temp1,im,jm,tempb,2)
              do i=1,iglobal
@@ -2885,7 +2885,7 @@ contains
           if(mype == 0) read(lendian_in)temp1
           call strip(all_loc(:,:,kqg),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call fill_mass_grid2t(temp1,im,jm,tempb,2)
              do i=1,iglobal
@@ -2903,7 +2903,7 @@ contains
           if(mype == 0) read(lendian_in)temp1
           call strip(all_loc(:,:,kqnr),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call fill_mass_grid2t(temp1,im,jm,tempb,2)
              do i=1,iglobal
@@ -2922,7 +2922,7 @@ contains
                if(mype == 0) read(lendian_in)temp1
                call strip(all_loc(:,:,kqni),strp)
                call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-                    tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+                    tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
                if(mype == 0) then
                   call fill_mass_grid2t(temp1,im,jm,tempb,2)
                   do i=1,iglobal
@@ -2940,7 +2940,7 @@ contains
                if(mype == 0) read(lendian_in)temp1
                call strip(all_loc(:,:,kqnc),strp)
                call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-                    tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+                    tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
                if(mype == 0) then
                   call fill_mass_grid2t(temp1,im,jm,tempb,2)
                   do i=1,iglobal
@@ -2960,7 +2960,7 @@ contains
                if(mype == 0) read(lendian_in)temp1
                call strip(all_loc(:,:,kdbz),strp)
                call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-                    tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+                    tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
                if(mype == 0) then
                   call fill_mass_grid2t(temp1,im,jm,tempb,2)
                   do i=1,iglobal
@@ -2979,7 +2979,7 @@ contains
           if(mype == 0) read(lendian_in)temp1
           call strip(all_loc(:,:,ktt),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call fill_mass_grid2t(temp1,im,jm,tempb,2)
              do i=1,iglobal
@@ -3001,7 +3001,7 @@ contains
              if(mype == 0) read(lendian_in)temp1
              call strip(all_loc(:,:,kchem(iv)),strp)
              call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-                  tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+                  tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
              if(mype == 0) then
                 call fill_mass_grid2t(temp1,im,jm,tempb,2)
                 do i=1,iglobal
@@ -3025,7 +3025,7 @@ contains
           if(mype == 0) read(lendian_in)temp1
           call strip(all_loc(:,:,kchem(iv)),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call fill_mass_grid2t(temp1,im,jm,tempb,2)
              do i=1,iglobal

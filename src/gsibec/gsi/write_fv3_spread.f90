@@ -64,7 +64,7 @@ contains
     use m_kinds, only: r_kind,i_kind
 
     use m_mpimod, only: mpi_rtype
-    use m_mpimod, only: mpi_comm_world, mpi_info_null
+    use m_mpimod, only: gsi_mpi_comm_world, mpi_info_null
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
 
@@ -154,7 +154,7 @@ contains
     
     ! create the output netCDF file
     call ncceck_enspread(nf90_create(path=trim(filename)//".nc", cmode=ior(nf90_netcdf4, nf90_mpiio), ncid=ncid_out, &
-                                 comm = mpi_comm_world, info = mpi_info_null))
+                                 comm = gsi_mpi_comm_world, info = mpi_info_null))
     ! create dimensions based on analysis resolution, not guess
     call ncceck_enspread(nf90_def_dim(ncid_out, "lon", grdin%nlon, lon_dimid))
     call ncceck_enspread(nf90_def_dim(ncid_out, "lat", grdin%nlat, lat_dimid))
@@ -248,7 +248,7 @@ contains
     ncstart = (/ jstartloc(mype+1), istartloc(mype+1), 1 /)
     nccount = (/ grdin%lon1, grdin%lat1, grdin%nsig /)
     nccount2 = (/ grdin%lon1, grdin%lat1 /)
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
     allocate(out3d(nccount(1),nccount(2),grdin%nsig))
     ! u 
     do k=1,grdin%nsig
@@ -257,7 +257,7 @@ contains
     end do
     call ncceck_enspread(nf90_put_var(ncid_out, uvarid, sngl(out3d), &
                       start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
 !    ! v 
     do k=1,grdin%nsig
        krev = grdin%nsig+1-k
@@ -265,7 +265,7 @@ contains
     end do
     call ncceck_enspread(nf90_put_var(ncid_out, vvarid, sngl(out3d), &
                       start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
 
     do k=1,grdin%nsig
        krev = grdin%nsig+1-k
@@ -273,19 +273,19 @@ contains
     end do
     call ncceck_enspread(nf90_put_var(ncid_out, tvarid, sngl(out3d), &
                      start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
     do k=1,grdin%nsig
        krev = grdin%nsig+1-k
        out3d(:,:,krev) = transpose(qloc(j1:j2,:,k))
     end do
     call ncceck_enspread(nf90_put_var(ncid_out, qvarid, sngl(out3d), &
                       start = ncstart, count = nccount))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
 
        out3d(:,:,1) = transpose(psloc(j1:j2,:))
     call ncceck_enspread(nf90_put_var(ncid_out, psvarid, sngl(out3d(:,:,1)), &
                       start = ncstart, count = (/ grdin%lon1, grdin%lat1 /) ))
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
 !    ! cleanup and exit
     call ncceck_enspread(nf90_close(ncid_out))
     if ( mype == mype_out ) then

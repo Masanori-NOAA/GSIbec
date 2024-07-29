@@ -51,7 +51,7 @@ contains
   
      use m_kinds, only: r_kind,i_kind,r_single
      use constants, only: zero,one,half,zero_single,rd_over_cp,one_tenth
-     use m_mpimod, only: mpi_comm_world,ierror,mype,npe
+     use m_mpimod, only: gsi_mpi_comm_world,ierror,mype,npe
      use hybrid_ensemble_parameters, only: n_ens,grd_ens,parallelization_over_ensmembers
      use hybrid_ensemble_parameters, only: l_both_fv3sar_gfs_ens,n_ens_gfs,n_ens_fv3sar,weight_ens_fv3sar
      use hybrid_ensemble_parameters, only: ntlevs_ens,ensemble_path
@@ -361,7 +361,7 @@ contains
               write(6,'(I0,A)') mype,': reading ensemble data in parallel is done (parallelization_over_ensmembers=.true.)'
            endif
         end if
-        call MPI_Barrier(mpi_comm_world,ierror)
+        call MPI_Barrier(gsi_mpi_comm_world,ierror)
  !
  ! LOOP OVER ENSEMBLE MEMBERS 
         do n_fv3sar=1,n_ens_fv3sar
@@ -532,7 +532,7 @@ contains
 
               endif
 
-              call MPI_Barrier(mpi_comm_world,ierror)
+              call MPI_Barrier(gsi_mpi_comm_world,ierror)
            end if
 
  ! SAVE ENSEMBLE MEMBER DATA IN COLUMN VECTOR
@@ -779,7 +779,7 @@ contains
            end if
         end do
  
-        call mpi_barrier(mpi_comm_world,ierror)
+        call mpi_barrier(gsi_mpi_comm_world,ierror)
  !
  !
  ! CONVERT ENSEMBLE MEMBERS TO ENSEMBLE PERTURBATIONS
@@ -795,7 +795,7 @@ contains
  ! CALCULATE ENSEMBLE SPREAD
     if(write_ens_sprd ) then
         call this%ens_spread_dualres_regional(mype,en_perts,nelen)
-        call mpi_barrier(mpi_comm_world,ierror) ! do we need this mpi_barrier here? 
+        call mpi_barrier(gsi_mpi_comm_world,ierror) ! do we need this mpi_barrier here? 
     endif
     do m=1,ntlevs_ens
       call gsi_bundledestroy(en_bar(m),istatus)
@@ -851,7 +851,7 @@ contains
     use hybrid_ensemble_parameters, only: grd_ens,q_hyb_ens
     use hybrid_ensemble_parameters, only: fv3sar_ensemble_opt,dual_res
 
-    use m_mpimod, only: mpi_comm_world,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,mpi_rtype
     use gsi_rfv3io_mod,only: type_fv3regfilenameg
     use gsi_rfv3io_mod,only:n2d 
     use constants, only: half,zero
@@ -1136,7 +1136,7 @@ contains
     use hybrid_ensemble_parameters, only: grd_ens,q_hyb_ens
     use hybrid_ensemble_parameters, only: fv3sar_ensemble_opt 
 
-    use m_mpimod, only: mpi_comm_world,mpi_rtype,mype
+    use m_mpimod, only: gsi_mpi_comm_world,mpi_rtype,mype
     use netcdf_mod, only: nc_check
     use gsi_rfv3io_mod,only: type_fv3regfilenameg
     use gsi_rfv3io_mod,only:n2d 
@@ -1315,7 +1315,7 @@ contains
   !$$$ end documentation block
 
     use hybrid_ensemble_parameters, only: grd_ens
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     use m_kinds, only: r_kind,r_single,i_kind
     use constants, only: half,zero
    
@@ -1350,51 +1350,51 @@ contains
   ! first PS (output from fill_regional_2d is a column vector with a halo)
     if(mype==iope) call this%fill_regional_2d(gg_ps,wrk_send_2d)
     call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype, &
-    g_ps,grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+    g_ps,grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
   ! then TV,U,V,RH
     do k=1,grd_ens%nsig
        if (mype==iope) then
           call this%fill_regional_2d(gg_tv(:,:,k),wrk_send_2d)
        endif
        call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype, &
-       g_tv(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+       g_tv(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
        if (mype==iope) call this%fill_regional_2d(gg_u(1,1,k),wrk_send_2d)
        call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype, &
-       g_u(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+       g_u(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
        if (mype==iope) call this%fill_regional_2d(gg_v(1,1,k),wrk_send_2d)
        call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype, &
-       g_v(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+       g_v(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
        if (mype==iope) call this%fill_regional_2d(gg_rh(1,1,k),wrk_send_2d)
        call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype, &
-       g_rh(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+       g_rh(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
        if( present(g_dbz) .or. present(g_fed) )then
           if (mype==iope) call this%fill_regional_2d(gg_w(1,1,k),wrk_send_2d)
           call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype, &
-          g_w(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+          g_w(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
           if (mype==iope) call this%fill_regional_2d(gg_qr(1,1,k),wrk_send_2d)
           call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype,&
-          g_qr(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+          g_qr(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
           if (mype==iope) call this%fill_regional_2d(gg_qs(1,1,k),wrk_send_2d)
           call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype,&
-          g_qs(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+          g_qs(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
           if (mype==iope) call this%fill_regional_2d(gg_qi(1,1,k),wrk_send_2d)
           call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype,&
-          g_qi(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+          g_qi(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
           if (mype==iope) call this%fill_regional_2d(gg_qg(1,1,k),wrk_send_2d)
           call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype, &
-          g_qg(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+          g_qg(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
           if (mype==iope) call this%fill_regional_2d(gg_ql(1,1,k),wrk_send_2d)
           call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype,&
-          g_ql(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+          g_ql(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
           if( present(g_dbz)) then
              if (mype==iope) call this%fill_regional_2d(gg_dbz(1,1,k),wrk_send_2d)
              call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype,&
-             g_dbz(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+             g_dbz(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
           end if
           if( present(g_fed)) then
              if (mype==iope) call this%fill_regional_2d(gg_fed(1,1,k),wrk_send_2d)
              call mpi_scatterv(wrk_send_2d,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype,&
-             g_fed(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,mpi_comm_world,ierror)
+             g_fed(1,1,k),grd_ens%ijn_s(mype+1),mpi_rtype,iope,gsi_mpi_comm_world,ierror)
           end if
        end if
     enddo

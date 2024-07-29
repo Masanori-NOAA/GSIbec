@@ -54,7 +54,7 @@ contains
     use wrf_params_mod, only: update_pint
     use guess_grids, only: &
          ntguessfc,ntguessig,ifilesig,dsfct,ges_tsen
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_byte,mpi_integer4,mpi_real4,mpi_sum,npe, &
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_byte,mpi_integer4,mpi_real4,mpi_sum,npe, &
          mpi_offset_kind,mpi_info_null,mpi_mode_rdwr,mpi_status_size
     use gridmod, only: iglobal,itotsub,pt_ll,update_regsfc,&
          half_grid,filled_grid,pdtop_ll,nlat_regional,nlon_regional,&
@@ -234,7 +234,7 @@ contains
   
   !     open wrf file for mpi-io reading and writing
     wrfanl = 'wrf_inout'
-    call mpi_file_open(mpi_comm_world,trim(wrfanl),mpi_mode_rdwr,mpi_info_null,mfcst,ierror)
+    call mpi_file_open(gsi_mpi_comm_world,trim(wrfanl),mpi_mode_rdwr,mpi_info_null,mfcst,ierror)
   
   !     update START_DATE record so it contains new analysis time in place of old starting time
     call mpi_file_read_at(mfcst,offset_start_date,chdrbuf,length_start_date,mpi_byte,status,ierror)
@@ -735,18 +735,18 @@ contains
         ! do k=1,lm
         !    write(6,'(" k,t,q,u,v=",i3,4e10.1)')k,tbg(1,k),qbg(1,k),ubg(1,k),vbg(1,k)
         ! end do
-    call mpi_reduce(pdbg,pdbg0,bdim,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(pdba,pdba0,bdim,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(tbg,tbg0,bdim*lm,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(tba,tba0,bdim*lm,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(qbg,qbg0,bdim*lm,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(qba,qba0,bdim*lm,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(cwmbg,cwmbg0,bdim*lm,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(cwmba,cwmba0,bdim*lm,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(ubg,ubg0,bdim*lm,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(uba,uba0,bdim*lm,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(vbg,vbg0,bdim*lm,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(vba,vba0,bdim*lm,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+    call mpi_reduce(pdbg,pdbg0,bdim,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(pdba,pdba0,bdim,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(tbg,tbg0,bdim*lm,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(tba,tba0,bdim*lm,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(qbg,qbg0,bdim*lm,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(qba,qba0,bdim*lm,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(cwmbg,cwmbg0,bdim*lm,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(cwmba,cwmba0,bdim*lm,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(ubg,ubg0,bdim*lm,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(uba,uba0,bdim*lm,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(vbg,vbg0,bdim*lm,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(vba,vba0,bdim*lm,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
     if(mype==0) then
        open(lendian_out,file='wrf_nmm_bnd',form='unformatted')
        write(lendian_out)'WRF-NMM-BINARY'
@@ -1127,7 +1127,7 @@ contains
     use control_vectors, only: cvars3d
     use gfs_stratosphere, only: use_gfs_stratosphere,nsig_save
     use gfs_stratosphere, only: revert_to_nmmb,restore_nmmb_gfs
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype,mpi_integer4,mpi_min,mpi_max,mpi_sum
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype,mpi_integer4,mpi_min,mpi_max,mpi_sum
     use gsi_4dvar, only: nhr_assimilation
     use gsi_nemsio_mod, only: gsi_nemsio_update,gsi_nemsio_write_fraction,gsi_nemsio_write_fractionnew 
     use wrf_vars_mod, only : dbz_exist
@@ -1200,14 +1200,14 @@ contains
     do k=1,6
        hmin=minval(geop_hgtl(:,:,k,ntguessig))
        hmax=maxval(geop_hgtl(:,:,k,ntguessig))
-       call mpi_allreduce(hmin,hmin0,1,mpi_rtype,mpi_min,mpi_comm_world,ierror)
-       call mpi_allreduce(hmax,hmax0,1,mpi_rtype,mpi_max,mpi_comm_world,ierror)
+       call mpi_allreduce(hmin,hmin0,1,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
+       call mpi_allreduce(hmax,hmax0,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
        if(mype == 0) write(6,*)' k,min,max geop_hgtl=',k,hmin0,hmax0
        if(hmin0 < 40._r_kind) near_sfc=k
        hmin=minval(ges_prsl(:,:,k,ntguessig))
        hmax=maxval(ges_prsl(:,:,k,ntguessig))
-       call mpi_allreduce(hmin,hmin0,1,mpi_rtype,mpi_min,mpi_comm_world,ierror)
-       call mpi_allreduce(hmax,hmax0,1,mpi_rtype,mpi_max,mpi_comm_world,ierror)
+       call mpi_allreduce(hmin,hmin0,1,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
+       call mpi_allreduce(hmax,hmax0,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
        if(mype == 0) write(6,*)' k,min,max ges_prsl=',k,hmin0,hmax0
     end do
     near_sfc=max(near_sfc,2)
@@ -1800,7 +1800,7 @@ contains
     use wrf_params_mod, only: update_pint
     use guess_grids, only: &
          ntguessfc,ntguessig,ifilesig,dsfct,ges_tsen
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_real4,mpi_sum
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_real4,mpi_sum
     use gridmod, only: iglobal,itotsub,pt_ll,update_regsfc,&
          half_grid,filled_grid,pdtop_ll,nlat_regional,nlon_regional,&
          nsig,lat1,lon1,ijn,displs_g,eta2_ll,strip,lat2,lon2
@@ -2109,7 +2109,7 @@ contains
     if(mype == 0) write(6,*)' max,min(temp1) PD in       =',maxval(temp1),minval(temp1)       
     call strip(all_loc(:,:,i_pd),strp)
     call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-         tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+         tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
     if(mype == 0) then
        call this%get_bndy_file(temp1,pdbg,tbg,qbg,cwmbg,ubg,vbg,i_pd,i_pd,i_t,i_q,i_cwm,i_u,i_v, &
                           n_actual_clouds,im,jm,lm,bdim,igtypeh)
@@ -2147,7 +2147,7 @@ contains
           if(mype == 0) write(6,*)' k,max,min(temp1) PINT in   =',k,maxval(temp1),minval(temp1)                                           
           call strip(all_loc(:,:,kpint),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              if(filled_grid) call fill_nmm_grid2(temp1,im,jm,tempb,igtypeh,2)
              if(half_grid)   call half_nmm_grid2(temp1,im,jm,tempb,igtypeh,2)
@@ -2171,7 +2171,7 @@ contains
        if(mype == 0) write(6,*)' k,max,min(temp1) T in      =',k,maxval(temp1),minval(temp1)                                             
        call strip(all_loc(:,:,kt),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
           call this%get_bndy_file(temp1,pdbg,tbg,qbg,cwmbg,ubg,vbg,kt,i_pd,i_t,i_q,i_cwm,i_u,i_v, &
                              n_actual_clouds,im,jm,lm,bdim,igtypeh)
@@ -2200,7 +2200,7 @@ contains
        if(mype == 0) write(6,*)' k,max,min(temp1) Q in    =',k,maxval(temp1),minval(temp1)                                             
        call strip(all_loc(:,:,kq),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
           call this%get_bndy_file(temp1,pdbg,tbg,qbg,cwmbg,ubg,vbg,kq,i_pd,i_t,i_q,i_cwm,i_u,i_v, &
                              n_actual_clouds,im,jm,lm,bdim,igtypeh)
@@ -2227,7 +2227,7 @@ contains
        if(mype == 0) write(6,*)' k,max,min(temp1) U in    =',k,maxval(temp1),minval(temp1)                                             
        call strip(all_loc(:,:,ku),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
   !    if(mype == 0) write(6,*)' at 7.2 in wrwrfnmma,k,max,min(tempa)=',k,maxval(tempa),minval(tempa)
        if(mype == 0) then
           call this%get_bndy_file(temp1,pdbg,tbg,qbg,cwmbg,ubg,vbg,ku,i_pd,i_t,i_q,i_cwm,i_u,i_v, &
@@ -2262,7 +2262,7 @@ contains
        if(mype == 0) write(6,*)' k,max,min(temp1) V in    =',k,maxval(temp1),minval(temp1)                                             
        call strip(all_loc(:,:,kv),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
           call this%get_bndy_file(temp1,pdbg,tbg,qbg,cwmbg,ubg,vbg,kv,i_pd,i_t,i_q,i_cwm,i_u,i_v, &
                              n_actual_clouds,im,jm,lm,bdim,igtypev)
@@ -2308,7 +2308,7 @@ contains
   !    if (mype==0)write(6,*)' at 9.1 in wrwrfnmma,max,min(temp1)=',maxval(temp1),minval(temp1)
        call strip(all_loc(:,:,i_sst),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
   !       if(mype == 0) write(6,*)' at 9.2 in wrwrfnmma,max,min(tempa)=',maxval(tempa),minval(tempa)
           if(filled_grid) call fill_nmm_grid2(temp1,im,jm,tempb,igtypeh,2)
@@ -2352,7 +2352,7 @@ contains
   !    if (mype==0)write(6,*)' at 10.0 in wrwrfnmma,max,min(temp1)=',maxval(temp1),minval(temp1)
        call strip(all_loc(:,:,i_tsk),strp)
        call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-            tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+            tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
        if (mype==0)write(6,*)' at 10.1'
        if(mype == 0) then
           if(filled_grid) call fill_nmm_grid2(temp1,im,jm,tempb,igtypeh,2)
@@ -2387,7 +2387,7 @@ contains
           if(mype == 0) write(6,*)' k,max,min(temp1) CWM in   =',k,maxval(temp1),minval(temp1) 
           call strip(all_loc(:,:,kcwm),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              call this%get_bndy_file(temp1,pdbg,tbg,qbg,cwmbg,ubg,vbg,kcwm,i_pd,i_t,i_q,i_cwm,i_u,i_v, &
                                 n_actual_clouds,im,jm,lm,bdim,igtypeh)
@@ -2413,7 +2413,7 @@ contains
           if(mype == 0) write(6,*)' k,max,min(temp1) F_ICE in   =',k,maxval(temp1),minval(temp1) 
           call strip(all_loc(:,:,kf_ice),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              if(filled_grid) call fill_nmm_grid2(temp1,im,jm,tempb,igtypeh,2)
              if(half_grid)   call half_nmm_grid2(temp1,im,jm,tempb,igtypeh,2)
@@ -2436,7 +2436,7 @@ contains
           if(mype == 0) write(6,*) ' k,max,min(temp1) F_RAIN in    =',k,maxval(temp1),minval(temp1)
           call strip(all_loc(:,:,kf_rain),strp)
           call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-               tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+               tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
           if(mype == 0) then
              if(filled_grid) call fill_nmm_grid2(temp1,im,jm,tempb,igtypeh,2)
              if(half_grid)   call half_nmm_grid2(temp1,im,jm,tempb,igtypeh,2)

@@ -381,7 +381,7 @@ subroutine destroy_tendvars
 end subroutine destroy_tendvars
 
 subroutine destroy_ges_tendencies
-  use m_mpimod, only: mpi_comm_world
+  use m_mpimod, only: gsi_mpi_comm_world
   implicit none
   integer(i_kind) ierror
 

@@ -51,7 +51,7 @@ subroutine get_gefs_for_regional
   use gsi_bundlemod, only: gsi_bundledestroy
   use constants,only: zero,half,fv,rd_over_cp,one,h300,r60,r3600
   use constants, only: rd,grav
-  use m_mpimod, only: mpi_comm_world,ierror,mype,mpi_rtype,mpi_min,mpi_max
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mype,mpi_rtype,mpi_min,mpi_max
   use m_kinds, only: r_kind,i_kind,r_single
   use general_sub2grid_mod, only: sub2grid_info,general_sub2grid_create_info
   use general_sub2grid_mod, only: general_grid2sub,general_sub2grid
@@ -826,8 +826,8 @@ subroutine get_gefs_for_regional
      !                   grd_mix%istart(mm1)-2+i,grd_mix%jstart(mm1)-2+j,grd_mix%nlat,grd_mix%nlon
      !         end do
      !      end do
-     !      call mpi_allreduce(pdiffmax,pdiffmax0,1,mpi_rtype,mpi_max,mpi_comm_world,ierror)
-     !      call mpi_allreduce(pdiffmin,pdiffmin0,1,mpi_rtype,mpi_min,mpi_comm_world,ierror)
+     !      call mpi_allreduce(pdiffmax,pdiffmax0,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
+     !      call mpi_allreduce(pdiffmin,pdiffmin0,1,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
      !             if(mype==0) write(6,*)' min,max ges_ps - matt ps =',pdiffmin0,pdiffmax0
 
      !                                                write(fname,'("matt_pbar_corrected")')
@@ -950,8 +950,8 @@ subroutine get_gefs_for_regional
 !                         grd_mix%istart(mm1)-1+i,grd_mix%jstart(mm1)-1+j,grd_mix%nlat,grd_mix%nlon
 !              end do
 !           end do
-!           call mpi_allreduce(pdiffmax,pdiffmax0,1,mpi_rtype,mpi_max,mpi_comm_world,ierror)
-!           call mpi_allreduce(pdiffmin,pdiffmin0,1,mpi_rtype,mpi_min,mpi_comm_world,ierror)
+!           call mpi_allreduce(pdiffmax,pdiffmax0,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
+!           call mpi_allreduce(pdiffmin,pdiffmin0,1,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
 !                   if(mype==0) write(6,*)' with halo, n,min,max ges_ps - matt ps =',n,pdiffmin0,pdiffmax0
 
   end do   !  end loop over ensemble members.
@@ -1461,9 +1461,9 @@ subroutine get_gefs_for_regional
 !
 ! CALCULATE ENSEMBLE SPREAD
   if(write_ens_sprd)then
-     call mpi_barrier(mpi_comm_world,ierror)
+     call mpi_barrier(gsi_mpi_comm_world,ierror)
      call wrf_mass_ensperts%ens_spread_dualres_regional(mype,en_perts,nelen)
-     call mpi_barrier(mpi_comm_world,ierror)
+     call mpi_barrier(gsi_mpi_comm_world,ierror)
   end if
 
   call general_destroy_spec_vars(sp_gfs)
@@ -2060,7 +2060,7 @@ subroutine sub2grid_1a(sub,grid,gridpe,mype)
   use gridmod, only: nlat,nlon,lat2,lon2,lat1,lon1,&
          iglobal,ijn,displs_g,itotsub,strip
   use general_commvars_mod, only: ltosi,ltosj
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
   integer(i_kind), intent(in)::gridpe,mype
@@ -2079,7 +2079,7 @@ subroutine sub2grid_1a(sub,grid,gridpe,mype)
   call strip(sub,zsm)
   call mpi_gatherv(zsm,ijn(mm1),mpi_rtype, &
                  work1,ijn,displs_g,mpi_rtype, &
-                 gridpe,mpi_comm_world,ierror)
+                 gridpe,gsi_mpi_comm_world,ierror)
   if(mype==gridpe) then
      do k=1,iglobal
         i=ltosi(k) ; j=ltosj(k)

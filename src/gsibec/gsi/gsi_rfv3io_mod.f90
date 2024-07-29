@@ -294,7 +294,7 @@ subroutine gsi_rfv3io_get_grid_specs(ierr)
   use gridmod,  only:grid_type_fv3_regional
   use m_kinds, only: i_kind,r_kind
   use constants, only: half,zero
-  use m_mpimod, only: mpi_comm_world,mpi_itype,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,mpi_itype,mpi_rtype
 
   implicit none
   integer(i_kind),intent(  out) :: ierr
@@ -556,7 +556,7 @@ subroutine gsi_rfv3io_get_ens_grid_specs(grid_spec,ierr)
   use gridmod,  only:grid_type_fv3_regional
   use m_kinds, only: i_kind,r_kind
   use constants, only: half,zero
-  use m_mpimod, only: mpi_comm_world,mpi_itype,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,mpi_itype,mpi_rtype
   implicit none
   character(:),allocatable,intent(in   ) :: grid_spec
   integer(i_kind),         intent(  out) :: ierr
@@ -696,7 +696,7 @@ subroutine read_fv3_files(mype)
 !$$$  end documentation block
 
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype,npe
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype,npe
     use guess_grids, only: nfldsig,nfldsfc,ntguessig,ntguessfc,&
          ifilesig,ifilesfc,hrdifsig,hrdifsfc,create_gesfinfo
     use guess_grids, only: hrdifsig_all,hrdifsfc_all
@@ -870,7 +870,7 @@ subroutine read_fv3_files(mype)
 
 
 ! Broadcast guess file information to all tasks
-    call mpi_bcast(time_ges,404,mpi_rtype,npem1,mpi_comm_world,ierror)
+    call mpi_bcast(time_ges,404,mpi_rtype,npem1,gsi_mpi_comm_world,ierror)
 
     nfldsig   = nint(time_ges(201,1))
 !!nfldsfc   = nint(time_ges(201,2))
@@ -953,7 +953,7 @@ subroutine read_fv3_netcdf_guess(fv3filenamegin)
 !$$$  end documentation block
     use m_kinds, only: r_kind,i_kind
     use m_mpimod, only: npe
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use guess_grids, only:ges_prsi
     use gridmod, only: lat2,lon2,nsig,ijn,eta1_ll,eta2_ll,ijn_s
     use constants, only: one,fv
@@ -2017,7 +2017,7 @@ subroutine gsi_fv3ncdf2d_read(fv3filenamegin,it,ges_z,ges_t2m,ges_q2m,          
 !
 !$$$  end documentation block
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only: ierror,mpi_comm_world,npe,mpi_rtype,mype,mpi_itype
+    use m_mpimod, only: ierror,gsi_mpi_comm_world,npe,mpi_rtype,mype,mpi_itype
     use mpeu_util, only: die
     use guess_grids, only: fact10,soil_type,veg_frac,veg_type,sfc_rough, &
          sfct,sno,soil_temp,soil_moi,isli
@@ -2321,15 +2321,15 @@ subroutine gsi_fv3ncdf2d_read(fv3filenamegin,it,ges_z,ges_t2m,ges_q2m,          
     endif  ! mype
 
 !-- broadcast the updated i_howv_3dda, i_gust_3dda to all tasks (!!!!)
-    call mpi_bcast(i_howv_3dda, 1, mpi_itype, mype_2d, mpi_comm_world, iret_bcast)
-    call mpi_bcast(i_gust_3dda, 1, mpi_itype, mype_2d, mpi_comm_world, iret_bcast)
+    call mpi_bcast(i_howv_3dda, 1, mpi_itype, mype_2d, gsi_mpi_comm_world, iret_bcast)
+    call mpi_bcast(i_gust_3dda, 1, mpi_itype, mype_2d, gsi_mpi_comm_world, iret_bcast)
 
 !-- broadcast the updated sfc_var_exist to all tasks (!!!!)
-    call mpi_bcast(sfc_var_exist, n2d, mpi_itype, mype_2d, mpi_comm_world, iret_bcast)
+    call mpi_bcast(sfc_var_exist, n2d, mpi_itype, mype_2d, gsi_mpi_comm_world, iret_bcast)
 
 !!!!!!! scatter !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     call mpi_scatterv(work,ijns2d,displss2d,mpi_rtype,&
-      sfcn2d,ijns2d(mm1),mpi_rtype,mype_2d,mpi_comm_world,ierror)
+      sfcn2d,ijns2d(mm1),mpi_rtype,mype_2d,gsi_mpi_comm_world,ierror)
 
     deallocate ( work )
 
@@ -2385,7 +2385,7 @@ subroutine gsi_fv3ncdf2d_read_v1(filenamein,varname,varname2,work_sub,mype_io)
 
 
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only: ierror,mpi_comm_world,npe,mpi_rtype,mype
+    use m_mpimod, only: ierror,gsi_mpi_comm_world,npe,mpi_rtype,mype
     use gridmod, only: lat2,lon2,nlat,nlon,itotsub,ijn_s,displs_s
     use netcdf, only: nf90_open,nf90_close,nf90_get_var,nf90_noerr
     use netcdf, only: nf90_nowrite,nf90_inquire,nf90_inquire_dimension
@@ -2451,7 +2451,7 @@ subroutine gsi_fv3ncdf2d_read_v1(filenamein,varname,varname2,work_sub,mype_io)
     endif !mype
 
     call mpi_scatterv(work,ijn_s,displs_s,mpi_rtype,&
-       work_sub,ijn_s(mm1),mpi_rtype,mype_io,mpi_comm_world,ierror)
+       work_sub,ijn_s(mm1),mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
 
     deallocate (work)
     return
@@ -2484,7 +2484,7 @@ subroutine gsi_fv3ncdf_read(grd_ionouv,cstate_nouv,filenamein,fv3filenamegin,ens
 
 
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only: mpi_comm_world,mpi_rtype,mype,npe,setcomm,mpi_integer,mpi_max
+    use m_mpimod, only: gsi_mpi_comm_world,mpi_rtype,mype,npe,setcomm,mpi_integer,mpi_max
     use m_mpimod, only:  MPI_INFO_NULL
     use netcdf, only: nf90_open,nf90_close,nf90_get_var,nf90_noerr
     use netcdf, only: nf90_nowrite,nf90_mpiio,nf90_inquire,nf90_inquire_dimension
@@ -2547,7 +2547,7 @@ subroutine gsi_fv3ncdf_read(grd_ionouv,cstate_nouv,filenamein,fv3filenamegin,ens
        procuse = .true.
        members(mm1) = mype
     endif
-    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,gsi_mpi_comm_world,ierror)
 
     nread=0
     mype_read_rank=-1
@@ -2669,7 +2669,7 @@ subroutine gsi_fv3ncdf_read(grd_ionouv,cstate_nouv,filenamein,fv3filenamegin,ens
           iret=nf90_close(gfile_loc)
        endif
     endif
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
        
     deallocate (uu2d)
     call general_grid2sub(grd_ionouv,hwork,cstate_nouv%values)
@@ -2706,8 +2706,8 @@ subroutine gsi_fv3ncdf_read_v1(grd_ionouv,cstate_nouv,filenamein,fv3filenamegin,
 
 
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only:  npe,mpi_rtype,mpi_comm_world,mype,MPI_INFO_NULL
-    use m_mpimod, only: mpi_comm_world,mpi_rtype,mype,setcomm,mpi_integer,mpi_max
+    use m_mpimod, only:  npe,mpi_rtype,gsi_mpi_comm_world,mype,MPI_INFO_NULL
+    use m_mpimod, only: gsi_mpi_comm_world,mpi_rtype,mype,setcomm,mpi_integer,mpi_max
     use netcdf, only: nf90_open,nf90_close,nf90_get_var,nf90_noerr
     use netcdf, only: nf90_nowrite,nf90_mpiio,nf90_inquire,nf90_inquire_dimension
     use netcdf, only: nf90_inquire_variable
@@ -2764,7 +2764,7 @@ subroutine gsi_fv3ncdf_read_v1(grd_ionouv,cstate_nouv,filenamein,fv3filenamegin,
        procuse = .true.
        members(mm1) = mype
     endif
-    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,gsi_mpi_comm_world,ierror)
 
     nread=0
     mype_read_rank=-1
@@ -2845,7 +2845,7 @@ subroutine gsi_fv3ncdf_readuv(grd_uv,ges_u,ges_v,fv3filenamegin,ensgrid)
 !
 !$$$  end documentation block
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only: mpi_comm_world,mpi_rtype,mype,mpi_info_null,npe,setcomm,mpi_integer,mpi_max
+    use m_mpimod, only: gsi_mpi_comm_world,mpi_rtype,mype,mpi_info_null,npe,setcomm,mpi_integer,mpi_max
     use netcdf, only: nf90_open,nf90_close,nf90_get_var,nf90_noerr
     use netcdf, only: nf90_nowrite,nf90_mpiio,nf90_inquire,nf90_inquire_dimension
     use netcdf, only: nf90_inquire_variable
@@ -2914,7 +2914,7 @@ subroutine gsi_fv3ncdf_readuv(grd_uv,ges_u,ges_v,fv3filenamegin,ensgrid)
        members(mm1) = mype
     endif
 
-    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,gsi_mpi_comm_world,ierror)
 
     nread=0
     mype_read_rank=-1
@@ -3046,7 +3046,7 @@ subroutine gsi_fv3ncdf_readuv(grd_uv,ges_u,ges_v,fv3filenamegin,ensgrid)
        endif
     endif
 
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
     deallocate(u2d,v2d,uc2d,vc2d)
     
     call general_grid2sub(grd_uv,hwork,worksub) 
@@ -3078,7 +3078,7 @@ subroutine gsi_fv3ncdf_readuv_v1(grd_uv,ges_u,ges_v,fv3filenamegin,ensgrid)
 !$$$  end documentation block
     use constants, only:  half
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only: setcomm,mpi_integer,mpi_max, npe,mpi_comm_world,mpi_rtype,mype,mpi_info_null
+    use m_mpimod, only: setcomm,mpi_integer,mpi_max, npe,gsi_mpi_comm_world,mpi_rtype,mype,mpi_info_null
     use netcdf, only: nf90_open,nf90_close,nf90_get_var,nf90_noerr
     use netcdf, only: nf90_nowrite,nf90_mpiio,nf90_inquire,nf90_inquire_dimension
     use netcdf, only: nf90_var_par_access,nf90_netcdf4
@@ -3138,7 +3138,7 @@ subroutine gsi_fv3ncdf_readuv_v1(grd_uv,ges_u,ges_v,fv3filenamegin,ensgrid)
        members(mm1) = mype
     endif
 
-    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,gsi_mpi_comm_world,ierror)
 
     nread=0
     mype_read_rank=-1
@@ -3242,7 +3242,7 @@ subroutine gsi_fv3ncdf_read_ens_parallel_over_ens(filenamein,fv3filenamegin, &
 
 
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only: mpi_comm_world,mpi_rtype,mype
+    use m_mpimod, only: gsi_mpi_comm_world,mpi_rtype,mype
     use m_mpimod, only:  MPI_INFO_NULL
     use netcdf, only: nf90_open,nf90_close,nf90_get_var,nf90_noerr
     use netcdf, only: nf90_nowrite,nf90_mpiio,nf90_inquire,nf90_inquire_dimension
@@ -3320,7 +3320,7 @@ subroutine gsi_fv3ncdf_read_ens_parallel_over_ens(filenamein,fv3filenamegin, &
           allocate(gfile_loc_layout(0:fv3_io_layout_y-1))
           do nio=0,fv3_io_layout_y-1
              write(filename_layout,'(a,a,I4.4)') trim(filenamein),'.',nio
-             iret=nf90_open(filename_layout,nf90_nowrite,gfile_loc_layout(nio),comm=mpi_comm_world,info=MPI_INFO_NULL)
+             iret=nf90_open(filename_layout,nf90_nowrite,gfile_loc_layout(nio),comm=gsi_mpi_comm_world,info=MPI_INFO_NULL)
              if(iret/=nf90_noerr) then
                 write(6,*)' gsi_fv3ncdf_read: problem opening ',trim(filename_layout),gfile_loc_layout(nio),', Status = ',iret
                 call stop2(333)
@@ -3469,7 +3469,7 @@ subroutine gsi_fv3ncdf_readuv_ens_parallel_over_ens(ges_u,ges_v,fv3filenamegin,i
 !
 !$$$  end documentation block
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only: mpi_comm_world,mpi_rtype,mype,mpi_info_null
+    use m_mpimod, only: gsi_mpi_comm_world,mpi_rtype,mype,mpi_info_null
     use gridmod, only: nsig,nlon,nlat
     use netcdf, only: nf90_open,nf90_close,nf90_get_var,nf90_noerr
     use netcdf, only: nf90_nowrite,nf90_inquire,nf90_inquire_dimension
@@ -3522,7 +3522,7 @@ subroutine gsi_fv3ncdf_readuv_ens_parallel_over_ens(ges_u,ges_v,fv3filenamegin,i
          allocate(gfile_loc_layout(0:fv3_io_layout_y-1))
          do nio=0,fv3_io_layout_y-1
             write(filename_layout,'(a,a,I4.4)') trim(filenamein),".",nio
-            iret=nf90_open(filename_layout,nf90_nowrite,gfile_loc_layout(nio),comm=mpi_comm_world,info=MPI_INFO_NULL)
+            iret=nf90_open(filename_layout,nf90_nowrite,gfile_loc_layout(nio),comm=gsi_mpi_comm_world,info=MPI_INFO_NULL)
             if(iret/=nf90_noerr) then
                write(6,*)'problem opening ',trim(filename_layout),gfile_loc_layout(nio),', Status = ',iret
                call stop2(333)
@@ -4048,7 +4048,7 @@ subroutine gsi_fv3ncdf_writeuv(grd_uv,ges_u,ges_v,add_saved,fv3filenamegin)
 !
 !$$$ end documentation block
 
-    use m_mpimod, only:  mpi_rtype,mpi_comm_world,mype,mpi_info_null,npe,setcomm,mpi_integer,mpi_max
+    use m_mpimod, only:  mpi_rtype,gsi_mpi_comm_world,mype,mpi_info_null,npe,setcomm,mpi_integer,mpi_max
     use netcdf, only: nf90_nowrite,nf90_inquire,nf90_inquire_dimension
     use gridmod, only: nlon_regional,nlat_regional
     use mod_fv3_lola, only: fv3_ll_to_h,fv3_h_to_ll, &
@@ -4125,7 +4125,7 @@ subroutine gsi_fv3ncdf_writeuv(grd_uv,ges_u,ges_v,add_saved,fv3filenamegin)
        members(mm1) = mype
     endif
 
-    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,gsi_mpi_comm_world,ierror)
 
     nread=0
     mype_read_rank=-1
@@ -4260,7 +4260,7 @@ subroutine gsi_fv3ncdf_writeuv(grd_uv,ges_u,ges_v,add_saved,fv3filenamegin)
      deallocate(work_bu,work_bv)
     endif
 
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
  
     deallocate(u2d,v2d)
     deallocate(work_au,work_av)
@@ -4294,7 +4294,7 @@ subroutine gsi_fv3ncdf_writeuv_v1(grd_uv,ges_u,ges_v,add_saved,fv3filenamegin)
 !$$$ end documentation block
 
     use constants, only: half,zero
-    use m_mpimod, only:  npe, setcomm,mpi_integer,mpi_max,mpi_rtype,mpi_comm_world,mype,mpi_info_null
+    use m_mpimod, only:  npe, setcomm,mpi_integer,mpi_max,mpi_rtype,gsi_mpi_comm_world,mype,mpi_info_null
     use gridmod, only: nlon_regional,nlat_regional
     use mod_fv3_lola, only: fv3_ll_to_h,fv3_h_to_ll, &
                             fv3uv2earth,earthuv2fv3
@@ -4374,7 +4374,7 @@ subroutine gsi_fv3ncdf_writeuv_v1(grd_uv,ges_u,ges_v,add_saved,fv3filenamegin)
        members(mm1) = mype
     endif
 
-    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,gsi_mpi_comm_world,ierror)
 
     nread=0
     mype_read_rank=-1
@@ -4546,7 +4546,7 @@ subroutine gsi_fv3ncdf_write_sfc(fv3filenamegin,varname,var,add_saved)
 !
 !$$$ end documentation block
 
-    use m_mpimod, only: ierror,mpi_comm_world,mpi_rtype,mype
+    use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_rtype,mype
     use gridmod, only: lat1,lon1,lat2,lon2,nlat,nlon
     use gridmod, only: ijn,displs_g,itotsub,iglobal
     use gridmod,  only: nlon_regional,nlat_regional
@@ -4583,7 +4583,7 @@ subroutine gsi_fv3ncdf_write_sfc(fv3filenamegin,varname,var,add_saved)
     allocate(work(max(iglobal,itotsub)),work_sub(lat1,lon1))
     call strip(var,work_sub)
     call mpi_gatherv(work_sub,ijn(mm1),mpi_rtype, &
-          work,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+          work,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
     deallocate(work_sub)
 
     if(mype==0) then
@@ -4681,7 +4681,7 @@ subroutine gsi_fv3ncdf_write(grd_ionouv,cstate_nouv,add_saved,filenamein,fv3file
 !
 !$$$ end documentation block
 
-    use m_mpimod, only: mpi_rtype,mpi_comm_world,mype,mpi_info_null,npe,setcomm,mpi_integer,mpi_max
+    use m_mpimod, only: mpi_rtype,gsi_mpi_comm_world,mype,mpi_info_null,npe,setcomm,mpi_integer,mpi_max
     use mod_fv3_lola, only: fv3_ll_to_h
     use mod_fv3_lola, only: fv3_h_to_ll
     use netcdf, only: nf90_open,nf90_close
@@ -4747,7 +4747,7 @@ subroutine gsi_fv3ncdf_write(grd_ionouv,cstate_nouv,add_saved,filenamein,fv3file
        members(mm1) = mype
     endif
 
-    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,gsi_mpi_comm_world,ierror)
 
     nread=0
     mype_read_rank=-1
@@ -4899,7 +4899,7 @@ subroutine gsi_fv3ncdf_write(grd_ionouv,cstate_nouv,add_saved,filenamein,fv3file
        endif
     endif
 
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
 
     deallocate(work_b,work_a)
     deallocate(workb2,worka2)
@@ -4939,7 +4939,7 @@ subroutine gsi_fv3ncdf_write_v1(grd_ionouv,cstate_nouv,add_saved,filenamein,fv3f
 !
 !$$$ end documentation block
 
-    use m_mpimod, only: npe, setcomm,mpi_integer,mpi_max,mpi_rtype,mpi_comm_world,mype,mpi_info_null
+    use m_mpimod, only: npe, setcomm,mpi_integer,mpi_max,mpi_rtype,gsi_mpi_comm_world,mype,mpi_info_null
     use mod_fv3_lola, only: fv3_ll_to_h
     use mod_fv3_lola, only: fv3_h_to_ll
     use netcdf, only: nf90_open,nf90_close
@@ -4996,7 +4996,7 @@ subroutine gsi_fv3ncdf_write_v1(grd_ionouv,cstate_nouv,add_saved,filenamein,fv3f
        members(mm1) = mype
     endif
 
-    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(members,members_read,npe,mpi_integer,mpi_max,gsi_mpi_comm_world,ierror)
 
     nread=0
     mype_read_rank=-1

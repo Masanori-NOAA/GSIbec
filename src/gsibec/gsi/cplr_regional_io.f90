@@ -85,7 +85,7 @@ contains
       use convert_netcdf_mod, only: convert_netcdf_class
       use get_wrf_binary_interface_mod, only: get_wrf_binary_interface_class
       use get_wrf_nmm_ensperts_mod, only: get_wrf_nmm_ensperts_class
-      use m_mpimod, only: mpi_comm_world,ierror
+      use m_mpimod, only: gsi_mpi_comm_world,ierror
       use wrf_params_mod, only: update_pint,cold_start
       use gsi_io, only: verbose
 
@@ -124,12 +124,12 @@ contains
                end if
             end if
          end if
-         call mpi_barrier(mpi_comm_world,ierror)
-         call mpi_bcast(update_pint,1,mpi_integer4,0,mpi_comm_world,ierror)
-         call mpi_bcast(ctph0,1,mpi_rtype,0,mpi_comm_world,ierror)
-         call mpi_bcast(stph0,1,mpi_rtype,0,mpi_comm_world,ierror)
-         call mpi_bcast(tlm0,1,mpi_rtype,0,mpi_comm_world,ierror)
-         call mpi_bcast(byte_swap,1,mpi_integer4,0,mpi_comm_world,ierror)
+         call mpi_barrier(gsi_mpi_comm_world,ierror)
+         call mpi_bcast(update_pint,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+         call mpi_bcast(ctph0,1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+         call mpi_bcast(stph0,1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+         call mpi_bcast(tlm0,1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+         call mpi_bcast(byte_swap,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
          if(mype == 0 .and. print_verbose)write(6,*)' in convert_regional_guess, for wrf nmm binary input, byte_swap=',byte_swap
   
   !   Convert mass guess file to internal gsi format.  Consider
@@ -143,8 +143,8 @@ contains
                call wrf_interface%convert_binary_mass
             end if
          end if
-         call mpi_barrier(mpi_comm_world,ierror)
-         call mpi_bcast(byte_swap,1,mpi_integer4,0,mpi_comm_world,ierror)
+         call mpi_barrier(gsi_mpi_comm_world,ierror)
+         call mpi_bcast(byte_swap,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
          if(print_verbose)write(6,*)' in convert_regional_guess, for wrf arw binary input, byte_swap=',byte_swap
   
       elseif (cmaq_regional) then
@@ -153,7 +153,7 @@ contains
             call make_sigf
          end if
          
-         call mpi_barrier(mpi_comm_world,ierror)
+         call mpi_barrier(gsi_mpi_comm_world,ierror)
          
   !   Convert nems nmmb guess file to internal gsi format.
   
@@ -161,11 +161,11 @@ contains
          if (mype==0) then
             call wrf_interface%convert_nems_nmmb(update_pint,ctph0,stph0,tlm0)
          end if
-         call mpi_barrier(mpi_comm_world,ierror)
-         call mpi_bcast(update_pint,1,mpi_integer4,0,mpi_comm_world,ierror)
-         call mpi_bcast(ctph0,1,mpi_rtype,0,mpi_comm_world,ierror)
-         call mpi_bcast(stph0,1,mpi_rtype,0,mpi_comm_world,ierror)
-         call mpi_bcast(tlm0,1,mpi_rtype,0,mpi_comm_world,ierror)
+         call mpi_barrier(gsi_mpi_comm_world,ierror)
+         call mpi_bcast(update_pint,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+         call mpi_bcast(ctph0,1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+         call mpi_bcast(stph0,1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+         call mpi_bcast(tlm0,1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
   
   !   Convert binary twodvar guess file to internal gsi format.
   
@@ -173,7 +173,7 @@ contains
          if (mype==0) then
             call convert_binary_2d
          end if
-         call mpi_barrier(mpi_comm_world,ierror)
+         call mpi_barrier(gsi_mpi_comm_world,ierror)
       end if
   
       return
@@ -210,7 +210,7 @@ contains
       use gridmod, only: wrf_mass_regional,wrf_nmm_regional,&
          nems_nmmb_regional,cmaq_regional,&
          twodvar_regional,netcdf
-      use m_mpimod, only: mpi_comm_world,ierror
+      use m_mpimod, only: gsi_mpi_comm_world,ierror
       use rapidrefresh_cldsurf_mod, only: i_gsdcldanal_type
       implicit none
   
@@ -233,7 +233,7 @@ contains
             if (mype==0) then
                call netcdf_converter%update_netcdf_nmm
             end if
-            call mpi_barrier(mpi_comm_world,ierror)
+            call mpi_barrier(gsi_mpi_comm_world,ierror)
          else
             call wrwrfnmma%wrwrfnmma_binary(mype)
          end if
@@ -247,7 +247,7 @@ contains
             if (mype==0 .and. i_gsdcldanal_type /=5) then
                call netcdf_converter%update_netcdf_mass
             endif
-            call mpi_barrier(mpi_comm_world,ierror)
+            call mpi_barrier(gsi_mpi_comm_world,ierror)
          else
             call wrwrfmassa%wrwrfmassa_binary(mype)
          end if

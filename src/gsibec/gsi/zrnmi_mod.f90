@@ -361,7 +361,7 @@ contains
 !  continue with setup for subdomain to lat strip interchanges
 
     use gridmod, only: lon2,lat2,jstart,istart
-    use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_integer4
+    use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_integer4
     implicit none
 
     integer(i_kind),intent(in   ) :: mype
@@ -424,7 +424,7 @@ contains
        end do
     end do
 
-    call mpi_alltoall(nsend_sd2x,1,mpi_integer4,nrecv_sd2x,1,mpi_integer4,mpi_comm_world,ierror)
+    call mpi_alltoall(nsend_sd2x,1,mpi_integer4,nrecv_sd2x,1,mpi_integer4,gsi_mpi_comm_world,ierror)
     ndrecv_sd2x(1)=0
     do i=2,npe+1
        ndrecv_sd2x(i)=ndrecv_sd2x(i-1)+nrecv_sd2x(i-1)
@@ -434,7 +434,7 @@ contains
     call mpi_type_contiguous(3,mpi_integer4,mpi_string1,ierror)
     call mpi_type_commit(mpi_string1,ierror)
     call mpi_alltoallv(info_send_sd2x,nsend_sd2x,ndsend_sd2x,mpi_string1, &
-                     info_recv_sd2x,nrecv_sd2x,ndrecv_sd2x,mpi_string1,mpi_comm_world,ierror)
+                     info_recv_sd2x,nrecv_sd2x,ndrecv_sd2x,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
 
   end subroutine zrnmi_sd2x1
@@ -466,7 +466,7 @@ contains
 
     use m_kinds, only: r_kind,i_kind
     use gridmod, only: jstart,istart,ilat1,jlon1
-    use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_integer4
+    use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_integer4
     implicit none
 
 
@@ -521,7 +521,7 @@ contains
        end do
     end do
 
-    call mpi_alltoall(nsend_x2sd,1,mpi_integer4,nrecv_x2sd,1,mpi_integer4,mpi_comm_world,ierror)
+    call mpi_alltoall(nsend_x2sd,1,mpi_integer4,nrecv_x2sd,1,mpi_integer4,gsi_mpi_comm_world,ierror)
     ndrecv_x2sd(1)=0
     do i=2,npe+1
        ndrecv_x2sd(i)=ndrecv_x2sd(i-1)+nrecv_x2sd(i-1)
@@ -531,7 +531,7 @@ contains
     call mpi_type_contiguous(3,mpi_integer4,mpi_string1,ierror)
     call mpi_type_commit(mpi_string1,ierror)
     call mpi_alltoallv(info_send_x2sd,nsend_x2sd,ndsend_x2sd,mpi_string1, &
-                       info_recv_x2sd,nrecv_x2sd,ndrecv_x2sd,mpi_string1,mpi_comm_world,ierror)
+                       info_recv_x2sd,nrecv_x2sd,ndrecv_x2sd,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
 
   end subroutine zrnmi_x2sd1
@@ -565,7 +565,7 @@ contains
 
     use m_kinds, only: r_kind,i_kind
     use gridmod, only: lon2,lat2,jstart,istart
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     implicit none
 
     integer(i_kind)                        ,intent(in   ) :: mype
@@ -591,7 +591,7 @@ contains
     call mpi_type_commit(mpi_string1,ierror)
     allocate(recvbuf(2,nallrecv_sd2x))
     call mpi_alltoallv(sendbuf,nsend_sd2x,ndsend_sd2x,mpi_string1, &
-                       recvbuf,nrecv_sd2x,ndrecv_sd2x,mpi_string1,mpi_comm_world,ierror)
+                       recvbuf,nrecv_sd2x,ndrecv_sd2x,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
     deallocate(sendbuf)
 
@@ -634,7 +634,7 @@ contains
 
     use m_kinds, only: r_kind,i_kind
     use gridmod, only: lon2,lat2,jstart,istart
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     implicit none
 
     integer(i_kind)                        ,intent(in   ) :: mype
@@ -661,7 +661,7 @@ contains
     call mpi_type_commit(mpi_string1,ierror)
     allocate(recvbuf(3,nallrecv_sd2x))
     call mpi_alltoallv(sendbuf,nsend_sd2x,ndsend_sd2x,mpi_string1, &
-                       recvbuf,nrecv_sd2x,ndrecv_sd2x,mpi_string1,mpi_comm_world,ierror)
+                       recvbuf,nrecv_sd2x,ndrecv_sd2x,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
     deallocate(sendbuf)
 
@@ -705,7 +705,7 @@ contains
 
     use m_kinds, only: r_kind,i_kind
     use gridmod, only: lon2,lat2,istart
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     use constants, only: zero
     implicit none
 
@@ -728,7 +728,7 @@ contains
     end do
     allocate(recvbuf(nallrecv_x2sd))
     call mpi_alltoallv(sendbuf,nsend_x2sd,ndsend_x2sd,mpi_rtype, &
-                       recvbuf,nrecv_x2sd,ndrecv_x2sd,mpi_rtype,mpi_comm_world,ierror)
+                       recvbuf,nrecv_x2sd,ndrecv_x2sd,mpi_rtype,gsi_mpi_comm_world,ierror)
     deallocate(sendbuf)
     do j=1,nallrecv_x2sd
        ixloc=info_recv_x2sd(2,j)
@@ -772,7 +772,7 @@ contains
 
     use m_kinds, only: r_kind,i_kind
     use gridmod, only: lon2,lat2,istart
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     use constants, only: zero
     implicit none
 
@@ -799,7 +799,7 @@ contains
     call mpi_type_commit(mpi_string1,ierror)
     allocate(recvbuf(2,nallrecv_x2sd))
     call mpi_alltoallv(sendbuf,nsend_x2sd,ndsend_x2sd,mpi_string1, &
-                       recvbuf,nrecv_x2sd,ndrecv_x2sd,mpi_string1,mpi_comm_world,ierror)
+                       recvbuf,nrecv_x2sd,ndrecv_x2sd,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
     deallocate(sendbuf)
     do j=1,nallrecv_x2sd
@@ -847,7 +847,7 @@ contains
 
     use m_kinds, only: r_kind,i_kind
     use gridmod, only: lon2,lat2,istart
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     use constants, only: zero
     implicit none
 
@@ -876,7 +876,7 @@ contains
     call mpi_type_commit(mpi_string1,ierror)
     allocate(recvbuf(3,nallrecv_x2sd))
     call mpi_alltoallv(sendbuf,nsend_x2sd,ndsend_x2sd,mpi_string1, &
-                       recvbuf,nrecv_x2sd,ndrecv_x2sd,mpi_string1,mpi_comm_world,ierror)
+                       recvbuf,nrecv_x2sd,ndrecv_x2sd,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
     deallocate(sendbuf)
     do j=1,nallrecv_x2sd
@@ -1009,7 +1009,7 @@ contains
 !  continue with setup for subdomain to x strip interchanges
 
     use gridmod, only: lon2,lat2,jstart,istart
-    use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_integer4
+    use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_integer4
     implicit none
 
     integer(i_kind),intent(in   ) :: mype
@@ -1081,7 +1081,7 @@ contains
        end do
     end do
 
-    call mpi_alltoall(nsend_sd2y,1,mpi_integer4,nrecv_sd2y,1,mpi_integer4,mpi_comm_world,ierror)
+    call mpi_alltoall(nsend_sd2y,1,mpi_integer4,nrecv_sd2y,1,mpi_integer4,gsi_mpi_comm_world,ierror)
     ndrecv_sd2y(1)=0
     do i=2,npe+1
        ndrecv_sd2y(i)=ndrecv_sd2y(i-1)+nrecv_sd2y(i-1)
@@ -1091,7 +1091,7 @@ contains
     call mpi_type_contiguous(3,mpi_integer4,mpi_string1,ierror)
     call mpi_type_commit(mpi_string1,ierror)
     call mpi_alltoallv(info_send_sd2y,nsend_sd2y,ndsend_sd2y,mpi_string1, &
-                       info_recv_sd2y,nrecv_sd2y,ndrecv_sd2y,mpi_string1,mpi_comm_world,ierror)
+                       info_recv_sd2y,nrecv_sd2y,ndrecv_sd2y,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
 
   end subroutine zrnmi_sd2y1
@@ -1123,7 +1123,7 @@ contains
 
     use m_kinds, only: r_kind,i_kind
     use gridmod, only: jstart,istart,ilat1,jlon1
-    use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_integer4
+    use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_integer4
     implicit none
 
 
@@ -1178,7 +1178,7 @@ contains
        end do
     end do
 
-    call mpi_alltoall(nsend_y2sd,1,mpi_integer4,nrecv_y2sd,1,mpi_integer4,mpi_comm_world,ierror)
+    call mpi_alltoall(nsend_y2sd,1,mpi_integer4,nrecv_y2sd,1,mpi_integer4,gsi_mpi_comm_world,ierror)
     ndrecv_y2sd(1)=0
     do i=2,npe+1
        ndrecv_y2sd(i)=ndrecv_y2sd(i-1)+nrecv_y2sd(i-1)
@@ -1188,7 +1188,7 @@ contains
     call mpi_type_contiguous(3,mpi_integer4,mpi_string1,ierror)
     call mpi_type_commit(mpi_string1,ierror)
     call mpi_alltoallv(info_send_y2sd,nsend_y2sd,ndsend_y2sd,mpi_string1, &
-                       info_recv_y2sd,nrecv_y2sd,ndrecv_y2sd,mpi_string1,mpi_comm_world,ierror)
+                       info_recv_y2sd,nrecv_y2sd,ndrecv_y2sd,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
 
   end subroutine zrnmi_y2sd1
@@ -1224,7 +1224,7 @@ contains
 
     use m_kinds, only: r_kind,i_kind
     use gridmod, only: lon2,lat2,jstart,istart
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     implicit none
 
     integer(i_kind)                        ,intent(in   ) :: mype
@@ -1250,7 +1250,7 @@ contains
     call mpi_type_commit(mpi_string1,ierror)
     allocate(recvbuf(2,nallrecv_sd2y))
     call mpi_alltoallv(sendbuf,nsend_sd2y,ndsend_sd2y,mpi_string1, &
-                       recvbuf,nrecv_sd2y,ndrecv_sd2y,mpi_string1,mpi_comm_world,ierror)
+                       recvbuf,nrecv_sd2y,ndrecv_sd2y,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
     deallocate(sendbuf)
 
@@ -1295,7 +1295,7 @@ contains
 
     use m_kinds, only: r_kind,i_kind
     use gridmod, only: lon2,lat2,jstart
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     use constants, only: zero
     implicit none
 
@@ -1322,7 +1322,7 @@ contains
     call mpi_type_commit(mpi_string1,ierror)
     allocate(recvbuf(2,nallrecv_y2sd))
     call mpi_alltoallv(sendbuf,nsend_y2sd,ndsend_y2sd,mpi_string1, &
-                       recvbuf,nrecv_y2sd,ndrecv_y2sd,mpi_string1,mpi_comm_world,ierror)
+                       recvbuf,nrecv_y2sd,ndrecv_y2sd,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
     deallocate(sendbuf)
     do j=1,nallrecv_y2sd
@@ -1877,7 +1877,7 @@ contains
 
 !  continue with setup for x strip to y strip communication
 
-    use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_integer4
+    use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_integer4
     implicit none
 
     integer(i_kind),intent(in   ) :: mype
@@ -1944,7 +1944,7 @@ contains
        end do
     end do
 
-    call mpi_alltoall(nsend_x2y,1,mpi_integer4,nrecv_x2y,1,mpi_integer4,mpi_comm_world,ierror)
+    call mpi_alltoall(nsend_x2y,1,mpi_integer4,nrecv_x2y,1,mpi_integer4,gsi_mpi_comm_world,ierror)
     ndrecv_x2y(1)=0
     do i=2,npe+1
        ndrecv_x2y(i)=ndrecv_x2y(i-1)+nrecv_x2y(i-1)
@@ -1954,7 +1954,7 @@ contains
     call mpi_type_contiguous(4,mpi_integer4,mpi_string1,ierror)
     call mpi_type_commit(mpi_string1,ierror)
     call mpi_alltoallv(info_send_x2y,nsend_x2y,ndsend_x2y,mpi_string1, &
-                     info_recv_x2y,nrecv_x2y,ndrecv_x2y,mpi_string1,mpi_comm_world,ierror)
+                     info_recv_x2y,nrecv_x2y,ndrecv_x2y,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
 
   end subroutine zrnmi_x2y1
@@ -1988,7 +1988,7 @@ contains
 !
 !$$$
 
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     implicit none
 
     integer(i_kind)                     ,intent(in   ) :: mype
@@ -2012,7 +2012,7 @@ contains
     call mpi_type_commit(mpi_string1,ierror)
     allocate(recvbuf(3,nallrecv_x2y))
     call mpi_alltoallv(sendbuf,nsend_x2y,ndsend_x2y,mpi_string1, &
-                       recvbuf,nrecv_x2y,ndrecv_x2y,mpi_string1,mpi_comm_world,ierror)
+                       recvbuf,nrecv_x2y,ndrecv_x2y,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
     deallocate(sendbuf)
 
@@ -2056,7 +2056,7 @@ contains
 !
 !$$$
 
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
     implicit none
 
     integer(i_kind)                     ,intent(in   ) :: mype
@@ -2080,7 +2080,7 @@ contains
     call mpi_type_contiguous(3,mpi_rtype,mpi_string1,ierror)
     call mpi_type_commit(mpi_string1,ierror)
     call mpi_alltoallv(recvbuf,nrecv_x2y,ndrecv_x2y,mpi_string1, &
-                       sendbuf,nsend_x2y,ndsend_x2y,mpi_string1,mpi_comm_world,ierror)
+                       sendbuf,nsend_x2y,ndsend_x2y,mpi_string1,gsi_mpi_comm_world,ierror)
     call mpi_type_free(mpi_string1,ierror)
     deallocate(recvbuf)
     do j=1,nallsend_x2y
@@ -2796,7 +2796,7 @@ contains
     use constants, only: zero,half,one,two,omega,pi,one_tenth,r3600
     use gridmod, only: region_dx,region_dy
     use mod_vtrans, only: depths,speeds
-    use m_mpimod,only: mpi_rtype,mpi_integer,mpi_max,mpi_min,mpi_sum,mpi_comm_world,ierror
+    use m_mpimod,only: mpi_rtype,mpi_integer,mpi_max,mpi_min,mpi_sum,gsi_mpi_comm_world,ierror
     implicit none
 
     integer(i_kind),intent(in   ) :: mype
@@ -2881,12 +2881,12 @@ contains
           pmaskmin(mode)=min(pmask(i,j),pmaskmin(mode))
        end do
     end do
-    call mpi_allreduce(rlenmax,rlenmax0,nvert,mpi_rtype,mpi_max,mpi_comm_world,ierror)
-    call mpi_allreduce(permax,permax0,nvert,mpi_rtype,mpi_max,mpi_comm_world,ierror)
-    call mpi_allreduce(pmaskmax,pmaskmax0,nvert,mpi_rtype,mpi_max,mpi_comm_world,ierror)
-    call mpi_allreduce(pmaskmin,pmaskmin0,nvert,mpi_rtype,mpi_min,mpi_comm_world,ierror)
-    call mpi_allreduce(numkeep,numkeep0,nvert,mpi_integer,mpi_sum,mpi_comm_world,ierror)
-    call mpi_allreduce(numtot,numtot0,nvert,mpi_integer,mpi_sum,mpi_comm_world,ierror)
+    call mpi_allreduce(rlenmax,rlenmax0,nvert,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
+    call mpi_allreduce(permax,permax0,nvert,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
+    call mpi_allreduce(pmaskmax,pmaskmax0,nvert,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
+    call mpi_allreduce(pmaskmin,pmaskmin0,nvert,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
+    call mpi_allreduce(numkeep,numkeep0,nvert,mpi_integer,mpi_sum,gsi_mpi_comm_world,ierror)
+    call mpi_allreduce(numtot,numtot0,nvert,mpi_integer,mpi_sum,gsi_mpi_comm_world,ierror)
     if(mype == 0) then
        do k=1,nvert
           write(6,*)' in zrnmi_constants, k,period_max,numkeep,numtot,lenmax,permax=', &
@@ -2948,7 +2948,7 @@ contains
     use gridmod, only: lat2,lon2,nsig
     use mod_vtrans, only: vtrans,vtrans_inv
     use mod_vtrans, only: depths
-    use m_mpimod,only: mpi_rtype,mpi_sum,mpi_comm_world,ierror
+    use m_mpimod,only: mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror
     use jfunc,only: jiter
     use hybrid_ensemble_parameters, only: uv_hyb_ens
     implicit none
@@ -3033,8 +3033,8 @@ contains
              balagt(mode)=balagt(mode)+rbalg(i,j,2)**2
           end do
        end do
-       call mpi_allreduce(balagt,balagt0,nvert,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
-       call mpi_allreduce(baldt,baldt0,nvert,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+       call mpi_allreduce(balagt,balagt0,nvert,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
+       call mpi_allreduce(baldt,baldt0,nvert,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
        if(mype == 0) then
 
           if (fullfield) then

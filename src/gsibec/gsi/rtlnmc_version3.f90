@@ -2918,7 +2918,7 @@ subroutine fmg_strong_bal_correction(u_t,v_t,t_t,ps_t,psi,chi,t,ps,bal_diagnosti
   use constants, only: zero,two,omega
   use gridmod, only: lat2,lon2,nsig,nlat,nlon,region_lat
   use mod_vtrans, only: vtrans,vtrans_inv,nvmodes_keep,depths
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_sum,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_sum,mpi_rtype
   use zrnmi_mod, only: zrnmi_filter_uvm2
   use jfunc,only: jiter
   use hybrid_ensemble_parameters, only: uv_hyb_ens
@@ -3051,8 +3051,8 @@ subroutine fmg_strong_bal_correction(u_t,v_t,t_t,ps_t,psi,chi,t,ps,bal_diagnosti
           end do
         end do
       end if
-      call mpi_allreduce(bal_a,bal_a0,nvmodes_keep,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
-      call mpi_allreduce(bal_b,bal_b0,nvmodes_keep,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+      call mpi_allreduce(bal_a,bal_a0,nvmodes_keep,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
+      call mpi_allreduce(bal_b,bal_b0,nvmodes_keep,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
       bal=bal_a0+bal_b0
       if(mype == 0) then
         if(fullfield) then
@@ -3134,7 +3134,7 @@ subroutine fmg_strong_bal_correction_ad(u_t,v_t,t_t,ps_t,psi,chi,t,ps,update,myp
   use gridmod, only: lat2,lon2,nsig,nlat,nlon,region_lat
   use mod_vtrans, only: vtrans_ad,vtrans_inv_ad,nvmodes_keep,depths
 ! use helmholtz_fmg_mod, only: mg
-  use m_mpimod, only: mpi_comm_world,mpi_sum,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,mpi_sum,mpi_rtype
   use zrnmi_mod, only: zrnmi_filter_uvm2_ad
   use hybrid_ensemble_parameters, only: uv_hyb_ens
   implicit none
@@ -3287,7 +3287,7 @@ subroutine fmg_strong_bal_correction_ad_test(u_t,v_t,t_t,ps_t,psi,chi,t,ps,mype)
 !<><><><<><><><>test of fmg_strong_bal_correction_ad><>><<><><<<<<<<<<<<<<<<<>>>>>>>>>>>>>
 
            use constants, only: zero,two
-           use m_mpimod, only: mpi_rtype,mpi_sum,mpi_comm_world,ierror
+           use m_mpimod, only: mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror
   use m_kinds, only: r_kind,i_kind
   use gridmod, only: lat2,lon2,nsig
            implicit none
@@ -3329,7 +3329,7 @@ subroutine fmg_strong_bal_correction_ad_test(u_t,v_t,t_t,ps_t,psi,chi,t,ps,mype)
            yty=yty+ps(j,i)**2
          end do
        end do
-       call mpi_allreduce(yty,yty0,1,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+       call mpi_allreduce(yty,yty0,1,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
        u_t=zero ; v_t=zero ; t_t=zero ; ps_t=zero
        call fmg_strong_bal_correction_ad(u_t,v_t,t_t,ps_t,psi,chi,t,ps,.true.,mype)
        xtz=zero
@@ -3345,7 +3345,7 @@ subroutine fmg_strong_bal_correction_ad_test(u_t,v_t,t_t,ps_t,psi,chi,t,ps,mype)
            xtz=xtz+pps_t(j,i)*ps_t(j,i)
          end do
        end do
-       call mpi_allreduce(xtz,xtz0,1,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+       call mpi_allreduce(xtz,xtz0,1,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
          if(mype == 0) &
          write(6,'(" fmg_strong_bal_correction_ad (aT*a), ivar,xx,yy=",i2,2e22.15,e10.3)') &
                 ivar,xtz0,yty0,abs(two*(xtz0-yty0)/(abs(xtz0)+abs(yty0)))
@@ -3373,7 +3373,7 @@ subroutine fmg_strong_bal_correction_ad_test(u_t,v_t,t_t,ps_t,psi,chi,t,ps,mype)
            yty=yty+ps_t(j,i)*ps_t(j,i)
          end do
        end do
-       call mpi_allreduce(yty,yty0,1,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+       call mpi_allreduce(yty,yty0,1,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
        psi=zero ; chi=zero ; t=zero ; ps=zero
        call fmg_strong_bal_correction(u_t,v_t,t_t,ps_t,psi,chi,t,ps,.false.,.false.,.true.,mype)
        xtz=zero
@@ -3389,7 +3389,7 @@ subroutine fmg_strong_bal_correction_ad_test(u_t,v_t,t_t,ps_t,psi,chi,t,ps,mype)
            xtz=xtz+ps2(j,i)*ps(j,i)
          end do
        end do
-       call mpi_allreduce(xtz,xtz0,1,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+       call mpi_allreduce(xtz,xtz0,1,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
          if(mype == 0) &
          write(6,'(" fmg_strong_bal_correction_ad (a*aT), ivar,xx,yy=",i2,2e22.15,e10.3)') &
                 ivar,xtz0,yty0,abs(two*(xtz0-yty0)/(abs(xtz0)+abs(yty0)))
@@ -3411,7 +3411,7 @@ subroutine zrnmi_filter_uvm_ad_test(mype)
 !<><><><<><><><>test of zrnmi_filter_uvm_ad_test><>><<><><<<<<<<<<<<<<<<<>>>>>>>>>>>>>
 
            use constants, only: zero,two
-           use m_mpimod, only: mpi_rtype,mpi_sum,mpi_comm_world,ierror
+           use m_mpimod, only: mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror
   use m_kinds, only: r_kind,i_kind
   use gridmod, only: lat2,lon2
   use mod_vtrans, only: nvmodes_keep
@@ -3439,7 +3439,7 @@ subroutine zrnmi_filter_uvm_ad_test(mype)
            end do
          end do
        end do
-       call mpi_allreduce(yty,yty0,1,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+       call mpi_allreduce(yty,yty0,1,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
        call zrnmi_filter_uvm2_ad(u1,v1,m1,mype)
        xtz=zero
        do k=1,nvmodes_keep
@@ -3449,7 +3449,7 @@ subroutine zrnmi_filter_uvm_ad_test(mype)
            end do
          end do
        end do
-       call mpi_allreduce(xtz,xtz0,1,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+       call mpi_allreduce(xtz,xtz0,1,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
          if(mype == 0) &
          write(6,'(" zrnmi_filter_uvm2_ad (aT*a), ivar,xx,yy=",i2,2e22.15,e10.3)') &
                 ivar,xtz0,yty0,abs(two*(xtz0-yty0)/(abs(xtz0)+abs(yty0)))
@@ -3469,7 +3469,7 @@ subroutine zrnmi_filter_uvm_ad_test(mype)
            end do
          end do
        end do
-       call mpi_allreduce(yty,yty0,1,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+       call mpi_allreduce(yty,yty0,1,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
        call zrnmi_filter_uvm2(u1,v1,m1,mype)
        xtz=zero
        do k=1,nvmodes_keep
@@ -3479,7 +3479,7 @@ subroutine zrnmi_filter_uvm_ad_test(mype)
            end do
          end do
        end do
-       call mpi_allreduce(xtz,xtz0,1,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+       call mpi_allreduce(xtz,xtz0,1,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
          if(mype == 0) &
          write(6,'(" zrnmi_filter_uvm2_ad (a*aT), ivar,xx,yy=",i2,2e22.15,e10.3)') &
                 ivar,xtz0,yty0,abs(two*(xtz0-yty0)/(abs(xtz0)+abs(yty0)))
@@ -4027,7 +4027,7 @@ subroutine generic_sub2grid8(all_loc,tempa,kbegin_loc,kend_loc,kbegin,kend,mype,
 !
 !$$$
 
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_rtype,npe
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_rtype,npe
   use gridmod, only: ijn,itotsub,lat1,lon1
   use m_kinds, only: r_kind,i_kind
   use constants, only: zero
@@ -4055,7 +4055,7 @@ subroutine generic_sub2grid8(all_loc,tempa,kbegin_loc,kend_loc,kbegin,kend,mype,
   end do
 
   call mpi_alltoallv(all_loc,recvcounts,rdispls,mpi_rtype, &
-                tempa,sendcounts,sdispls,mpi_rtype,mpi_comm_world,ierror)
+                tempa,sendcounts,sdispls,mpi_rtype,gsi_mpi_comm_world,ierror)
 
   if(kbegin_loc <= kend_loc) then
     call reorder_s8(tempa,kend_loc-kbegin_loc+1)
@@ -4179,7 +4179,7 @@ subroutine generic_grid2sub8(tempa,all_loc,kbegin_loc,kend_loc,kbegin,kend,mype,
 !
 !$$$
 
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_rtype,npe
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_rtype,npe
   use gridmod, only: ijn_s,itotsub,lat2,lon2
   use m_kinds, only: r_kind,i_kind
   use constants, only: zero
@@ -4217,7 +4217,7 @@ subroutine generic_grid2sub8(tempa,all_loc,kbegin_loc,kend_loc,kbegin,kend,mype,
 ! then alltoallv and i think we are done??
 
   call mpi_alltoallv(tempa,sendcounts,sdispls,mpi_rtype, &
-       all_loc,recvcounts,rdispls,mpi_rtype,mpi_comm_world,ierror)
+       all_loc,recvcounts,rdispls,mpi_rtype,gsi_mpi_comm_world,ierror)
 
 end subroutine generic_grid2sub8
 

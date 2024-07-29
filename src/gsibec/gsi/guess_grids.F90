@@ -2289,7 +2289,7 @@ contains
 !$$$ end documentation block
 
    use constants, only: zero
-   use m_mpimod, only: ierror,mpi_rtype,mpi_sum,mpi_comm_world
+   use m_mpimod, only: ierror,mpi_rtype,mpi_sum,gsi_mpi_comm_world
    use gridmod, only: lon1,lat1,nsig
 
    implicit none
@@ -2321,7 +2321,7 @@ contains
    work_a(nsig+1)=real(lon1*lat1,r_kind)
 
    call mpi_allreduce(work_a,work_a1,nsig+1,mpi_rtype,mpi_sum,&
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
    amz=zero
    do k=1,nsig
@@ -2360,7 +2360,7 @@ contains
 !$$$ end documentation block
 
    use constants, only: zero
-   use m_mpimod, only: ierror,mpi_rtype,mpi_sum,mpi_comm_world
+   use m_mpimod, only: ierror,mpi_rtype,mpi_sum,gsi_mpi_comm_world
    use gridmod, only: lon1,lat1
 
    implicit none
@@ -2389,7 +2389,7 @@ contains
    work_a(2)=real(lon1*lat1,r_kind)
 
    call mpi_allreduce(work_a,work_a1,2,mpi_rtype,mpi_sum,&
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
    amz=zero
    if (work_a1(2)>zero) amz=work_a1(1)/work_a1(2)

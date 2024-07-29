@@ -40,7 +40,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
 !$$$
 !*************************************************************************
   use m_kinds, only: r_kind,i_kind
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   use gridmod, only: nsig,lat1,lon1,lat2,lon2,nlon,nlat,itotsub,iglobal, & 
                      latlon11,ijn,displs_g,strip
   use general_commvars_mod, only: ltosi,ltosj
@@ -182,7 +182,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
               call strip(field(k1:k2),strp)
    
               call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-                   tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+                   tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
               if(mype == 0) then
                  do i=1,iglobal
@@ -200,7 +200,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -216,7 +216,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -232,7 +232,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -248,7 +248,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -263,7 +263,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -278,7 +278,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -293,7 +293,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -308,7 +308,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -323,7 +323,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -338,7 +338,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -353,7 +353,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -368,7 +368,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -383,7 +383,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -398,7 +398,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -413,7 +413,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal
@@ -428,7 +428,7 @@ subroutine writeout_gradients(dx,dy,nv,alpha,gamma,mype)
      if (istatus==0) then
         call strip(ptr2d,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_rtype, &
-             tempa,ijn,displs_g,mpi_rtype,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
         if(mype == 0) then
            do i=1,iglobal

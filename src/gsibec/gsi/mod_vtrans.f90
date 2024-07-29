@@ -206,7 +206,7 @@ contains
     use m_kinds, only: r_quad
     use constants,only: zero,one,one_tenth,ten
     use gridmod,only: lat2,lon2,nsig,nlat,nlon
-    use m_mpimod,only: mpi_rtype,mpi_comm_world,ierror,mpi_integer
+    use m_mpimod,only: mpi_rtype,gsi_mpi_comm_world,ierror,mpi_integer
     use guess_grids, only: ntguessig
     use general_sub2grid_mod, only: general_sub2grid
     use general_commvars_mod, only: g1
@@ -253,7 +253,7 @@ contains
         end do
    !    write(6,*)' workpe=',workpe
     end if
-    call mpi_bcast(workpe,1,mpi_integer,0,mpi_comm_world,ierror)
+    call mpi_bcast(workpe,1,mpi_integer,0,gsi_mpi_comm_world,ierror)
    !write(6,*)' mype,workpe=',mype,workpe
 
     print_verbose=.false.
@@ -438,14 +438,14 @@ end if  ! END MYPE=workpe SECTION !!!!!!!!!!!!!
 
 !  BROADCAST RESULTS FROM ABOVE SECTION TO ALL PES
 
-    call mpi_bcast(depths,nvmodes_keep,mpi_rtype,workpe,mpi_comm_world,ierror)
-    call mpi_bcast(speeds,nvmodes_keep,mpi_rtype,workpe,mpi_comm_world,ierror)
-    call mpi_bcast(vmodes,nsig*nvmodes_keep,mpi_rtype,workpe,mpi_comm_world,ierror)
-    call mpi_bcast(phihat2t,nsig*nvmodes_keep,mpi_rtype,workpe,mpi_comm_world,ierror)
-    call mpi_bcast(dualmodes,nsig*nvmodes_keep,mpi_rtype,workpe,mpi_comm_world,ierror)
-    call mpi_bcast(t2phihat,nsig*nvmodes_keep,mpi_rtype,workpe,mpi_comm_world,ierror)
-    call mpi_bcast(p2phihat,nvmodes_keep,mpi_rtype,workpe,mpi_comm_world,ierror)
-    call mpi_bcast(phihat2p,nvmodes_keep,mpi_rtype,workpe,mpi_comm_world,ierror)
+    call mpi_bcast(depths,nvmodes_keep,mpi_rtype,workpe,gsi_mpi_comm_world,ierror)
+    call mpi_bcast(speeds,nvmodes_keep,mpi_rtype,workpe,gsi_mpi_comm_world,ierror)
+    call mpi_bcast(vmodes,nsig*nvmodes_keep,mpi_rtype,workpe,gsi_mpi_comm_world,ierror)
+    call mpi_bcast(phihat2t,nsig*nvmodes_keep,mpi_rtype,workpe,gsi_mpi_comm_world,ierror)
+    call mpi_bcast(dualmodes,nsig*nvmodes_keep,mpi_rtype,workpe,gsi_mpi_comm_world,ierror)
+    call mpi_bcast(t2phihat,nsig*nvmodes_keep,mpi_rtype,workpe,gsi_mpi_comm_world,ierror)
+    call mpi_bcast(p2phihat,nvmodes_keep,mpi_rtype,workpe,gsi_mpi_comm_world,ierror)
+    call mpi_bcast(phihat2p,nvmodes_keep,mpi_rtype,workpe,gsi_mpi_comm_world,ierror)
 
   end subroutine create_vtrans
 

@@ -68,7 +68,7 @@
   use gsi_4dvar, only: mPEs_observer
   use m_obsdiags, only: alwaysLocal => obsdiags_alwaysLocal
   use obs_ferrscale, only: lferrscale
-  use m_mpimod, only: npe,mpi_comm_world,ierror,mype
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mype
   use radinfo, only: retrieval,diag_rad,init_rad,init_rad_vars,adp_anglebc,angord,upd_pred,&
                        biaspredvar,use_edges,passive_bc,newpc4pred,final_rad_vars,emiss_bc,&
                        ssmis_method,ssmis_precond,gmi_method,amsr2_method,bias_zero_start, &
@@ -1753,8 +1753,8 @@
 
   call gsi_4dcoupler_parallel_init
 
-  call mpi_comm_size(mpi_comm_world,npe,ierror)
-  call mpi_comm_rank(mpi_comm_world,mype,ierror)
+  call mpi_comm_size(gsi_mpi_comm_world,npe,ierror)
+  call mpi_comm_rank(gsi_mpi_comm_world,mype,ierror)
   if (mype==0) call w3tagb('GSI_ANL',1999,0232,0055,'NP23')
 
 ! Initialize defaults of vars in modules
@@ -2456,7 +2456,7 @@
   implicit none
 ! Deallocate arrays
 ! RTodling debug: PROG HANGS; needs ATTENTION
-  call mpi_comm_rank(mpi_comm_world,mype,ierror)
+  call mpi_comm_rank(gsi_mpi_comm_world,mype,ierror)
   if (anisotropic) then
      call final_fgrid2agrid(pf2aP3)
      call final_fgrid2agrid(pf2aP2)

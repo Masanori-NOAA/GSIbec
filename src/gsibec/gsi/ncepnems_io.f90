@@ -753,7 +753,7 @@ contains
     use general_commvars_mod, only: fill_ns,filluv_ns,fill2_ns,filluv2_ns,ltosj_s,ltosi_s
     use general_specmod, only: spec_vars
     use general_sub2grid_mod, only: sub2grid_info
-    use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_rtype,mype
+    use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_rtype,mype
     use nemsio_module, only: nemsio_init,nemsio_open,nemsio_close
     use nemsio_module, only: nemsio_gfile,nemsio_getfilehead,nemsio_readrecv
     use egrid2agrid_mod,only: g_egrid2agrid,g_create_egrid2agrid,egrid2agrid_parm,destroy_egrid2agrid
@@ -923,7 +923,7 @@ contains
           end if
        endif
        call mpi_scatterv(work,grd%ijn_s,grd%displs_s,mpi_rtype,&
-          g_z,grd%ijn_s(mm1),mpi_rtype,mype_hs,mpi_comm_world,ierror)
+          g_z,grd%ijn_s(mm1),mpi_rtype,mype_hs,gsi_mpi_comm_world,ierror)
     end if
 
 !   Surface pressure:  same procedure as terrain, but handled by task mype_ps
@@ -948,7 +948,7 @@ contains
        endif
     endif
     call mpi_scatterv(work,grd%ijn_s,grd%displs_s,mpi_rtype,&
-       g_ps,grd%ijn_s(mm1),mpi_rtype,mype_ps,mpi_comm_world,ierror)
+       g_ps,grd%ijn_s(mm1),mpi_rtype,mype_ps,gsi_mpi_comm_world,ierror)
 
 !   Divergence and voriticity.  Compute u and v from div and vor
     sub_vor=zero
@@ -1017,18 +1017,18 @@ contains
           if(vordivflag .or. .not. uvflag)then
              call mpi_alltoallv(work_vor,grd%ijn_s,grd%displs_s,mpi_rtype,&
                 sub_vor(1,icount_prev),grd%irc_s,grd%ird_s,mpi_rtype,&
-                mpi_comm_world,ierror)
+                gsi_mpi_comm_world,ierror)
              call mpi_alltoallv(work_div,grd%ijn_s,grd%displs_s,mpi_rtype,&
                 sub_div(1,icount_prev),grd%irc_s,grd%ird_s,mpi_rtype,&
-                mpi_comm_world,ierror)
+                gsi_mpi_comm_world,ierror)
           end if
           if(uvflag)then
              call mpi_alltoallv(work,grd%ijn_s,grd%displs_s,mpi_rtype,&
                 sub(1,icount_prev),grd%irc_s,grd%ird_s,mpi_rtype,&
-                mpi_comm_world,ierror)
+                gsi_mpi_comm_world,ierror)
              call mpi_alltoallv(work_v,grd%ijn_s,grd%displs_s,mpi_rtype,&
                 sub_v(1,icount_prev),grd%irc_s,grd%ird_s,mpi_rtype,&
-                mpi_comm_world,ierror)
+                gsi_mpi_comm_world,ierror)
           end if
           icount_prev=icount+1
        endif
@@ -1093,10 +1093,10 @@ contains
        if (mod(icount,npe)==0 .or. icount==levs) then
           call mpi_alltoallv(work_v,grd%ijn_s,grd%displs_s,mpi_rtype,&
              sub_v(1,icount_prev),grd%irc_s,grd%ird_s,mpi_rtype,&
-             mpi_comm_world,ierror)
+             gsi_mpi_comm_world,ierror)
           call mpi_alltoallv(work,grd%ijn_s,grd%displs_s,mpi_rtype,&
              sub(1,icount_prev),grd%irc_s,grd%ird_s,mpi_rtype,&
-             mpi_comm_world,ierror)
+             gsi_mpi_comm_world,ierror)
           icount_prev=icount+1
        endif
     end do
@@ -1130,7 +1130,7 @@ contains
        if (mod(icount,npe)==0 .or. icount==levs) then
           call mpi_alltoallv(work,grd%ijn_s,grd%displs_s,mpi_rtype,&
              sub(1,icount_prev),grd%irc_s,grd%ird_s,mpi_rtype,&
-             mpi_comm_world,ierror)
+             gsi_mpi_comm_world,ierror)
           icount_prev=icount+1
        endif
     end do
@@ -1174,7 +1174,7 @@ contains
           if (mod(icount,npe)==0 .or. icount==levs) then
              call mpi_alltoallv(work,grd%ijn_s,grd%displs_s,mpi_rtype,&
                 sub(1,icount_prev),grd%irc_s,grd%ird_s,mpi_rtype,&
-                mpi_comm_world,ierror)
+                gsi_mpi_comm_world,ierror)
              icount_prev=icount+1
           endif
        end do
@@ -1562,7 +1562,7 @@ contains
     use m_kinds, only: r_kind,i_kind,r_single
     use gridmod, only: nlat_sfc,nlon_sfc
     use guess_grids, only: nfldsfc,sfcmod_mm5,sfcmod_gfs
-    use m_mpimod, only: mpi_itype,mpi_rtype4,mpi_comm_world,mype
+    use m_mpimod, only: mpi_itype,mpi_rtype4,gsi_mpi_comm_world,mype
     use constants, only: zero
     implicit none
 
@@ -1597,33 +1597,33 @@ contains
     npts=nlat_sfc*nlon_sfc
     nptsall=npts*nfldsfc
 
-    call mpi_bcast(sfct,      nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(fact10,    nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(sno,       nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
+    call mpi_bcast(sfct,      nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(fact10,    nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(sno,       nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
     if(sfcmod_mm5 .or. sfcmod_gfs)then
-       call mpi_bcast(sfc_rough, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
+       call mpi_bcast(sfc_rough, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
     else
        sfc_rough = zero
     endif
-    call mpi_bcast(terrain, npts,   mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(isli,    npts,   mpi_itype, iope,mpi_comm_world,iret)
+    call mpi_bcast(terrain, npts,   mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(isli,    npts,   mpi_itype, iope,gsi_mpi_comm_world,iret)
     if(use_sfc_any)then
-       call mpi_bcast(veg_frac, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(soil_temp,nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(soil_moi, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(veg_type, npts,   mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(soil_type,npts,   mpi_rtype4,iope,mpi_comm_world,iret)
+       call mpi_bcast(veg_frac, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(soil_temp,nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(soil_moi, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(veg_type, npts,   mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(soil_type,npts,   mpi_rtype4,iope,gsi_mpi_comm_world,iret)
     endif
     if ( present(tref) ) then
-       call mpi_bcast(tref,    nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(dt_cool, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(z_c,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(dt_warm, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(z_w,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(c_0,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(c_d,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(w_0,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(w_d,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
+       call mpi_bcast(tref,    nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(dt_cool, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(z_c,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(dt_warm, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(z_w,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(c_0,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(c_d,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(w_0,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(w_d,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
     endif
 
   end subroutine read_nemssfc_
@@ -1773,7 +1773,7 @@ contains
 !$$$
     use m_kinds, only: r_kind,i_kind,r_single
     use gridmod, only: nlat,nlon
-    use m_mpimod, only: mpi_itype,mpi_comm_world,mype
+    use m_mpimod, only: mpi_itype,gsi_mpi_comm_world,mype
     implicit none
 
 !   Declare passed variables
@@ -1793,7 +1793,7 @@ contains
 
 !   Load onto all processors
     npts=nlat*nlon
-    call mpi_bcast(isli_anl,npts,mpi_itype,iope,mpi_comm_world,iret)
+    call mpi_bcast(isli_anl,npts,mpi_itype,iope,gsi_mpi_comm_world,iret)
 
   end subroutine read_nemssfc_anl_
 
@@ -1920,7 +1920,7 @@ contains
 !$$$
     use m_kinds, only: r_kind,i_kind,r_single
     use gridmod, only: nlat,nlon
-    use m_mpimod, only: mpi_itype,mpi_rtype4,mpi_comm_world,mype
+    use m_mpimod, only: mpi_itype,mpi_rtype4,gsi_mpi_comm_world,mype
     use jfunc, only: cwoption
     implicit none
 
@@ -1940,7 +1940,7 @@ contains
 
 !   Load onto all processors
     npts=nlat*nlon
-    call mpi_bcast(hsst,npts,mpi_rtype4,iope,mpi_comm_world,iret)
+    call mpi_bcast(hsst,npts,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
   end subroutine berror_read_hsst_
 
   subroutine read_nst_ (tref,dt_cool,z_c,dt_warm,z_w,c_0,c_d,w_0,w_d)
@@ -2161,7 +2161,7 @@ contains
     use m_kinds, only: r_kind,i_kind,r_single
     use gridmod, only: nlat_sfc,nlon_sfc
     use guess_grids, only: nfldnst
-    use m_mpimod, only: mpi_itype,mpi_rtype4,mpi_comm_world
+    use m_mpimod, only: mpi_itype,mpi_rtype4,gsi_mpi_comm_world
     use m_mpimod, only: mype
     use constants, only: zero
     implicit none
@@ -2186,15 +2186,15 @@ contains
     npts=nlat_sfc*nlon_sfc
     nptsall=npts*nfldnst
 
-    call mpi_bcast(tref,    nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(dt_cool, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(z_c,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(dt_warm, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(z_w,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(c_0,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(c_d,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(w_0,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(w_d,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
+    call mpi_bcast(tref,    nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(dt_cool, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(z_c,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(dt_warm, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(z_w,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(c_0,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(c_d,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(w_0,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(w_d,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
 
   end subroutine read_nemsnst_
 
@@ -2235,7 +2235,7 @@ contains
     use constants, only: r1000,fv,one,zero,qcmin,r0_05,t0c
 
     use m_mpimod, only: mpi_rtype
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
 
@@ -2505,7 +2505,7 @@ contains
     ! Surface pressure.
     call mpi_gatherv(psm,grd%ijn(mm1),mpi_rtype,&
          work1,grd%ijn,grd%displs_g,mpi_rtype,&
-         mype_out,mpi_comm_world,ierror)
+         mype_out,gsi_mpi_comm_world,ierror)
     if (mype==mype_out) then
        if(diff_res .or. lupp)then
           call nemsio_readrecv(gfile,'pres','sfc',1,rwork1d,iret=iret)
@@ -2566,10 +2566,10 @@ contains
     do k=1,grd%nsig
        call mpi_gatherv(usm(1,k),grd%ijn(mm1),mpi_rtype,&
             work1,grd%ijn,grd%displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        call mpi_gatherv(vsm(1,k),grd%ijn(mm1),mpi_rtype,&
             work2,grd%ijn,grd%displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        if (mype==mype_out) then
           if(diff_res)then
              call nemsio_readrecv(gfile,'ugrd','mid layer',k,rwork1d,iret=iret)
@@ -2624,7 +2624,7 @@ contains
     do k=1,grd%nsig
        call mpi_gatherv(tvsm(1,k),grd%ijn(mm1),mpi_rtype,&
             work1,grd%ijn,grd%displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        if (mype == mype_out) then
           if(diff_res)then
              call nemsio_readrecv(gfile,'tmp','mid layer',k,rwork1d,iret=iret)
@@ -2657,7 +2657,7 @@ contains
     do k=1,grd%nsig
        call mpi_gatherv(qsm(1,k),grd%ijn(mm1),mpi_rtype,&
             work1,grd%ijn,grd%displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        if (mype == mype_out) then
           if(diff_res)then
              call nemsio_readrecv(gfile,'spfh','mid layer',k,rwork1d,iret=iret)
@@ -2690,7 +2690,7 @@ contains
     do k=1,grd%nsig
        call mpi_gatherv(ozsm(1,k),grd%ijn(mm1),mpi_rtype,&
             work1,grd%ijn,grd%displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        if (mype == mype_out) then
           if(diff_res)then
              call nemsio_readrecv(gfile,'o3mr','mid layer',k,rwork1d,iret=iret)
@@ -2726,7 +2726,7 @@ contains
           if (lql) then
              call mpi_gatherv(qlsm(1,k),grd%ijn(mm1),mpi_rtype,&
                   work1,grd%ijn,grd%displs_g,mpi_rtype,&
-                  mype_out,mpi_comm_world,ierror)
+                  mype_out,gsi_mpi_comm_world,ierror)
              if (mype == mype_out) then
                 if(diff_res)then
                    call nemsio_readrecv(gfile,'clwmr','mid layer',k,rwork1d,iret=iret)
@@ -2768,7 +2768,7 @@ contains
           if (lqi) then
              call mpi_gatherv(qism(1,k),grd%ijn(mm1),mpi_rtype,&
                   work1,grd%ijn,grd%displs_g,mpi_rtype,&
-                  mype_out,mpi_comm_world,ierror)
+                  mype_out,gsi_mpi_comm_world,ierror)
              if (mype == mype_out) then
                 if(diff_res)then
                    call nemsio_readrecv(gfile,'icmr','mid layer',k,rwork1d,iret=iret)
@@ -2810,7 +2810,7 @@ contains
           if (lqr) then
              call mpi_gatherv(qrsm(1,k),grd%ijn(mm1),mpi_rtype,&
                   work1,grd%ijn,grd%displs_g,mpi_rtype,&
-                  mype_out,mpi_comm_world,ierror)
+                  mype_out,gsi_mpi_comm_world,ierror)
              if (mype == mype_out) then
                 if(diff_res)then
                    call nemsio_readrecv(gfile,'rwmr','mid layer',k,rwork1d,iret=iret)
@@ -2852,7 +2852,7 @@ contains
           if (lqs) then
              call mpi_gatherv(qssm(1,k),grd%ijn(mm1),mpi_rtype,&
                   work1,grd%ijn,grd%displs_g,mpi_rtype,&
-                  mype_out,mpi_comm_world,ierror)
+                  mype_out,gsi_mpi_comm_world,ierror)
              if (mype == mype_out) then
                 if(diff_res)then
                    call nemsio_readrecv(gfile,'snmr','mid layer',k,rwork1d,iret=iret)
@@ -2894,7 +2894,7 @@ contains
           if (lqg) then
              call mpi_gatherv(qgsm(1,k),grd%ijn(mm1),mpi_rtype,&
                   work1,grd%ijn,grd%displs_g,mpi_rtype,&
-                  mype_out,mpi_comm_world,ierror)
+                  mype_out,gsi_mpi_comm_world,ierror)
              if (mype == mype_out) then
                 if(diff_res)then
                    call nemsio_readrecv(gfile,'grle','mid layer',k,rwork1d,iret=iret)
@@ -2955,7 +2955,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(dzsm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              call nemsio_readrecv(gfile,'delz','mid layer',k,rwork1d,iret=iret)
              if (iret /= 0) call error_msg(trim(my_name),trim(filename),'delz','read',istop,iret)
@@ -3048,7 +3048,7 @@ contains
     use constants, only: r1000,fv,one,zero,qcmin,r0_05,t0c
 
     use m_mpimod, only: mpi_rtype
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
 
@@ -3357,7 +3357,7 @@ contains
     ! Surface pressure.
     call mpi_gatherv(psm,grd%ijn(mm1),mpi_rtype,&
          work1,grd%ijn,grd%displs_g,mpi_rtype,&
-         mype_out,mpi_comm_world,ierror)
+         mype_out,gsi_mpi_comm_world,ierror)
     if (mype==mype_out) then
        if(diff_res .or. lupp)then
           call nemsio_readrecv(gfile,'pres','sfc',1,rwork1d,iret=iret)
@@ -3419,10 +3419,10 @@ contains
     do k=1,grd%nsig
        call mpi_gatherv(usm(1,k),grd%ijn(mm1),mpi_rtype,&
             work1,grd%ijn,grd%displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        call mpi_gatherv(vsm(1,k),grd%ijn(mm1),mpi_rtype,&
             work2,grd%ijn,grd%displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        if (mype==mype_out) then
           if(diff_res)then
              call nemsio_readrecv(gfile,'ugrd','mid layer',k,rwork1d,iret=iret)
@@ -3478,7 +3478,7 @@ contains
     do k=1,grd%nsig
        call mpi_gatherv(tvsm(1,k),grd%ijn(mm1),mpi_rtype,&
             work1,grd%ijn,grd%displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        if (mype == mype_out) then
           if(diff_res)then
              call nemsio_readrecv(gfile,'tmp','mid layer',k,rwork1d,iret=iret)
@@ -3512,7 +3512,7 @@ contains
     do k=1,grd%nsig
        call mpi_gatherv(qsm(1,k),grd%ijn(mm1),mpi_rtype,&
             work1,grd%ijn,grd%displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        if (mype == mype_out) then
           if(diff_res)then
              call nemsio_readrecv(gfile,'spfh','mid layer',k,rwork1d,iret=iret)
@@ -3546,7 +3546,7 @@ contains
     do k=1,grd%nsig
        call mpi_gatherv(ozsm(1,k),grd%ijn(mm1),mpi_rtype,&
             work1,grd%ijn,grd%displs_g,mpi_rtype,&
-            mype_out,mpi_comm_world,ierror)
+            mype_out,gsi_mpi_comm_world,ierror)
        if (mype == mype_out) then
           if(diff_res)then
              call nemsio_readrecv(gfile,'o3mr','mid layer',k,rwork1d,iret=iret)
@@ -3582,11 +3582,11 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(cwsm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (imp_physics == 11) then
              call mpi_gatherv(tvsm(1,k),grd%ijn(mm1),mpi_rtype,&
                   work2,grd%ijn,grd%displs_g,mpi_rtype,&
-                  mype_out,mpi_comm_world,ierror)
+                  mype_out,gsi_mpi_comm_world,ierror)
           endif
           if (mype == mype_out) then
              if(diff_res .or. imp_physics == 11)then
@@ -3687,7 +3687,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(dzsm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              call nemsio_readrecv(gfile,'delz','mid layer',k,rwork1d,iret=iret)
              if (iret /= 0) call error_msg(trim(my_name),trim(filename),'delz','read',istop,iret)
@@ -3723,7 +3723,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(du001sm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -3765,7 +3765,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(du002sm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -3807,7 +3807,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(du003sm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -3849,7 +3849,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(du004sm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -3891,7 +3891,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(du005sm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -3934,7 +3934,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(ss001sm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if (use_fv3_aero) then
                 call nemsio_readrecv(gfile,'seas1','mid layer',k,rwork1d,iret=iret)
@@ -4011,7 +4011,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(ss002sm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -4053,7 +4053,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(ss003sm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -4095,7 +4095,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(ss004sm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -4170,7 +4170,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(so4sm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -4212,7 +4212,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(ocphosm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -4254,7 +4254,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(ocphism(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -4296,7 +4296,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(bcphosm(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -4338,7 +4338,7 @@ contains
        do k=1,grd%nsig
           call mpi_gatherv(bcphism(1,k),grd%ijn(mm1),mpi_rtype,&
                work1,grd%ijn,grd%displs_g,mpi_rtype,&
-               mype_out,mpi_comm_world,ierror)
+               mype_out,gsi_mpi_comm_world,ierror)
           if (mype == mype_out) then
              if(diff_res)then
                 if (use_fv3_aero) then
@@ -4462,7 +4462,7 @@ contains
     use m_kinds, only: r_kind,i_kind,r_single
 
     use m_mpimod, only: mpi_rtype
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
 
@@ -4536,7 +4536,7 @@ contains
     end do
     call mpi_gatherv(sfcsub,ijn(mm1),mpi_rtype,&
          sfcall,ijn,displs_g,mpi_rtype,mype_sfc,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 
 !   Only MPI task mype_sfc writes the surface file.
     if (mype==mype_sfc) then
@@ -4696,7 +4696,7 @@ contains
     use m_kinds, only: r_kind,i_kind,r_single
 
     use m_mpimod, only: mpi_rtype,mpi_itype
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
 
@@ -4804,11 +4804,11 @@ contains
 !
     call mpi_gatherv(dsfct_sub,ijn(mm1),mpi_rtype,&
          dsfct_all,ijn,displs_g,mpi_rtype,mype_so ,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 
     call mpi_gatherv(isli_sub,ijn(mm1),mpi_itype,&
          isli_all,ijn,displs_g,mpi_itype,mype_so ,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 
 !   Only MPI task mype_so  writes the surface file.
     if (mype==mype_so ) then

@@ -428,7 +428,7 @@ module obsmod
   use m_kinds, only: r_kind,i_kind,r_single
   use gsi_4dvar, only: l4dvar,lsqrtb,lbicg
   use constants, only:  zero,one,two,three,four,five
-  use m_mpimod, only: mpi_max,mpi_itype,mpi_comm_world,ierror,npe,mype
+  use m_mpimod, only: mpi_max,mpi_itype,gsi_mpi_comm_world,ierror,npe,mype
   implicit none
 
 ! set default as private

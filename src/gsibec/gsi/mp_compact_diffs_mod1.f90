@@ -326,7 +326,7 @@ subroutine cdiff_sd2ew1(nlev,mype)
 !$$$ end documentation block
 
   use gridmod, only: nlat,lon2,lat2,jstart,istart
-  use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_integer4
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_integer4
   implicit none
 
   integer(i_kind),intent(in   ) :: nlev,mype
@@ -406,7 +406,7 @@ subroutine cdiff_sd2ew1(nlev,mype)
      end do
   end do
 
-  call mpi_alltoall(nsend_sd2ew,1,mpi_integer4,nrecv_sd2ew,1,mpi_integer4,mpi_comm_world,ierror)
+  call mpi_alltoall(nsend_sd2ew,1,mpi_integer4,nrecv_sd2ew,1,mpi_integer4,gsi_mpi_comm_world,ierror)
   ndrecv_sd2ew(1)=0
   do i=2,npe+1
      ndrecv_sd2ew(i)=ndrecv_sd2ew(i-1)+nrecv_sd2ew(i-1)
@@ -416,7 +416,7 @@ subroutine cdiff_sd2ew1(nlev,mype)
   call mpi_type_contiguous(4,mpi_integer4,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(info_send_sd2ew,nsend_sd2ew,ndsend_sd2ew,mpi_string1, &
-                     info_recv_sd2ew,nrecv_sd2ew,ndrecv_sd2ew,mpi_string1,mpi_comm_world,ierror)
+                     info_recv_sd2ew,nrecv_sd2ew,ndrecv_sd2ew,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
 
 end subroutine cdiff_sd2ew1
@@ -444,7 +444,7 @@ subroutine cdiff_ew2sd1(mype)
 !$$$ end documentation block
 
   use gridmod, only: nlon,jstart,istart,ilat1,jlon1
-  use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_integer4
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_integer4
   implicit none
 
 
@@ -522,7 +522,7 @@ subroutine cdiff_ew2sd1(mype)
      end do
   end do
 
-  call mpi_alltoall(nsend_ew2sd,1,mpi_integer4,nrecv_ew2sd,1,mpi_integer4,mpi_comm_world,ierror)
+  call mpi_alltoall(nsend_ew2sd,1,mpi_integer4,nrecv_ew2sd,1,mpi_integer4,gsi_mpi_comm_world,ierror)
   ndrecv_ew2sd(1)=0
   do i=2,npe+1
      ndrecv_ew2sd(i)=ndrecv_ew2sd(i-1)+nrecv_ew2sd(i-1)
@@ -532,7 +532,7 @@ subroutine cdiff_ew2sd1(mype)
   call mpi_type_contiguous(4,mpi_integer4,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(info_send_ew2sd,nsend_ew2sd,ndsend_ew2sd,mpi_string1, &
-                     info_recv_ew2sd,nrecv_ew2sd,ndrecv_ew2sd,mpi_string1,mpi_comm_world,ierror)
+                     info_recv_ew2sd,nrecv_ew2sd,ndrecv_ew2sd,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
 
 end subroutine cdiff_ew2sd1
@@ -563,7 +563,7 @@ subroutine cdiff_sd2ew(u_sd,u_ew,nlev,mype)
 !$$$ end documentation block
 
   use gridmod, only: nlon,lon2,lat2,jstart,istart
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
   integer(i_kind)                             ,intent(in   ) :: nlev,mype
@@ -587,7 +587,7 @@ subroutine cdiff_sd2ew(u_sd,u_ew,nlev,mype)
   end do
   allocate(recvbuf(nallrecv_sd2ew))
   call mpi_alltoallv(sendbuf,nsend_sd2ew,ndsend_sd2ew,mpi_rtype, &
-                     recvbuf,nrecv_sd2ew,ndrecv_sd2ew,mpi_rtype,mpi_comm_world,ierror)
+                     recvbuf,nrecv_sd2ew,ndrecv_sd2ew,mpi_rtype,gsi_mpi_comm_world,ierror)
   deallocate(sendbuf)
 
   do j=1,nallrecv_sd2ew
@@ -626,7 +626,7 @@ subroutine cdiff_sd2ew2(u1_sd,u2_sd,u1_ew,u2_ew,nlev,mype)
 !$$$ end documentation block
 
   use gridmod, only: nlon,lon2,lat2,jstart,istart
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
   integer(i_kind)                             ,intent(in   ) :: nlev,mype
@@ -655,7 +655,7 @@ subroutine cdiff_sd2ew2(u1_sd,u2_sd,u1_ew,u2_ew,nlev,mype)
   call mpi_type_contiguous(2,mpi_rtype,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(sendbuf,nsend_sd2ew,ndsend_sd2ew,mpi_string1, &
-                     recvbuf,nrecv_sd2ew,ndrecv_sd2ew,mpi_string1,mpi_comm_world,ierror)
+                     recvbuf,nrecv_sd2ew,ndrecv_sd2ew,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
   deallocate(sendbuf)
 
@@ -696,7 +696,7 @@ subroutine cdiff_ew2sd(u_sd,u_ew,nlev,mype)
 !$$$ end documentation block
 
   use gridmod, only: nlat,nlon,lon2,lat2,istart
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
 
@@ -718,7 +718,7 @@ subroutine cdiff_ew2sd(u_sd,u_ew,nlev,mype)
   end do
   allocate(recvbuf(nallrecv_ew2sd))
   call mpi_alltoallv(sendbuf,nsend_ew2sd,ndsend_ew2sd,mpi_rtype, &
-                     recvbuf,nrecv_ew2sd,ndrecv_ew2sd,mpi_rtype,mpi_comm_world,ierror)
+                     recvbuf,nrecv_ew2sd,ndrecv_ew2sd,mpi_rtype,gsi_mpi_comm_world,ierror)
   deallocate(sendbuf)
   do j=1,nallrecv_ew2sd
      ilonloc=info_recv_ew2sd(2,j)
@@ -765,7 +765,7 @@ subroutine cdiff_ew2sd2(u1_sd,u2_sd,u1_ew,u2_ew,nlev,mype)
 !$$$ end documentation block
 
   use gridmod, only: nlat,nlon,lon2,lat2,istart
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
 
@@ -790,7 +790,7 @@ subroutine cdiff_ew2sd2(u1_sd,u2_sd,u1_ew,u2_ew,nlev,mype)
   call mpi_type_contiguous(2,mpi_rtype,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(sendbuf,nsend_ew2sd,ndsend_ew2sd,mpi_string1, &
-                     recvbuf,nrecv_ew2sd,ndrecv_ew2sd,mpi_string1,mpi_comm_world,ierror)
+                     recvbuf,nrecv_ew2sd,ndrecv_ew2sd,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
   deallocate(sendbuf)
   do j=1,nallrecv_ew2sd
@@ -946,7 +946,7 @@ subroutine cdiff_sd2ns1(nlev,mype)
 !$$$ end documentation block
 
   use gridmod, only: nlon,lon2,lat2,jstart,istart
-  use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_integer4
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_integer4
   implicit none
 
   integer(i_kind),intent(in   ) :: nlev,mype
@@ -1027,7 +1027,7 @@ subroutine cdiff_sd2ns1(nlev,mype)
      end do
   end do
 
-  call mpi_alltoall(nsend_sd2ns,1,mpi_integer4,nrecv_sd2ns,1,mpi_integer4,mpi_comm_world,ierror)
+  call mpi_alltoall(nsend_sd2ns,1,mpi_integer4,nrecv_sd2ns,1,mpi_integer4,gsi_mpi_comm_world,ierror)
   ndrecv_sd2ns(1)=0
   do i=2,npe+1
      ndrecv_sd2ns(i)=ndrecv_sd2ns(i-1)+nrecv_sd2ns(i-1)
@@ -1037,7 +1037,7 @@ subroutine cdiff_sd2ns1(nlev,mype)
   call mpi_type_contiguous(4,mpi_integer4,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(info_send_sd2ns,nsend_sd2ns,ndsend_sd2ns,mpi_string1, &
-                     info_recv_sd2ns,nrecv_sd2ns,ndrecv_sd2ns,mpi_string1,mpi_comm_world,ierror)
+                     info_recv_sd2ns,nrecv_sd2ns,ndrecv_sd2ns,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
 
 end subroutine cdiff_sd2ns1
@@ -1065,7 +1065,7 @@ subroutine cdiff_ns2sd1(mype)
 !$$$ end documentation block
 
   use gridmod, only: nlat,nlon,jstart,istart,ilat1,jlon1
-  use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_integer4
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_integer4
   implicit none
 
 
@@ -1152,7 +1152,7 @@ subroutine cdiff_ns2sd1(mype)
      end do
   end do
 
-  call mpi_alltoall(nsend_ns2sd,1,mpi_integer4,nrecv_ns2sd,1,mpi_integer4,mpi_comm_world,ierror)
+  call mpi_alltoall(nsend_ns2sd,1,mpi_integer4,nrecv_ns2sd,1,mpi_integer4,gsi_mpi_comm_world,ierror)
   ndrecv_ns2sd(1)=0
   do i=2,npe+1
      ndrecv_ns2sd(i)=ndrecv_ns2sd(i-1)+nrecv_ns2sd(i-1)
@@ -1162,7 +1162,7 @@ subroutine cdiff_ns2sd1(mype)
   call mpi_type_contiguous(4,mpi_integer4,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(info_send_ns2sd,nsend_ns2sd,ndsend_ns2sd,mpi_string1, &
-                     info_recv_ns2sd,nrecv_ns2sd,ndrecv_ns2sd,mpi_string1,mpi_comm_world,ierror)
+                     info_recv_ns2sd,nrecv_ns2sd,ndrecv_ns2sd,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
 
 end subroutine cdiff_ns2sd1
@@ -1193,7 +1193,7 @@ subroutine cdiff_sd2ns(u_sd,u_ns,nlev,mype)
 !$$$ end documentation block
 
   use gridmod, only: nlat,lon2,lat2,jstart,istart
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
   integer(i_kind)                             ,intent(in   ) :: nlev,mype
@@ -1217,7 +1217,7 @@ subroutine cdiff_sd2ns(u_sd,u_ns,nlev,mype)
   end do
   allocate(recvbuf(nallrecv_sd2ns))
   call mpi_alltoallv(sendbuf,nsend_sd2ns,ndsend_sd2ns,mpi_rtype, &
-                     recvbuf,nrecv_sd2ns,ndrecv_sd2ns,mpi_rtype,mpi_comm_world,ierror)
+                     recvbuf,nrecv_sd2ns,ndrecv_sd2ns,mpi_rtype,gsi_mpi_comm_world,ierror)
   deallocate(sendbuf)
 
   do j=1,nallrecv_sd2ns
@@ -1256,7 +1256,7 @@ subroutine cdiff_sd2ns2(u1_sd,u2_sd,u1_ns,u2_ns,nlev,mype)
 !$$$ end documentation block
 
   use gridmod, only: nlat,lon2,lat2,jstart,istart
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
   integer(i_kind)                             ,intent(in   ) :: nlev,mype
@@ -1283,7 +1283,7 @@ subroutine cdiff_sd2ns2(u1_sd,u2_sd,u1_ns,u2_ns,nlev,mype)
   call mpi_type_contiguous(2,mpi_rtype,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(sendbuf,nsend_sd2ns,ndsend_sd2ns,mpi_string1, &
-                     recvbuf,nrecv_sd2ns,ndrecv_sd2ns,mpi_string1,mpi_comm_world,ierror)
+                     recvbuf,nrecv_sd2ns,ndrecv_sd2ns,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
   deallocate(sendbuf)
 
@@ -1324,7 +1324,7 @@ subroutine cdiff_ns2sd(u_sd,u_ns,nlev,mype)
 !$$$ end documentation block
 
   use gridmod, only: nlat,lon2,lat2,istart
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
 
@@ -1346,7 +1346,7 @@ subroutine cdiff_ns2sd(u_sd,u_ns,nlev,mype)
   end do
   allocate(recvbuf(nallrecv_ns2sd))
   call mpi_alltoallv(sendbuf,nsend_ns2sd,ndsend_ns2sd,mpi_rtype, &
-                     recvbuf,nrecv_ns2sd,ndrecv_ns2sd,mpi_rtype,mpi_comm_world,ierror)
+                     recvbuf,nrecv_ns2sd,ndrecv_ns2sd,mpi_rtype,gsi_mpi_comm_world,ierror)
   deallocate(sendbuf)
   do j=1,nallrecv_ns2sd
      ilat=info_recv_ns2sd(1,j)
@@ -1401,7 +1401,7 @@ subroutine cdiff_ns2sd2(u1_sd,u2_sd,u1_ns,u2_ns,nlev,mype)
 !$$$ end documentation block
 
   use gridmod, only: nlat,lon2,lat2,istart
-  use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype
   implicit none
 
 
@@ -1426,7 +1426,7 @@ subroutine cdiff_ns2sd2(u1_sd,u2_sd,u1_ns,u2_ns,nlev,mype)
   call mpi_type_contiguous(2,mpi_rtype,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(sendbuf,nsend_ns2sd,ndsend_ns2sd,mpi_string1, &
-                     recvbuf,nrecv_ns2sd,ndrecv_ns2sd,mpi_string1,mpi_comm_world,ierror)
+                     recvbuf,nrecv_ns2sd,ndrecv_ns2sd,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
   deallocate(sendbuf)
   do j=1,nallrecv_ns2sd

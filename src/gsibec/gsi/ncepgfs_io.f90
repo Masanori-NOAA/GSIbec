@@ -741,7 +741,7 @@ end subroutine write_ghg_grid
     use m_kinds, only: r_kind,i_kind,r_single
     use gridmod, only: nlat_sfc,nlon_sfc
     use guess_grids, only: nfldsfc,sfcmod_mm5,sfcmod_gfs
-    use m_mpimod, only: mpi_itype,mpi_rtype4,mpi_comm_world,mype
+    use m_mpimod, only: mpi_itype,mpi_rtype4,gsi_mpi_comm_world,mype
     use constants, only: zero
     implicit none
 
@@ -768,22 +768,22 @@ end subroutine write_ghg_grid
     npts=nlat_sfc*nlon_sfc
     nptsall=npts*nfldsfc
 
-    call mpi_bcast(sfct,      nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(fact10,    nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(sno,       nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
+    call mpi_bcast(sfct,      nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(fact10,    nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(sno,       nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
     if(sfcmod_mm5 .or. sfcmod_gfs)then
-       call mpi_bcast(sfc_rough, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
+       call mpi_bcast(sfc_rough, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
     else
        sfc_rough = zero
     end if
-    call mpi_bcast(terrain,   npts,   mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(isli,      npts,   mpi_itype, iope,mpi_comm_world,iret)
+    call mpi_bcast(terrain,   npts,   mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(isli,      npts,   mpi_itype, iope,gsi_mpi_comm_world,iret)
     if(use_sfc_any)then
-       call mpi_bcast(veg_frac, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(soil_temp,nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(soil_moi, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(veg_type, npts,   mpi_rtype4,iope,mpi_comm_world,iret)
-       call mpi_bcast(soil_type,npts,   mpi_rtype4,iope,mpi_comm_world,iret)
+       call mpi_bcast(veg_frac, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(soil_temp,nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(soil_moi, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(veg_type, npts,   mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+       call mpi_bcast(soil_type,npts,   mpi_rtype4,iope,gsi_mpi_comm_world,iret)
     end if
 
     return
@@ -890,7 +890,7 @@ end subroutine write_ghg_grid
 !$$$
     use m_kinds, only: r_kind,i_kind,r_single
     use gridmod, only: nlat,nlon
-    use m_mpimod, only: mpi_itype,mpi_comm_world,mype
+    use m_mpimod, only: mpi_itype,gsi_mpi_comm_world,mype
     use constants, only: zero
     implicit none
 
@@ -909,7 +909,7 @@ end subroutine write_ghg_grid
 !   Load onto all processors
     npts=nlat*nlon
 
-    call mpi_bcast(isli_anl,npts,mpi_itype,iope,mpi_comm_world,iret)
+    call mpi_bcast(isli_anl,npts,mpi_itype,iope,gsi_mpi_comm_world,iret)
 
     return
   end subroutine read_gfssfc_anl
@@ -1073,7 +1073,7 @@ end subroutine write_ghg_grid
     use m_kinds, only: r_kind,i_kind,r_single
     use gridmod, only: nlat_sfc,nlon_sfc
     use guess_grids, only: nfldnst
-    use m_mpimod, only: mpi_itype,mpi_rtype4,mpi_comm_world
+    use m_mpimod, only: mpi_itype,mpi_rtype4,gsi_mpi_comm_world
     use m_mpimod, only: mype
     use constants, only: zero
     implicit none
@@ -1097,15 +1097,15 @@ end subroutine write_ghg_grid
     npts=nlat_sfc*nlon_sfc
     nptsall=npts*nfldnst
 
-    call mpi_bcast(tref,    nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(dt_cool, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(z_c,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(dt_warm, nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(z_w,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(c_0,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(c_d,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(w_0,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
-    call mpi_bcast(w_d,     nptsall,mpi_rtype4,iope,mpi_comm_world,iret)
+    call mpi_bcast(tref,    nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(dt_cool, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(z_c,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(dt_warm, nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(z_w,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(c_0,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(c_d,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(w_0,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
+    call mpi_bcast(w_d,     nptsall,mpi_rtype4,iope,gsi_mpi_comm_world,iret)
 
     return
   end subroutine read_gfsnst
@@ -1606,7 +1606,7 @@ end subroutine write_ghg_grid
     use m_kinds, only: r_kind,r_single,i_kind
   
     use m_mpimod, only: mpi_rtype
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
     
@@ -1680,7 +1680,7 @@ end subroutine write_ghg_grid
     end do
     call mpi_gatherv(sfcsub,ijn(mm1),mpi_rtype,&
          sfcall,ijn,displs_g,mpi_rtype,mype_sfc,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 
 !   Only MPI task mype_sfc writes the surface file.
     if (mype==mype_sfc) then
@@ -1833,7 +1833,7 @@ end subroutine write_ghg_grid
     use m_kinds, only: r_kind,r_single,i_kind
 
     use m_mpimod, only: mpi_rtype,mpi_itype
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
 
@@ -1939,11 +1939,11 @@ end subroutine write_ghg_grid
 !
     call mpi_gatherv(dsfct_sub,ijn(mm1),mpi_rtype,&
          dsfct_all,ijn,displs_g,mpi_rtype,mype_so ,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 
     call mpi_gatherv(isli_sub,ijn(mm1),mpi_itype,&
          isli_all,ijn,displs_g,mpi_itype,mype_so ,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 !
 !   Only MPI task mype_so, writes the surface & nst file.
 !
@@ -2239,7 +2239,7 @@ end subroutine write_ghg_grid
     use m_kinds, only: r_kind,i_kind
 
     use m_mpimod, only: mpi_rtype,mpi_itype
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
 
@@ -2310,11 +2310,11 @@ end subroutine write_ghg_grid
 !
     call mpi_gatherv(dtf_sub,ijn(mm1),mpi_rtype,&
          dtf_all,ijn,displs_g,mpi_rtype,mype_so ,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 
     call mpi_gatherv(msk_sub,ijn(mm1),mpi_itype,&
          msk_all,ijn,displs_g,mpi_itype,mype_so ,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 !
 !   Only MPI task mype_so, writes the surface & nst file.
 !
@@ -2445,7 +2445,7 @@ end subroutine write_ghg_grid
     use m_kinds, only: r_kind,r_single,i_kind
 
     use m_mpimod, only: mpi_rtype,mpi_itype
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
 
@@ -2544,11 +2544,11 @@ end subroutine write_ghg_grid
 !
     call mpi_gatherv(dsfct_sub,ijn(mm1),mpi_rtype,&
          dsfct_all,ijn,displs_g,mpi_rtype,mype_so ,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 
     call mpi_gatherv(isli_sub,ijn(mm1),mpi_itype,&
          isli_all,ijn,displs_g,mpi_itype,mype_so ,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 !
 !   Only MPI task mype_so, processes and writes the surface & nst file.
 !
@@ -2897,7 +2897,7 @@ end subroutine write_ghg_grid
     use m_kinds, only: r_kind,r_single,i_kind
 
     use m_mpimod, only: mpi_rtype,mpi_itype
-    use m_mpimod, only: mpi_comm_world
+    use m_mpimod, only: gsi_mpi_comm_world
     use m_mpimod, only: ierror
     use m_mpimod, only: mype
 
@@ -2991,11 +2991,11 @@ end subroutine write_ghg_grid
 !
     call mpi_gatherv(dsfct_sub,ijn(mm1),mpi_rtype,&
          dsfct_all,ijn,displs_g,mpi_rtype,mype_so ,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 
     call mpi_gatherv(isli_sub,ijn(mm1),mpi_itype,&
          isli_all,ijn,displs_g,mpi_itype,mype_so ,&
-         mpi_comm_world,ierror)
+         gsi_mpi_comm_world,ierror)
 !
 !   Only MPI task mype_so, processes and writes the surface & nst file.
 !

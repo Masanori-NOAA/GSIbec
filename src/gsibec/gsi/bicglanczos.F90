@@ -65,7 +65,7 @@ use control_vectors, only: dot_product,assignment(=)
 use gsi_bundlemod, only: gsi_bundle
 use gsi_bundlemod, only: assignment(=)
 use gsi_bundlemod, only : gsi_bundlegetpointer
-use m_m_mpimod  ,  only : mpi_comm_world
+use m_m_mpimod  ,  only : gsi_mpi_comm_world
 use m_m_mpimod,    only: mype
 use jfunc   ,  only : iter, jiter
 use gsi_4dvar, only : nwrvecs,l4dvar,lanczosave

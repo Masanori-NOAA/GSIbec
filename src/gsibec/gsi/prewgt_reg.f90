@@ -78,7 +78,7 @@ subroutine prewgt_reg(mype)
   use berror, only: dssvs,&
        bw,ny,nx,dssv,vs,be,ndeg,&
        init_rftable,hzscl,slw,nhscrf,bkgv_write
-  use m_mpimod, only: nvar_id,levs_id,mpi_sum,mpi_comm_world,mpi_rtype
+  use m_mpimod, only: nvar_id,levs_id,mpi_sum,gsi_mpi_comm_world,mpi_rtype
   use jfunc, only: varq,qoption,varcw,cwoption
   use control_vectors, only: cvars2d,cvars3d
   use control_vectors, only: as2d,as3d,atsfc_sdv

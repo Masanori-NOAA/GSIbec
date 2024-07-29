@@ -96,7 +96,7 @@ contains
   !
   !$$$  end documentation block
     use m_kinds, only: r_kind,r_single,i_long,i_llong,i_kind
-    use m_mpimod, only: ierror,mpi_integer,mpi_sum,mpi_comm_world,npe,mpi_rtype, &
+    use m_mpimod, only: ierror,mpi_integer,mpi_sum,gsi_mpi_comm_world,npe,mpi_rtype, &
          mpi_offset_kind,mpi_info_null,mpi_mode_rdonly,mpi_status_size
     use guess_grids, only: & 
          fact10,soil_type,veg_frac,veg_type,sfc_rough,sfct,sno,soil_temp,soil_moi,&
@@ -523,7 +523,7 @@ contains
              work(k)=rough0(j,i)
           end do
           call mpi_scatterv(work,ijn_s,displs_s,mpi_rtype, &
-                         sfc_rough,ijn_s(mm1),mpi_rtype,0,mpi_comm_world,ierror)
+                         sfc_rough,ijn_s(mm1),mpi_rtype,0,gsi_mpi_comm_world,ierror)
   
           close(lendian_in)
   
@@ -571,7 +571,7 @@ contains
           
           allocate(ibuf(im*jm,kbegin(mype):kend(mype)))
   
-          call mpi_file_open(mpi_comm_world,trim(wrfges),mpi_mode_rdonly,mpi_info_null,mfcst,ierror)
+          call mpi_file_open(gsi_mpi_comm_world,trim(wrfges),mpi_mode_rdonly,mpi_info_null,mfcst,ierror)
           
   !                                    read pint
           if(update_pint.and.kord(i_pint)/=1) then
@@ -976,7 +976,7 @@ contains
   
        
           call mpi_reduce(num_doubtful_sfct,num_doubtful_sfct_all,1,mpi_integer,mpi_sum,&
-               0,mpi_comm_world,ierror)
+               0,gsi_mpi_comm_world,ierror)
           if(mype == 0) write(6,*)' in read_wrf_nmm_binary_guess, num_doubtful_sfct_all = ',num_doubtful_sfct_all
           if(mype == 0) write(6,*)' in read_wrf_nmm_binary_guess, num_doubtful_sfct_all = ',num_doubtful_sfct_all
        end do ! enddo it     
@@ -1059,7 +1059,7 @@ contains
   !
   !$$$
     use m_kinds, only: r_kind,r_single,i_kind
-    use m_mpimod, only: ierror,mpi_integer,mpi_sum,mpi_real4,mpi_comm_world,npe
+    use m_mpimod, only: ierror,mpi_integer,mpi_sum,mpi_real4,gsi_mpi_comm_world,npe
     use guess_grids, only: &
          fact10,soil_type,veg_frac,veg_type,sfct,sno,soil_temp,soil_moi,&
          isli,nfldsig,ifilesig,ges_tsen,ges_prsl,sfc_rough
@@ -1387,7 +1387,7 @@ contains
   !          Distribute to local domains everytime we have npe fields
              if(mod(icount,npe) == 0.or.icount == num_all_fields) then
                 call mpi_alltoallv(tempa,ijn_s,displs_s,mpi_real4, &
-                     all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,mpi_comm_world,ierror)
+                     all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,gsi_mpi_comm_world,ierror)
                 icount_prev=icount+1
              end if
   
@@ -1619,7 +1619,7 @@ contains
        end do ! it loop 
        
        call mpi_reduce(num_doubtful_sfct,num_doubtful_sfct_all,1,mpi_integer,mpi_sum,&
-            0,mpi_comm_world,ierror)
+            0,gsi_mpi_comm_world,ierror)
        if(mype == 0 .and. print_verbose) then
           write(6,*)' in read_wrf_nmm_netcdf_guess, num_doubtful_sfct_all = ',num_doubtful_sfct_all
           write(6,*)' in read_wrf_nmm_netcdf_guess, num_doubtful_sfct_all = ',num_doubtful_sfct_all
@@ -1708,7 +1708,7 @@ contains
   !
   !$$$
     use m_kinds, only: r_kind,i_kind
-    use m_mpimod, only: ierror,mpi_comm_world,mpi_integer,mpi_sum
+    use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_integer,mpi_sum
     use guess_grids, only: &
          fact10,soil_type,veg_frac,veg_type,sfc_rough,sfct,sno,soil_temp,soil_moi,&
          isli,nfldsig,ges_tsen,ges_prsl,ifilesig
@@ -2185,7 +2185,7 @@ contains
   
   
        call mpi_reduce(num_doubtful_sfct,num_doubtful_sfct_all,1,mpi_integer,mpi_sum,&
-                       0,mpi_comm_world,ierror)
+                       0,gsi_mpi_comm_world,ierror)
        if(mype == 0) write(6,*)' in read_nems_nmmb_binary_guess, num_doubtful_sfct_all = ', &
                                                              num_doubtful_sfct_all
     end do ! enddo it

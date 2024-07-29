@@ -1390,7 +1390,7 @@ subroutine inquire_obsdiags(kiter)
 !$$$ end documentation block
 
 use constants, only:  one,two,three,four,five
-use m_mpimod, only: mpi_max,mpi_comm_world,ierror,mype
+use m_mpimod, only: mpi_max,gsi_mpi_comm_world,ierror,mype
 use mpeu_mpif, only: mpi_type, MPI_IKIND
 implicit none
 
@@ -1418,7 +1418,7 @@ do ii=1,size(obsdiags,2)
    enddo
 enddo
 
-call mpi_reduce(iobsa,iobsb,2_MPI_IKIND,mpi_type(iobsa),mpi_max,0_MPI_IKIND,mpi_comm_world,ierror)
+call mpi_reduce(iobsa,iobsb,2_MPI_IKIND,mpi_type(iobsa),mpi_max,0_MPI_IKIND,gsi_mpi_comm_world,ierror)
 
 if (mype==0) then
    ziter=real(kiter,r_kind)

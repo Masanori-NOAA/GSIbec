@@ -726,7 +726,7 @@ subroutine read_obs(ndata,mype)
     use gsi_4dvar, only: l4dvar
     use satthin, only: super_val,super_val1,superp,makegvals,getsfc,destroy_sfc
     use satthin, only: get_hsst
-    use m_mpimod, only: ierror,mpi_comm_world,mpi_sum,mpi_max,mpi_rtype,mpi_integer,npe,&
+    use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_sum,mpi_max,mpi_rtype,mpi_integer,npe,&
          setcomm
     use constants, only: one,zero,izero
     use converr, only: converr_read
@@ -1154,10 +1154,10 @@ subroutine read_obs(ndata,mype)
 
 
 !   Distribute optimal number of reader tasks to all mpi tasks
-    call mpi_allreduce(ntasks1,ntasks,ndat,mpi_integer,mpi_sum,mpi_comm_world,ierror)
-    call mpi_allreduce(read_rec1,read_rec,ndat,mpi_integer,mpi_sum,mpi_comm_world,ierror) 
-    call mpi_allreduce(read_ears_rec1,read_ears_rec,ndat,mpi_integer,mpi_sum,mpi_comm_world,ierror) 
-    call mpi_allreduce(read_db_rec1,read_db_rec,ndat,mpi_integer,mpi_sum,mpi_comm_world,ierror) 
+    call mpi_allreduce(ntasks1,ntasks,ndat,mpi_integer,mpi_sum,gsi_mpi_comm_world,ierror)
+    call mpi_allreduce(read_rec1,read_rec,ndat,mpi_integer,mpi_sum,gsi_mpi_comm_world,ierror) 
+    call mpi_allreduce(read_ears_rec1,read_ears_rec,ndat,mpi_integer,mpi_sum,gsi_mpi_comm_world,ierror) 
+    call mpi_allreduce(read_db_rec1,read_db_rec,ndat,mpi_integer,mpi_sum,gsi_mpi_comm_world,ierror) 
 
 !   Limit number of requested tasks per type to be <= total available tasks
     npemax=0
@@ -1345,7 +1345,7 @@ subroutine read_obs(ndata,mype)
        do k=1,nsig
           call strip(ges_prsl(:,:,k,ntguessig),prslsm)
           call mpi_allgatherv(prslsm,ijn(mype+1),mpi_rtype,&
-               work1,ijn,displs_g,mpi_rtype,mpi_comm_world,ierror)
+               work1,ijn,displs_g,mpi_rtype,gsi_mpi_comm_world,ierror)
           if(use_prsl_full_proc)then
              call reorder(work1,1,1)
              do ii=1,iglobal
@@ -1369,7 +1369,7 @@ subroutine read_obs(ndata,mype)
        do k=1,nsig
           call strip(geop_hgtl(:,:,k,ntguessig),hgtlsm)
           call mpi_allgatherv(hgtlsm,ijn(mype+1),mpi_rtype,&
-               work1,ijn,displs_g,mpi_rtype,mpi_comm_world,ierror)
+               work1,ijn,displs_g,mpi_rtype,gsi_mpi_comm_world,ierror)
           if(use_hgtl_full_proc)then
              call reorder(work1,1,1)
              do ii=1,iglobal
@@ -1947,24 +1947,24 @@ subroutine read_obs(ndata,mype)
 !   Broadcast aircraft new tail numbers for aircraft
 !   temperature bias correction
 !   if (aircraft_t_bc) then
-!      call mpi_barrier(mpi_comm_world,ierror)
-!      call mpi_bcast(ntail_update,1,mpi_itype,mype_airobst,mpi_comm_world,ierror)
-!      call mpi_bcast(idx_tail,max_tail,mpi_itype,mype_airobst,mpi_comm_world,ierror)
-!      call mpi_bcast(taillist,max_tail,MPI_CHARACTER,mype_airobst,mpi_comm_world,ierror)
+!      call mpi_barrier(gsi_mpi_comm_world,ierror)
+!      call mpi_bcast(ntail_update,1,mpi_itype,mype_airobst,gsi_mpi_comm_world,ierror)
+!      call mpi_bcast(idx_tail,max_tail,mpi_itype,mype_airobst,gsi_mpi_comm_world,ierror)
+!      call mpi_bcast(taillist,max_tail,MPI_CHARACTER,mype_airobst,gsi_mpi_comm_world,ierror)
 !   end if
 
 !   Deallocate arrays containing full horizontal surface fields
     call destroy_sfc
 !   Sum and distribute number of obs read and used for each input ob group
     
-    call mpi_allreduce(ndata1,ndata,ndat*3,mpi_integer,mpi_sum,mpi_comm_world,&
+    call mpi_allreduce(ndata1,ndata,ndat*3,mpi_integer,mpi_sum,gsi_mpi_comm_world,&
        ierror)
 
 !   Collect super obs factors
     if(mype == 0)write(6,*) ' dval_use = ',dval_use
     if(dval_use)then
        call mpi_allreduce(super_val,super_val1,superp+1,mpi_rtype,&
-            mpi_sum,mpi_comm_world,ierror)
+            mpi_sum,gsi_mpi_comm_world,ierror)
     else
        super_val1=zero
     end if
@@ -1979,7 +1979,7 @@ subroutine read_obs(ndata,mype)
     nhd(7)=nodeuv
     nhd(8)=nodeps
 !   get number of high resolution stations on every processor
-    call mpi_allreduce(nhd,nhd1,8,mpi_integer,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(nhd,nhd1,8,mpi_integer,mpi_max,gsi_mpi_comm_world,ierror)
     nhdt=nhd1(1)
     nhdq=nhd1(2)
     nhduv=nhd1(3)
@@ -1990,27 +1990,27 @@ subroutine read_obs(ndata,mype)
     nodeps=nhd1(8)
     if(nhdt > 0)then
       if(.not. allocated(hdtlist))allocate(hdtlist(nhdt))
-      call mpi_bcast(hdtlist,nhdt,mpi_integer,nodet,mpi_comm_world,ierror)
+      call mpi_bcast(hdtlist,nhdt,mpi_integer,nodet,gsi_mpi_comm_world,ierror)
     end if
     if(nhdq > 0) then
       if(.not. allocated(hdqlist))allocate(hdqlist(nhdq))
-      call mpi_bcast(hdqlist,nhdq,mpi_integer,nodeq,mpi_comm_world,ierror)
+      call mpi_bcast(hdqlist,nhdq,mpi_integer,nodeq,gsi_mpi_comm_world,ierror)
     end if
     if(nhduv > 0) then
       if(.not. allocated(hduvlist))allocate(hduvlist(nhduv))
-      call mpi_bcast(hduvlist,nhduv,mpi_integer,nodeuv,mpi_comm_world,ierror)
+      call mpi_bcast(hduvlist,nhduv,mpi_integer,nodeuv,gsi_mpi_comm_world,ierror)
     end if
     if(nhdps > 0)then
       if(.not. allocated(hdpslist))allocate(hdpslist(nhduv))
-      call mpi_bcast(hdpslist,nhdps,mpi_integer,nodeps,mpi_comm_world,ierror)
+      call mpi_bcast(hdpslist,nhdps,mpi_integer,nodeps,gsi_mpi_comm_world,ierror)
     end if
     
     if(mype == 0)write(6,*)'number of HD stations',nhdt,nhdq,nhduv,nhdps
     if(mype == 0)write(6,*)'processors           ',nodet,nodeq,nodeuv,nodeps
 
 !   Collect number of gps profiles (needed later for qc)
-    call mpi_allreduce(nprof_gps1,nprof_gps,1,mpi_integer,mpi_sum,mpi_comm_world,ierror)
-    call mpi_allreduce(nobs_sub1,nobs_sub,npe*ndat,mpi_integer,mpi_sum,mpi_comm_world,& 
+    call mpi_allreduce(nprof_gps1,nprof_gps,1,mpi_integer,mpi_sum,gsi_mpi_comm_world,ierror)
+    call mpi_allreduce(nobs_sub1,nobs_sub,npe*ndat,mpi_integer,mpi_sum,gsi_mpi_comm_world,& 
          ierror)
 
 !   Write collective obs selection information to scratch file.

@@ -47,7 +47,7 @@ module strong_fast_global_mod
   use gridmod, only: nlat,nlon,lat2,lon2,nsig,sp_a,jstart,istart
   use gridmod, only: ilat1,jlon1
   use constants, only: zero,one,two,rearth
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_integer4,mpi_rtype,mpi_sum,npe
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_integer4,mpi_rtype,mpi_sum,npe
   use mod_vtrans, only: speeds,nvmodes_keep,vtrans,vtrans_inv,vtrans_ad,vtrans_inv_ad
   implicit none
 
@@ -619,13 +619,13 @@ subroutine gather_rmstends0
      indexloc(i)=i
   end do
   mthis=m_1-m_0+1
-  call mpi_allgather(mthis,1,mpi_integer4,mthis0,1,mpi_integer4,mpi_comm_world,ierror)
+  call mpi_allgather(mthis,1,mpi_integer4,mthis0,1,mpi_integer4,gsi_mpi_comm_world,ierror)
   ndisp(1)=0
   do i=2,npe+1
      ndisp(i)=ndisp(i-1)+mthis0(i-1)
   end do
   call mpi_allgatherv(indexloc,mthis,mpi_integer4, &
-                      indexglob,mthis0,ndisp,mpi_integer4,mpi_comm_world,ierror)
+                      indexglob,mthis0,ndisp,mpi_integer4,gsi_mpi_comm_world,ierror)
 
 end subroutine gather_rmstends0
 
@@ -667,7 +667,7 @@ subroutine gather_rmstends(rmstend_loc,rmstend)
   call mpi_type_contiguous(2,mpi_rtype,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_allgatherv(rmstend_loc,mthis,mpi_string1, &
-                     work,mthis0,ndisp,mpi_string1,mpi_comm_world,ierror)
+                     work,mthis0,ndisp,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
   rmstend=zero
   do i=1,ndisp(npe+1)
@@ -843,7 +843,7 @@ subroutine inmi_coupler_sd2ew1(mype)
      end do
   end do
 
-  call mpi_alltoall(nsend_sd2ew,1,mpi_integer4,nrecv_sd2ew,1,mpi_integer4,mpi_comm_world,ierror)
+  call mpi_alltoall(nsend_sd2ew,1,mpi_integer4,nrecv_sd2ew,1,mpi_integer4,gsi_mpi_comm_world,ierror)
   ndrecv_sd2ew(1)=0
   do i=2,npe+1
      ndrecv_sd2ew(i)=ndrecv_sd2ew(i-1)+nrecv_sd2ew(i-1)
@@ -853,7 +853,7 @@ subroutine inmi_coupler_sd2ew1(mype)
   call mpi_type_contiguous(2,mpi_integer4,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(info_send_sd2ew,nsend_sd2ew,ndsend_sd2ew,mpi_string1, &
-                     info_recv_sd2ew,nrecv_sd2ew,ndrecv_sd2ew,mpi_string1,mpi_comm_world,ierror)
+                     info_recv_sd2ew,nrecv_sd2ew,ndrecv_sd2ew,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
     
 end subroutine inmi_coupler_sd2ew1
@@ -919,7 +919,7 @@ subroutine inmi_coupler_sd2ew(u_sd1,v_sd1,m_sd1,u_sd2,v_sd2,m_sd2,uvm_ew,mype)
   call mpi_type_contiguous(6,mpi_rtype,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(sendbuf,nsend_sd2ew,ndsend_sd2ew,mpi_string1, &
-                     recvbuf,nrecv_sd2ew,ndrecv_sd2ew,mpi_string1,mpi_comm_world,ierror)
+                     recvbuf,nrecv_sd2ew,ndrecv_sd2ew,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
   deallocate(sendbuf)
     
@@ -1015,7 +1015,7 @@ subroutine inmi_coupler_ew2sd1(mype)
      end do
   end do
 
-  call mpi_alltoall(nsend_ew2sd,1,mpi_integer4,nrecv_ew2sd,1,mpi_integer4,mpi_comm_world,ierror)
+  call mpi_alltoall(nsend_ew2sd,1,mpi_integer4,nrecv_ew2sd,1,mpi_integer4,gsi_mpi_comm_world,ierror)
   ndrecv_ew2sd(1)=0
   do i=2,npe+1
      ndrecv_ew2sd(i)=ndrecv_ew2sd(i-1)+nrecv_ew2sd(i-1)
@@ -1025,7 +1025,7 @@ subroutine inmi_coupler_ew2sd1(mype)
   call mpi_type_contiguous(3,mpi_integer4,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(info_send_ew2sd,nsend_ew2sd,ndsend_ew2sd,mpi_string1, &
-                     info_recv_ew2sd,nrecv_ew2sd,ndrecv_ew2sd,mpi_string1,mpi_comm_world,ierror)
+                     info_recv_ew2sd,nrecv_ew2sd,ndrecv_ew2sd,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
 
 end subroutine inmi_coupler_ew2sd1
@@ -1088,7 +1088,7 @@ subroutine inmi_coupler_ew2sd(u_sd1,v_sd1,m_sd1,u_sd2,v_sd2,m_sd2,uvm_ew,mype)
   call mpi_type_contiguous(6,mpi_rtype,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(sendbuf,nsend_ew2sd,ndsend_ew2sd,mpi_string1, &
-                     recvbuf,nrecv_ew2sd,ndrecv_ew2sd,mpi_string1,mpi_comm_world,ierror)
+                     recvbuf,nrecv_ew2sd,ndrecv_ew2sd,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
   deallocate(sendbuf)
   do j=1,nallrecv_ew2sd
@@ -1622,14 +1622,14 @@ subroutine inmi_coupler_ew2ns1(mype)
      end do
   end do
 
-  call mpi_allreduce(ibad,ibad0,1,mpi_integer4,mpi_sum,mpi_comm_world,ierror)
+  call mpi_allreduce(ibad,ibad0,1,mpi_integer4,mpi_sum,gsi_mpi_comm_world,ierror)
   if(ibad0 >  0) then
      if(mype == 0) write(0,*)' ibad = ',ibad0,'  inconsistency in inmi_coupler_ew2ns1'
      call mpi_finalize(ierror)
      stop
   end if
 
-  call mpi_alltoall(nsend,1,mpi_integer4,nrecv,1,mpi_integer4,mpi_comm_world,ierror)
+  call mpi_alltoall(nsend,1,mpi_integer4,nrecv,1,mpi_integer4,gsi_mpi_comm_world,ierror)
   ndrecv(1)=0
   do i=2,npe+1
      ndrecv(i)=ndrecv(i-1)+nrecv(i-1)
@@ -1639,7 +1639,7 @@ subroutine inmi_coupler_ew2ns1(mype)
   call mpi_type_contiguous(6,mpi_integer4,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(info_send,nsend,ndsend,mpi_string1, &
-                     info_recv,nrecv,ndrecv,mpi_string1,mpi_comm_world,ierror)
+                     info_recv,nrecv,ndrecv,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
 
 end subroutine inmi_coupler_ew2ns1
@@ -1696,7 +1696,7 @@ subroutine inmi_coupler_ew2ns(uvm_ewtrans,uvm_ns)
   call mpi_type_contiguous(6,mpi_rtype,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(sendbuf,nsend,ndsend,mpi_string1, &
-                     recvbuf,nrecv,ndrecv,mpi_string1,mpi_comm_world,ierror)
+                     recvbuf,nrecv,ndrecv,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
   deallocate(sendbuf)
 
@@ -1766,7 +1766,7 @@ subroutine inmi_coupler_ns2ew(uvm_ewtrans,uvm_ns)
   call mpi_type_contiguous(6,mpi_rtype,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(recvbuf,nrecv,ndrecv,mpi_string1, &
-                     sendbuf,nsend,ndsend,mpi_string1,mpi_comm_world,ierror)
+                     sendbuf,nsend,ndsend,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
   deallocate(recvbuf)
   do j=1,nallsend

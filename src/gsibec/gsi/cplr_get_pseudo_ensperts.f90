@@ -34,7 +34,7 @@ contains
 
     use gridmod, only: half_grid,filled_grid,regional
     use constants,only: zero,one,two
-    use m_mpimod, only: mpi_comm_world,ierror,mype,mpi_rtype
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mype,mpi_rtype
     use m_kinds, only: r_kind,i_kind,r_single
     use gsi_4dvar, only: nhr_assimilation 
     use hybrid_ensemble_parameters, only: n_ens,grd_ens,uv_hyb_ens, &
@@ -240,7 +240,7 @@ contains
     wgt=zero
     mm1=mype+1
     call mpi_scatterv(temp,grd_ens%ijn_s,grd_ens%displs_s,mpi_rtype,&
-         wgt,grd_ens%ijn_s(mm1),mpi_rtype,0,mpi_comm_world,ierror)
+         wgt,grd_ens%ijn_s(mm1),mpi_rtype,0,gsi_mpi_comm_world,ierror)
   
     call nmm_enspert%grads3d(grd_ens,wgt,1,mype,'wgt')
   
@@ -491,9 +491,9 @@ contains
     en_bar%values=en_bar%values*bar_norm
   
     if(write_ens_sprd)then
-       call mpi_barrier(mpi_comm_world,ierror)
+       call mpi_barrier(gsi_mpi_comm_world,ierror)
        call mass_enspert%ens_spread_dualres_regional(mype,en_perts,nelen,en_bar)
-       call mpi_barrier(mpi_comm_world,ierror)
+       call mpi_barrier(gsi_mpi_comm_world,ierror)
     end if
   
     test=.false.
@@ -587,7 +587,7 @@ contains
           lib_perts(n)%valuesr4(i)=(lib_perts(n)%valuesr4(i)-en_bar%values(i))*sig_norm
        end do
     end do
-    call mpi_barrier(mpi_comm_world,ierror)
+    call mpi_barrier(gsi_mpi_comm_world,ierror)
   
     call gsi_bundledestroy(en_bar,istatus)
     if(istatus/=0) then
@@ -777,7 +777,7 @@ contains
   !
   !$$$
     use m_kinds, only: r_kind,r_single,i_kind
-    use m_mpimod, only: ierror,mpi_real4,mpi_comm_world,npe
+    use m_mpimod, only: ierror,mpi_real4,gsi_mpi_comm_world,npe
     use gridmod, only: half_grid,filled_grid
     use constants, only: one,ten,one_tenth,half,fv
     use gsi_io, only: lendian_in
@@ -924,7 +924,7 @@ contains
   !    Distribute to local domains everytime we have npe fields
        if(mod(icount,npe) == 0.or.icount == num_all_fields) then
           call mpi_alltoallv(tempa,grd%ijn_s,grd%displs_s,mpi_real4, &
-               all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,mpi_comm_world,ierror)
+               all_loc(1,1,icount_prev),irc_s_reg,ird_s_reg,mpi_real4,gsi_mpi_comm_world,ierror)
           icount_prev=icount+1
        end if
   

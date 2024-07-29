@@ -54,7 +54,7 @@ SUBROUTINE  gsdcloudanalysis4NMMB(mype)
   use constants, only: zero,one,rad2deg,fv,rd_over_cp,zero_single
   use constants, only: rd_over_cp, h1000
   use m_kinds,   only: r_single,i_kind, r_kind
-  use m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,mpi_comm_world
+  use m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,gsi_mpi_comm_world
   use gridmod, only: pt_ll,eta1_ll,aeta1_ll
   use gridmod, only: regional,wrf_mass_regional,regional_time,region_lon,region_lat 
   use gridmod, only: nsig,lat2,lon2,istart,jstart,nlon,nlat
@@ -549,7 +549,7 @@ SUBROUTINE  gsdcloudanalysis4NMMB(mype)
 ! enddo
 ! call strip_single(all_loc(1,1),strp,1)
 ! call mpi_allgatherv(strp,ijn(mype+1),mpi_real4, &
-!           tempa,ijn,displs_g,mpi_real4,mpi_comm_world,ierror)
+!           tempa,ijn,displs_g,mpi_real4,gsi_mpi_comm_world,ierror)
 ! ierror=0
 ! if(ierror /= 0 ) then
 !    write(*,*) 'MPI error: cloud analysis=',mype

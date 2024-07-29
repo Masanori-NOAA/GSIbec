@@ -47,8 +47,8 @@ module m_mpimod
   use mpeu_mpif, only : mpi_logical
   use mpeu_mpif, only : mpi_character
 #ifndef HAVE_ESMF
-  use mpeu_mpif, only : gsi_mpi_comm_world
-  use mpeu_mpif, only : gsi_mpi_comm_world
+  use mpeu_mpif, only : gsi_gsi_mpi_comm_world
+  use mpeu_mpif, only : gsi_gsi_mpi_comm_world
 #endif /* HAVE_ESMF */
 #endif
 
@@ -114,17 +114,17 @@ module m_mpimod
   public :: mpi_mode_create
   public :: mpi_mode_wronly
   public :: mpi_character
-  public :: gsi_mpi_comm_world
+  public :: gsi_gsi_mpi_comm_world
 
   interface setworld
      module procedure setworld_
   end interface setworld
 
 #if defined(HAVE_ESMF) || defined(_JEDI_)
-  integer(i_kind) :: gsi_mpi_comm_world
+  integer(i_kind) :: gsi_gsi_mpi_comm_world
 #endif
 #ifdef HAVE_ESMF
-  integer(i_kind) :: gsi_mpi_comm_world
+  integer(i_kind) :: gsi_gsi_mpi_comm_world
 #endif
 
 #if defined(ibm_sp) || defined(_JEDI_)
@@ -218,8 +218,8 @@ contains
 
     integer(i_kind) :: ncommva_group
 
-    ncomma=gsi_mpi_comm_world
-    iworld=gsi_mpi_comm_world
+    ncomma=gsi_gsi_mpi_comm_world
+    iworld=gsi_gsi_mpi_comm_world
     call mpi_comm_group(iworld,iworld_group,ierr)
 
     call mpi_group_incl(iworld_group,nsize,members,ncommva_group,ierr)

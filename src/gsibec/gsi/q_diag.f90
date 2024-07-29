@@ -35,7 +35,7 @@ subroutine q_diag(it,mype)
   use m_kinds, only: r_kind,i_kind
   use guess_grids, only: ges_qsat,ges_prsi
   use jfunc, only: iout_iter,jiter
-  use m_mpimod, only: mpi_rtype,mpi_comm_world,mpi_sum,ierror
+  use m_mpimod, only: mpi_rtype,gsi_mpi_comm_world,mpi_sum,ierror
   use constants,only: zero,two,one,half
   use gridmod, only: lat2,lon2,nsig,nlat,nlon,lat1,lon1,iglobal,&
        displs_g,ijn,wgtlats,itotsub,strip,minmype
@@ -116,12 +116,12 @@ subroutine q_diag(it,mype)
   call strip(ges_ps,psm)
   call strip(pw,pwm)
 
-  call mpi_reduce(qrms,qrms0,6,mpi_rtype,mpi_sum,mype_out,mpi_comm_world,ierror)
+  call mpi_reduce(qrms,qrms0,6,mpi_rtype,mpi_sum,mype_out,gsi_mpi_comm_world,ierror)
 
   call mpi_gatherv(psm,ijn(mm1),mpi_rtype,work_ps,ijn,displs_g,mpi_rtype,&
-       mype_out,mpi_comm_world,ierror)
+       mype_out,gsi_mpi_comm_world,ierror)
   call mpi_gatherv(pwm,ijn(mm1),mpi_rtype,work_pw,ijn,displs_g,mpi_rtype,&
-       mype_out,mpi_comm_world,ierror)
+       mype_out,gsi_mpi_comm_world,ierror)
 
 
   if(mype == mype_out) then

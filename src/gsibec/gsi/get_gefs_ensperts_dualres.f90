@@ -52,7 +52,7 @@ subroutine get_gefs_ensperts_dualres
   use hybrid_ensemble_parameters, only: n_ens,write_ens_sprd,oz_univ_static,ntlevs_ens
   use hybrid_ensemble_parameters, only: en_perts,ps_bar,nelen
   use constants,only: zero,zero_single,half,fv,one,qcmin
-  use m_mpimod, only: mpi_comm_world,mype,npe
+  use m_mpimod, only: gsi_mpi_comm_world,mype,npe
   use m_kinds, only: r_kind,i_kind,r_single
   use hybrid_ensemble_parameters, only: grd_ens,q_hyb_ens,limqens
   use hybrid_ensemble_parameters, only: beta_s0,beta_s,beta_e
@@ -334,7 +334,7 @@ subroutine get_gefs_ensperts_dualres
 !         dum,sst_full,dum, &
 !         dum,dum,dum,dum,dum,idum,dum,dum)
 !
-!    call mpi_barrier(mpi_comm_world,ierror)
+!    call mpi_barrier(gsi_mpi_comm_world,ierror)
 !
 !! mpi barrier here?
 !    do j=1,jm

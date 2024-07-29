@@ -333,7 +333,7 @@ contains
 !
 !$$$ end documentation block
 
-    use m_mpimod, only:        mpi_rtype,mpi_comm_world,ierror,mpi_integer4
+    use m_mpimod, only:        mpi_rtype,gsi_mpi_comm_world,ierror,mpi_integer4
     use gridmod, only:       lat2,lon2,nlon,nlat
     use gridmod, only:       ijn_s,displs_s,itotsub
     use general_commvars_mod, only: ltosi_s,ltosj_s
@@ -378,7 +378,7 @@ contains
           end do
        end if
     end if
-    call mpi_bcast(iret,1,mpi_integer4,mype_io,mpi_comm_world,ierror)
+    call mpi_bcast(iret,1,mpi_integer4,mype_io,gsi_mpi_comm_world,ierror)
     good_var_loc=.true.
     if(iret/=0) then
        good_var_loc=.false.
@@ -391,7 +391,7 @@ contains
 
     if(good_var_loc) &
       call mpi_scatterv(work,ijn_s,displs_s,mpi_rtype, &
-                   var,ijn_s(mm1),mpi_rtype,mype_io,mpi_comm_world,ierror)
+                   var,ijn_s(mm1),mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
 
   end subroutine gsi_nemsio_read
 
@@ -432,7 +432,7 @@ contains
 !
 
 !$$$ end documentation block
-    use m_mpimod, only:        mpi_rtype,mpi_comm_world,ierror,mpi_integer4
+    use m_mpimod, only:        mpi_rtype,gsi_mpi_comm_world,ierror,mpi_integer4
     use gridmod, only:       lat2,lon2,nlon,nlat
     use gridmod, only:       ijn_s,displs_s,itotsub
     use general_commvars_mod, only: ltosi_s,ltosj_s
@@ -524,7 +524,7 @@ contains
        end if
     end if
 
-    call mpi_bcast(iret,1,mpi_integer4,mype_io,mpi_comm_world,ierror)
+    call mpi_bcast(iret,1,mpi_integer4,mype_io,gsi_mpi_comm_world,ierror)
     good_var_loc=.true.
     if(iret/=0) then
        good_var_loc=.false.
@@ -537,13 +537,13 @@ contains
 
     if(good_var_loc) then
       call mpi_scatterv(work_qi,ijn_s,displs_s,mpi_rtype, &
-                   var_qi,ijn_s(mm1),mpi_rtype,mype_io,mpi_comm_world,ierror)
+                   var_qi,ijn_s(mm1),mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
       call mpi_scatterv(work_qs,ijn_s,displs_s,mpi_rtype, &
-                   var_qs,ijn_s(mm1),mpi_rtype,mype_io,mpi_comm_world,ierror)
+                   var_qs,ijn_s(mm1),mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
       call mpi_scatterv(work_qr,ijn_s,displs_s,mpi_rtype, &
-                   var_qr,ijn_s(mm1),mpi_rtype,mype_io,mpi_comm_world,ierror)
+                   var_qr,ijn_s(mm1),mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
       call mpi_scatterv(work_qw,ijn_s,displs_s,mpi_rtype, &
-                   var_qw,ijn_s(mm1),mpi_rtype,mype_io,mpi_comm_world,ierror)
+                   var_qw,ijn_s(mm1),mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
     end if
 
   end subroutine gsi_nemsio_read_fraction
@@ -575,7 +575,7 @@ contains
 !
 !$$$ end documentation block
 
-    use m_mpimod, only:        mpi_rtype,mpi_comm_world,ierror
+    use m_mpimod, only:        mpi_rtype,gsi_mpi_comm_world,ierror
     use gridmod, only:       lat2,lon2,nlon,nlat,lat1,lon1
     use gridmod, only:       ijn,displs_g,itotsub,iglobal
     use general_commvars_mod, only: ltosi,ltosj
@@ -602,7 +602,7 @@ contains
        end do
     end do
     call mpi_gatherv(work_sub,ijn(mm1),mpi_rtype, &
-                           work,ijn,displs_g,mpi_rtype,mype_io,mpi_comm_world,ierror)
+                           work,ijn,displs_g,mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
     if(mype==mype_io) then
        do n=1,iglobal
           i=ltosi(n)
@@ -648,7 +648,7 @@ contains
 !
 !$$$ end documentation block
 
-    use m_mpimod, only:        mpi_rtype,mpi_comm_world,ierror
+    use m_mpimod, only:        mpi_rtype,gsi_mpi_comm_world,ierror
     use gridmod, only:       lat2,lon2,nlon,nlat,lat1,lon1
     use gridmod, only:       ijn,displs_g,itotsub,iglobal
     use general_commvars_mod, only: ltosi,ltosj
@@ -695,13 +695,13 @@ contains
     end do
 !    write(6,*)'writeout1', maxval(work_sub_t),maxval(work_sub_i),maxval(work_sub_r)
     call mpi_gatherv(work_sub_t,ijn(mm1),mpi_rtype, &
-                           work_t,ijn,displs_g,mpi_rtype,mype_io,mpi_comm_world,ierror)
+                           work_t,ijn,displs_g,mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
     call mpi_gatherv(work_sub_i,ijn(mm1),mpi_rtype, &
-                           work_i,ijn,displs_g,mpi_rtype,mype_io,mpi_comm_world,ierror)
+                           work_i,ijn,displs_g,mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
     call mpi_gatherv(work_sub_r,ijn(mm1),mpi_rtype, &
-                           work_r,ijn,displs_g,mpi_rtype,mype_io,mpi_comm_world,ierror)
+                           work_r,ijn,displs_g,mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
     call mpi_gatherv(work_sub_l,ijn(mm1),mpi_rtype, &
-                           work_l,ijn,displs_g,mpi_rtype,mype_io,mpi_comm_world,ierror)
+                           work_l,ijn,displs_g,mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
 !    write(6,*)'writeout2', maxval(work_t),maxval(work_i),maxval(work_r)
     if(mype==mype_io) then
        do n=1,iglobal
@@ -948,7 +948,7 @@ contains
 !
 
 !$$$ end documentation block
-    use m_mpimod, only:        mpi_rtype,mpi_comm_world,ierror,mpi_integer4
+    use m_mpimod, only:        mpi_rtype,gsi_mpi_comm_world,ierror,mpi_integer4
     use gridmod, only:       lat2,lon2,nlon,nlat
     use gridmod, only:       ijn_s,displs_s,itotsub
     use general_commvars_mod, only: ltosi_s,ltosj_s
@@ -1045,7 +1045,7 @@ contains
        end if
     end if
 
-    call mpi_bcast(iret,1,mpi_integer4,mype_io,mpi_comm_world,ierror)
+    call mpi_bcast(iret,1,mpi_integer4,mype_io,gsi_mpi_comm_world,ierror)
     good_var_loc=.true.
     if(iret/=0) then
        good_var_loc=.false.
@@ -1058,13 +1058,13 @@ contains
 
     if(good_var_loc) then
       call mpi_scatterv(work_qi,ijn_s,displs_s,mpi_rtype, &
-                   var_qi,ijn_s(mm1),mpi_rtype,mype_io,mpi_comm_world,ierror)
+                   var_qi,ijn_s(mm1),mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
       call mpi_scatterv(work_qs,ijn_s,displs_s,mpi_rtype, &
-                   var_qs,ijn_s(mm1),mpi_rtype,mype_io,mpi_comm_world,ierror)
+                   var_qs,ijn_s(mm1),mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
       call mpi_scatterv(work_qr,ijn_s,displs_s,mpi_rtype, &
-                   var_qr,ijn_s(mm1),mpi_rtype,mype_io,mpi_comm_world,ierror)
+                   var_qr,ijn_s(mm1),mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
       call mpi_scatterv(work_qw,ijn_s,displs_s,mpi_rtype, &
-                   var_qw,ijn_s(mm1),mpi_rtype,mype_io,mpi_comm_world,ierror)
+                   var_qw,ijn_s(mm1),mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
     end if
 
   end subroutine gsi_nemsio_read_fractionnew
@@ -1095,7 +1095,7 @@ contains
 !
 !$$$ end documentation block
 
-    use m_mpimod, only:        mpi_rtype,mpi_comm_world,ierror
+    use m_mpimod, only:        mpi_rtype,gsi_mpi_comm_world,ierror
     use gridmod, only:       lat2,lon2,nlon,nlat,lat1,lon1
     use gridmod, only:       ijn,displs_g,itotsub,iglobal
     use general_commvars_mod, only: ltosi,ltosj
@@ -1142,13 +1142,13 @@ contains
        end do
     end do
     call mpi_gatherv(work_sub_s,ijn(mm1),mpi_rtype, &
-                           work_s,ijn,displs_g,mpi_rtype,mype_io,mpi_comm_world,ierror)
+                           work_s,ijn,displs_g,mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
     call mpi_gatherv(work_sub_i,ijn(mm1),mpi_rtype, &
-                           work_i,ijn,displs_g,mpi_rtype,mype_io,mpi_comm_world,ierror)
+                           work_i,ijn,displs_g,mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
     call mpi_gatherv(work_sub_r,ijn(mm1),mpi_rtype, &
-                           work_r,ijn,displs_g,mpi_rtype,mype_io,mpi_comm_world,ierror)
+                           work_r,ijn,displs_g,mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
     call mpi_gatherv(work_sub_l,ijn(mm1),mpi_rtype, &
-                           work_l,ijn,displs_g,mpi_rtype,mype_io,mpi_comm_world,ierror)
+                           work_l,ijn,displs_g,mpi_rtype,mype_io,gsi_mpi_comm_world,ierror)
     if(mype==mype_io) then
        do n=1,iglobal
           i=ltosi(n)

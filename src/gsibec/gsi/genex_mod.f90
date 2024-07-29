@@ -111,7 +111,7 @@ module genex_mod
    use m_kinds, only: i_kind
    use m_kinds, only: r_single,r_double
 
-   use m_mpimod, only: mpi_status_size,mpi_comm_world
+   use m_mpimod, only: mpi_status_size,gsi_mpi_comm_world
    use m_mpimod, only: mpi_integer4
    use m_mpimod, only: mpi_real4,mpi_real8
    use m_mpimod, only: npe,mype
@@ -295,13 +295,13 @@ subroutine genex_create_info2(s,ias ,iae ,jas ,jae , &
 
 ! -- Receive from left -------------------
       if(my_neb_l >= 0) then
-         call mpi_irecv(ibuf0,4,mpi_integer4,my_neb_l,my_neb_l,mpi_comm_world,irecv_l,irerr)
+         call mpi_irecv(ibuf0,4,mpi_integer4,my_neb_l,my_neb_l,gsi_mpi_comm_world,irecv_l,irerr)
       end if
 
 ! -- Send to right -----------------------
       if(my_neb_r >= 0) then
          ibuf2(1)=ias ; ibuf2(2)=iae ; ibuf2(3)=jas ; ibuf2(4)=jae
-         call mpi_issend(ibuf2,4,mpi_integer4,my_neb_r,mype,mpi_comm_world,isend_r,iserr)
+         call mpi_issend(ibuf2,4,mpi_integer4,my_neb_r,mype,gsi_mpi_comm_world,isend_r,iserr)
       end if
 
 ! -- Store from left ---------------------
@@ -322,13 +322,13 @@ subroutine genex_create_info2(s,ias ,iae ,jas ,jae , &
 
 ! -- Receive from right ------------------
       if(my_neb_r >= 0) then
-         call mpi_irecv(ibuf1,4,mpi_integer4,my_neb_r,my_neb_r,mpi_comm_world,irecv_r,irerr)
+         call mpi_irecv(ibuf1,4,mpi_integer4,my_neb_r,my_neb_r,gsi_mpi_comm_world,irecv_r,irerr)
       end if
 
 ! -- Send to left ------------------------
       if(my_neb_l >= 0) then
          ibuf3(1)=s%iabs_l(n) ; ibuf3(2)=s%iabe_l(n) ; ibuf3(3)=s%jabs_l(n) ; ibuf3(4)=s%jabe_l(n)
-         call mpi_issend(ibuf3,4,mpi_integer4,my_neb_l,mype,mpi_comm_world,isend_l,iserr)
+         call mpi_issend(ibuf3,4,mpi_integer4,my_neb_l,mype,gsi_mpi_comm_world,isend_l,iserr)
       end if
 
 ! -- Store from right --------------------
@@ -462,14 +462,14 @@ subroutine genex_create_info3(s,ias ,iae ,jas ,jae ,kas ,kae , &
 
 ! -- Receive from left -------------------
       if(my_neb_l >= 0) then
-         call mpi_irecv(ibuf0,6,mpi_integer4,my_neb_l,my_neb_l,mpi_comm_world,irecv_l,irerr)
+         call mpi_irecv(ibuf0,6,mpi_integer4,my_neb_l,my_neb_l,gsi_mpi_comm_world,irecv_l,irerr)
       end if
 
 ! -- Send to right -----------------------
       if(my_neb_r >= 0) then
          ibuf2(1)=ias ; ibuf2(2)=iae ; ibuf2(3)=jas ; ibuf2(4)=jae
          ibuf2(5)=kas ; ibuf2(6)=kae
-         call mpi_issend(ibuf2,6,mpi_integer4,my_neb_r,mype,mpi_comm_world,isend_r,iserr)
+         call mpi_issend(ibuf2,6,mpi_integer4,my_neb_r,mype,gsi_mpi_comm_world,isend_r,iserr)
       end if
 
 ! -- Store from left ---------------------
@@ -493,14 +493,14 @@ subroutine genex_create_info3(s,ias ,iae ,jas ,jae ,kas ,kae , &
 
 ! -- Receive from right ------------------
       if(my_neb_r >= 0) then
-         call mpi_irecv(ibuf1,6,mpi_integer4,my_neb_r,my_neb_r,mpi_comm_world,irecv_r,irerr)
+         call mpi_irecv(ibuf1,6,mpi_integer4,my_neb_r,my_neb_r,gsi_mpi_comm_world,irecv_r,irerr)
       end if
 
 ! -- Send to left ------------------------
       if(my_neb_l >= 0) then
          ibuf3(1)=s%iabs_l(n) ; ibuf3(2)=s%iabe_l(n) ; ibuf3(3)=s%jabs_l(n) ; ibuf3(4)=s%jabe_l(n)
          ibuf3(5)=s%kabs_l(n) ; ibuf3(6)=s%kabe_l(n)
-         call mpi_issend(ibuf3,6,mpi_integer4,my_neb_l,mype,mpi_comm_world,isend_l,iserr)
+         call mpi_issend(ibuf3,6,mpi_integer4,my_neb_l,mype,gsi_mpi_comm_world,isend_l,iserr)
       end if
 
 ! -- Store from right --------------------
@@ -645,14 +645,14 @@ subroutine genex_create_info4(s,ias ,iae ,jas ,jae ,kas ,kae ,mas ,mae , &
 
 ! -- Receive from left -------------------
       if(my_neb_l >= 0) then
-         call mpi_irecv(ibuf0,8,mpi_integer4,my_neb_l,my_neb_l,mpi_comm_world,irecv_l,irerr)
+         call mpi_irecv(ibuf0,8,mpi_integer4,my_neb_l,my_neb_l,gsi_mpi_comm_world,irecv_l,irerr)
       end if
 
 ! -- Send to right -----------------------
       if(my_neb_r >= 0) then
          ibuf2(1)=ias ; ibuf2(2)=iae ; ibuf2(3)=jas ; ibuf2(4)=jae
          ibuf2(5)=kas ; ibuf2(6)=kae ; ibuf2(7)=mas ; ibuf2(8)=mae
-         call mpi_issend(ibuf2,8,mpi_integer4,my_neb_r,mype,mpi_comm_world,isend_r,iserr)
+         call mpi_issend(ibuf2,8,mpi_integer4,my_neb_r,mype,gsi_mpi_comm_world,isend_r,iserr)
       end if
 
 ! -- Store from left ---------------------
@@ -678,14 +678,14 @@ subroutine genex_create_info4(s,ias ,iae ,jas ,jae ,kas ,kae ,mas ,mae , &
 
 ! -- Receive from right ------------------
       if(my_neb_r >= 0) then
-         call mpi_irecv(ibuf1,8,mpi_integer4,my_neb_r,my_neb_r,mpi_comm_world,irecv_r,irerr)
+         call mpi_irecv(ibuf1,8,mpi_integer4,my_neb_r,my_neb_r,gsi_mpi_comm_world,irecv_r,irerr)
       end if
 
 ! -- Send to left ------------------------
       if(my_neb_l >= 0) then
          ibuf3(1)=s%iabs_l(n) ; ibuf3(2)=s%iabe_l(n) ; ibuf3(3)=s%jabs_l(n) ; ibuf3(4)=s%jabe_l(n)
          ibuf3(5)=s%kabs_l(n) ; ibuf3(6)=s%kabe_l(n) ; ibuf3(7)=s%mabs_l(n) ; ibuf3(8)=s%mabe_l(n)
-         call mpi_issend(ibuf3,8,mpi_integer4,my_neb_l,mype,mpi_comm_world,isend_l,iserr)
+         call mpi_issend(ibuf3,8,mpi_integer4,my_neb_l,mype,gsi_mpi_comm_world,isend_l,iserr)
       end if
 
 ! -- Store from right --------------------
@@ -836,7 +836,7 @@ subroutine genex2_r_single(s,a,b)
 
 ! -- Receive from left -------------------
       if(my_neb_l >= 0) then
-         call mpi_irecv(buf0,s%numl(n),mpi_real4,my_neb_l,my_neb_l,mpi_comm_world,irecv_l,irerr)
+         call mpi_irecv(buf0,s%numl(n),mpi_real4,my_neb_l,my_neb_l,gsi_mpi_comm_world,irecv_l,irerr)
       end if
 
 ! -- Send to right -----------------------
@@ -848,7 +848,7 @@ subroutine genex2_r_single(s,a,b)
                buf2(ii)=a(i,j)
             end do
          end do
-         call mpi_issend(buf2,s%numrc(n),mpi_real4,my_neb_r,s%mype,mpi_comm_world,isend_r,iserr)
+         call mpi_issend(buf2,s%numrc(n),mpi_real4,my_neb_r,s%mype,gsi_mpi_comm_world,isend_r,iserr)
       end if
 
 ! -- Store from left ---------------------
@@ -931,7 +931,7 @@ subroutine genex2_r_double(s,a,b)
 
 ! -- Receive from left -------------------
       if(my_neb_l >= 0) then
-         call mpi_irecv(buf0,s%numl(n),mpi_real8,my_neb_l,my_neb_l,mpi_comm_world,irecv_l,irerr)
+         call mpi_irecv(buf0,s%numl(n),mpi_real8,my_neb_l,my_neb_l,gsi_mpi_comm_world,irecv_l,irerr)
       end if
 
 ! -- Send to right -----------------------
@@ -943,7 +943,7 @@ subroutine genex2_r_double(s,a,b)
                buf2(ii)=a(i,j)
             end do
          end do
-         call mpi_issend(buf2,s%numrc(n),mpi_real8,my_neb_r,s%mype,mpi_comm_world,isend_r,iserr)
+         call mpi_issend(buf2,s%numrc(n),mpi_real8,my_neb_r,s%mype,gsi_mpi_comm_world,isend_r,iserr)
       end if
 
 ! -- Store from left ---------------------
@@ -1028,7 +1028,7 @@ subroutine genex3_r_single(s,a,b)
 
 ! -- Receive from left -------------------
       if(my_neb_l >= 0) then
-         call mpi_irecv(buf0,s%numl(n),mpi_real4,my_neb_l,my_neb_l,mpi_comm_world,irecv_l,irerr)
+         call mpi_irecv(buf0,s%numl(n),mpi_real4,my_neb_l,my_neb_l,gsi_mpi_comm_world,irecv_l,irerr)
       end if
 
 ! -- Send to right -----------------------
@@ -1042,7 +1042,7 @@ subroutine genex3_r_single(s,a,b)
                end do
             end do
          end do
-         call mpi_issend(buf2,s%numrc(n),mpi_real4,my_neb_r,s%mype,mpi_comm_world,isend_r,iserr)
+         call mpi_issend(buf2,s%numrc(n),mpi_real4,my_neb_r,s%mype,gsi_mpi_comm_world,isend_r,iserr)
       end if
 
 ! -- Store from left ---------------------
@@ -1129,7 +1129,7 @@ subroutine genex3_r_double(s,a,b)
 
 ! -- Receive from left -------------------
       if(my_neb_l >= 0) then
-         call mpi_irecv(buf0,s%numl(n),mpi_real8,my_neb_l,my_neb_l,mpi_comm_world,irecv_l,irerr)
+         call mpi_irecv(buf0,s%numl(n),mpi_real8,my_neb_l,my_neb_l,gsi_mpi_comm_world,irecv_l,irerr)
       end if
 
 ! -- Send to right -----------------------
@@ -1143,7 +1143,7 @@ subroutine genex3_r_double(s,a,b)
                end do
             end do
          end do
-         call mpi_issend(buf2,s%numrc(n),mpi_real8,my_neb_r,s%mype,mpi_comm_world,isend_r,iserr)
+         call mpi_issend(buf2,s%numrc(n),mpi_real8,my_neb_r,s%mype,gsi_mpi_comm_world,isend_r,iserr)
       end if
 
 ! -- Store from left ---------------------
@@ -1232,7 +1232,7 @@ subroutine genex4_r_single(s,a,b)
 
 ! -- Receive from left -------------------
       if(my_neb_l >= 0) then
-         call mpi_irecv(buf0,s%numl(n),mpi_real4,my_neb_l,my_neb_l,mpi_comm_world,irecv_l,irerr)
+         call mpi_irecv(buf0,s%numl(n),mpi_real4,my_neb_l,my_neb_l,gsi_mpi_comm_world,irecv_l,irerr)
       end if
 
 ! -- Send to right -----------------------
@@ -1248,7 +1248,7 @@ subroutine genex4_r_single(s,a,b)
                end do
             end do
          end do
-         call mpi_issend(buf2,s%numrc(n),mpi_real4,my_neb_r,s%mype,mpi_comm_world,isend_r,iserr)
+         call mpi_issend(buf2,s%numrc(n),mpi_real4,my_neb_r,s%mype,gsi_mpi_comm_world,isend_r,iserr)
       end if
 
 ! -- Store from left ---------------------
@@ -1339,7 +1339,7 @@ subroutine genex4_r_double(s,a,b)
 
 ! -- Receive from left -------------------
       if(my_neb_l >= 0) then
-         call mpi_irecv(buf0,s%numl(n),mpi_real8,my_neb_l,my_neb_l,mpi_comm_world,irecv_l,irerr)
+         call mpi_irecv(buf0,s%numl(n),mpi_real8,my_neb_l,my_neb_l,gsi_mpi_comm_world,irecv_l,irerr)
       end if
 
 ! -- Send to right -----------------------
@@ -1355,7 +1355,7 @@ subroutine genex4_r_double(s,a,b)
                end do
             end do
          end do
-         call mpi_issend(buf2,s%numrc(n),mpi_real8,my_neb_r,s%mype,mpi_comm_world,isend_r,iserr)
+         call mpi_issend(buf2,s%numrc(n),mpi_real8,my_neb_r,s%mype,gsi_mpi_comm_world,isend_r,iserr)
       end if
 
 ! -- Store from left ---------------------

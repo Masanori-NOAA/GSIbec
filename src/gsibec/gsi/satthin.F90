@@ -549,7 +549,7 @@ contains
     use m_gsiBiases, only: bkg_bias_model,bias_hour
     use jfunc, only: bcoption
 
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype,mpi_rtype4
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype,mpi_rtype4
     use constants, only: zero,half,pi,two,one
     use ncepgfs_io, only: read_gfssfc,read_gfssfc_anl
     use ncepnems_io, only: read_nemssfc,intrp22,read_nemssfc_anl
@@ -703,7 +703,7 @@ contains
                 call strip(work2,zsm)
                 call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
                    work1,ijn,displs_g,mpi_rtype,&
-                   mpi_comm_world,ierror)
+                   gsi_mpi_comm_world,ierror)
  
                 do k=1,iglobal
                    i=ltosi(k) ; j=ltosj(k)
@@ -747,7 +747,7 @@ contains
        call strip(work2,zsm)
        call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
           work1,ijn,displs_g,mpi_rtype,&
-          mpi_comm_world,ierror)
+          gsi_mpi_comm_world,ierror)
        do k=1,iglobal
           i=ltosi(k) ; j=ltosj(k)
           isli_full(i,j)=nint(work1(k))
@@ -760,7 +760,7 @@ contains
           call strip(sfct(:,:,it),zsm)
           call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
              work1,ijn,displs_g,mpi_rtype,&
-             mpi_comm_world,ierror)
+             gsi_mpi_comm_world,ierror)
           do k=1,iglobal
              i=ltosi(k) ; j=ltosj(k)
              sst_full(i,j,it)=work1(k)
@@ -770,7 +770,7 @@ contains
           call strip(fact10(:,:,it),zsm)
           call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
              work1,ijn,displs_g,mpi_rtype,&
-             mpi_comm_world,ierror)
+             gsi_mpi_comm_world,ierror)
           do k=1,iglobal
              i=ltosi(k) ; j=ltosj(k)
              fact10_full(i,j,it)=work1(k)
@@ -780,7 +780,7 @@ contains
           call strip(sfc_rough(:,:,it),zsm)
           call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
              work1,ijn,displs_g,mpi_rtype,&
-             mpi_comm_world,ierror)
+             gsi_mpi_comm_world,ierror)
           do k=1,iglobal
              i=ltosi(k) ; j=ltosj(k)
              sfc_rough_full(i,j,it)=work1(k)
@@ -790,7 +790,7 @@ contains
           call strip(sno(:,:,it),zsm)
           call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
              work1,ijn,displs_g,mpi_rtype,&
-             mpi_comm_world,ierror)
+             gsi_mpi_comm_world,ierror)
           do k=1,iglobal
              i=ltosi(k) ; j=ltosj(k)
              sno_full(i,j,it)=work1(k)
@@ -800,7 +800,7 @@ contains
           call strip(veg_frac(:,:,it),zsm)
           call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
              work1,ijn,displs_g,mpi_rtype,&
-             mpi_comm_world,ierror)
+             gsi_mpi_comm_world,ierror)
           if(use_sfc)then
              do k=1,iglobal
                 i=ltosi(k) ; j=ltosj(k)
@@ -811,7 +811,7 @@ contains
           call strip(soil_temp(:,:,it),zsm)
           call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
              work1,ijn,displs_g,mpi_rtype,&
-             mpi_comm_world,ierror)
+             gsi_mpi_comm_world,ierror)
           if(use_sfc)then
              do k=1,iglobal
                 i=ltosi(k) ; j=ltosj(k)
@@ -824,7 +824,7 @@ contains
           call strip(soil_moi(:,:,it),zsm)
           call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
              work1,ijn,displs_g,mpi_rtype,&
-             mpi_comm_world,ierror)
+             gsi_mpi_comm_world,ierror)
           if(use_sfc)then
              do k=1,iglobal
                 i=ltosi(k) ; j=ltosj(k)
@@ -841,7 +841,7 @@ contains
        call strip(soil_type(:,:,it),zsm)
        call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
           work1,ijn,displs_g,mpi_rtype,&
-          mpi_comm_world,ierror)
+          gsi_mpi_comm_world,ierror)
        if(use_sfc)then
           do k=1,iglobal
              i=ltosi(k) ; j=ltosj(k)
@@ -853,7 +853,7 @@ contains
        call strip(veg_type(:,:,it),zsm)
        call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
           work1,ijn,displs_g,mpi_rtype,&
-          mpi_comm_world,ierror)
+          gsi_mpi_comm_world,ierror)
        if(use_sfc)then
           do k=1,iglobal
              i=ltosi(k) ; j=ltosj(k)
@@ -876,7 +876,7 @@ contains
        call strip(ges_z,zsm)
        call mpi_allgatherv(zsm,ijn(mm1),mpi_rtype,&
           work1,ijn,displs_g,mpi_rtype,&
-          mpi_comm_world,ierror)
+          gsi_mpi_comm_world,ierror)
        do k=1,iglobal
           i=ltosi(k) ; j=ltosj(k)
           zs_full(i,j)=work1(k)

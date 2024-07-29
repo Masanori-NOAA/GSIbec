@@ -32,7 +32,7 @@ subroutine penal(xhat)
 !
 !$$$
   use m_kinds, only: r_single,r_kind,i_kind
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_sum,mpi_rtype,mype
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_sum,mpi_rtype,mype
   use constants, only: zero,one
   use gsi_4dvar, only: nobs_bins
   use m_obsNode, only: obsNode
@@ -352,11 +352,11 @@ subroutine penal(xhat)
 
      end do ! ibin
      call mpi_reduce(trace,ttrace,size(trace),mpi_rtype,mpi_sum,0, &
-          mpi_comm_world,ierror)
+          gsi_mpi_comm_world,ierror)
      call mpi_reduce(penalty,tpenalty,size(penalty),mpi_rtype,mpi_sum,0, &
-          mpi_comm_world,ierror)
+          gsi_mpi_comm_world,ierror)
      call mpi_reduce(cat_num,tcat_num,size(cat_num),mpi_rtype,mpi_sum,0, &
-          mpi_comm_world,ierror)
+          gsi_mpi_comm_world,ierror)
 
      if(mype==0)then
         cat_numt=zero

@@ -322,7 +322,7 @@ contains
     use gridmod, only: ijn_s,displs_s,itotsub,&
        lat2,lon2,nlat,nlon
     use general_commvars_mod, only: ltosj_s,ltosi_s
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_rtype,npe
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_rtype,npe
     use mersenne_twister, only: random_setseed, random_number
     implicit none
 
@@ -363,7 +363,7 @@ contains
        deallocate(rgrid1,rgrid2)
     endif
     call mpi_scatterv(rwork,ijn_s,displs_s,mpi_rtype,xkt2d,ijn_s(mm1),&
-         mpi_rtype,myper,mpi_comm_world,ierror)
+         mpi_rtype,myper,gsi_mpi_comm_world,ierror)
     deallocate(rwork)
     return
   end subroutine create_pcp_random

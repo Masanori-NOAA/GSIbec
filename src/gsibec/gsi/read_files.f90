@@ -78,7 +78,7 @@ subroutine read_files(mype)
 !
 !$$$
   use m_kinds, only: r_kind,r_single,i_kind,i_llong
-  use m_mpimod, only: mpi_rtype,mpi_comm_world,ierror,npe,mpi_itype
+  use m_mpimod, only: mpi_rtype,gsi_mpi_comm_world,ierror,npe,mpi_itype
   use guess_grids, only: nfldsig,nfldsfc,nfldnst,ntguessig,ntguessfc,ntguesnst,&
        ifilesig,ifilesfc,ifilenst,hrdifsig,hrdifsfc,hrdifnst,create_gesfinfo
   use guess_grids, only: hrdifsig_all,hrdifsfc_all,hrdifnst_all
@@ -574,30 +574,30 @@ subroutine read_files(mype)
   end if
 
 ! Broadcast guess file information to all tasks
-  call mpi_bcast(nfldsig,1,mpi_itype,npem1,mpi_comm_world,ierror)
-  call mpi_bcast(nfldsfc,1,mpi_itype,npem1,mpi_comm_world,ierror)
+  call mpi_bcast(nfldsig,1,mpi_itype,npem1,gsi_mpi_comm_world,ierror)
+  call mpi_bcast(nfldsfc,1,mpi_itype,npem1,gsi_mpi_comm_world,ierror)
   print_verbose=.false.
   if(verbose)print_verbose=.true.
-  if (nst_gsi > 0) call mpi_bcast(nfldnst,1,mpi_itype,npem1,mpi_comm_world,ierror)
-  if (lread_ext_aerosol) call mpi_bcast(nfldaer,1,mpi_itype,npem1,mpi_comm_world,ierror)! for external aerosol files
+  if (nst_gsi > 0) call mpi_bcast(nfldnst,1,mpi_itype,npem1,gsi_mpi_comm_world,ierror)
+  if (lread_ext_aerosol) call mpi_bcast(nfldaer,1,mpi_itype,npem1,gsi_mpi_comm_world,ierror)! for external aerosol files
 
   if(.not.allocated(time_atm)) allocate(time_atm(nfldsig,2))
   if(.not.allocated(time_sfc)) allocate(time_sfc(nfldsfc,2))
 
-  call mpi_bcast(time_atm,2*nfldsig,mpi_rtype,npem1,mpi_comm_world,ierror)
-  call mpi_bcast(time_sfc,2*nfldsfc,mpi_rtype,npem1,mpi_comm_world,ierror)
+  call mpi_bcast(time_atm,2*nfldsig,mpi_rtype,npem1,gsi_mpi_comm_world,ierror)
+  call mpi_bcast(time_sfc,2*nfldsfc,mpi_rtype,npem1,gsi_mpi_comm_world,ierror)
   if(.not.allocated(time_nst)) allocate(time_nst(nfldnst,2))
-  if (nst_gsi > 0 ) call mpi_bcast(time_nst,2*nfldnst,mpi_rtype,npem1,mpi_comm_world,ierror)
+  if (nst_gsi > 0 ) call mpi_bcast(time_nst,2*nfldnst,mpi_rtype,npem1,gsi_mpi_comm_world,ierror)
 
 ! for external aerosol files
   if(lread_ext_aerosol .and. (.not.allocated(time_aer))) allocate(time_aer(nfldaer,2))
-  if (lread_ext_aerosol) call mpi_bcast(time_aer,2*nfldaer,mpi_rtype,npem1,mpi_comm_world,ierror)
+  if (lread_ext_aerosol) call mpi_bcast(time_aer,2*nfldaer,mpi_rtype,npem1,gsi_mpi_comm_world,ierror)
 
-  call mpi_bcast(iamana,3,mpi_rtype,npem1,mpi_comm_world,ierror)
-  call mpi_bcast(i_ges,2,mpi_itype,npem1,mpi_comm_world,ierror)
+  call mpi_bcast(iamana,3,mpi_rtype,npem1,gsi_mpi_comm_world,ierror)
+  call mpi_bcast(i_ges,2,mpi_itype,npem1,gsi_mpi_comm_world,ierror)
   nlon_sfc=i_ges(1)
   nlat_sfc=i_ges(2)
-  call mpi_bcast(lpl_dum,num_lpl,mpi_itype,npem1,mpi_comm_world,ierror)
+  call mpi_bcast(lpl_dum,num_lpl,mpi_itype,npem1,gsi_mpi_comm_world,ierror)
   allocate(lpl_gfs(nlat_sfc/2))
   allocate(dx_gfs(nlat_sfc/2))
   lpl_gfs(1)=1  ! singularity at pole
@@ -638,7 +638,7 @@ subroutine read_files(mype)
            endif
         end do
      endif
-     call mpi_barrier(mpi_comm_world,ierror)
+     call mpi_barrier(gsi_mpi_comm_world,ierror)
      call stop2(99)
   endif
 
@@ -670,7 +670,7 @@ subroutine read_files(mype)
            endif
         end do
      endif
-     call mpi_barrier(mpi_comm_world,ierror)
+     call mpi_barrier(gsi_mpi_comm_world,ierror)
      call stop2(99)
   endif
   

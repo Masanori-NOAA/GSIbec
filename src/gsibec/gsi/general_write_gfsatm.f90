@@ -345,7 +345,7 @@ subroutine general_gather(grd,g_ps,g_tv,g_vor,g_div,g_q,g_oz,g_cwmr, &
 ! !USES:
 
   use m_kinds, only: r_kind,i_kind
-  use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_rtype
   use general_sub2grid_mod, only: sub2grid_info
   use gridmod, only: strip
   use constants, only: zero
@@ -443,7 +443,7 @@ subroutine general_gather(grd,g_ps,g_tv,g_vor,g_div,g_q,g_oz,g_cwmr, &
 
   call mpi_alltoallv(sub,grd%isc_g,grd%isd_g,mpi_rtype,&
        work,grd%ijn,grd%displs_g,mpi_rtype,&
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
   return
 end subroutine general_gather

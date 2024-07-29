@@ -35,7 +35,7 @@ subroutine antest_maps0_glb(mype,theta0f,z0f,theta2f,z2f,theta3f,z3f)
   use anberror, only: kvar_start,kvar_end,var_names,indices,pf2aP1,pf2aP2,pf2aP3
   use gridmod, only: nsig,nsig1o,nlon,nlat,istart,jstart,lat2,lon2
   use constants, only: zero_single,zero,one,rd_over_cp,r100
-  use m_m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,mpi_comm_world
+  use m_m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,gsi_mpi_comm_world
   use guess_grids, only: ntguessig,ges_prsl
   use patch2grid_mod, only: vpatch2grid
   use control_vectors, only: nvars
@@ -223,7 +223,7 @@ subroutine antest_maps0_glb(mype,theta0f,z0f,theta2f,z2f,theta3f,z3f)
 
      h00=zero
      if(k_plot>=indices%kps.and.k_plot<=indices%kpe) h00=hwork(i_plotcor,j_plotcor,k_plot-indices%kps+1)
-     call mpi_allreduce(h00,h000,1,mpi_real8,mpi_sum,mpi_comm_world,ierror)
+     call mpi_allreduce(h00,h000,1,mpi_real8,mpi_sum,gsi_mpi_comm_world,ierror)
      hwork=hwork/h000
 
 !     output original pot temp  (slow way to get full 2d field)  -- this is reference field
@@ -238,7 +238,7 @@ subroutine antest_maps0_glb(mype,theta0f,z0f,theta2f,z2f,theta3f,z3f)
               outwork(jglob,iglob)=ges_tv_it(i,j,k)/(ges_prsl(i,j,k ,it)/r100)**rd_over_cp
            end do
         end do
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         if(mype==0) write(lunin) outwork0
      end do
 
@@ -269,7 +269,7 @@ subroutine antest_maps0_glb(mype,theta0f,z0f,theta2f,z2f,theta3f,z3f)
               end do
            end do
         end if
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         if(mype==0) write(lunin) outwork0
      end do
 
@@ -285,7 +285,7 @@ subroutine antest_maps0_glb(mype,theta0f,z0f,theta2f,z2f,theta3f,z3f)
 
 !             very slow way to move field from local processor to processor 0
 
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         if(mype==0) write(lunin) outwork0
      end do
 
@@ -300,7 +300,7 @@ subroutine antest_maps0_glb(mype,theta0f,z0f,theta2f,z2f,theta3f,z3f)
            outwork(jglob,iglob)=ges_z_it(i,j)
         end do
      end do
-     call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+     call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
      if(mype==0) write(lunin) outwork0
 
 !             output "smoothed terrain"
@@ -331,7 +331,7 @@ subroutine antest_maps0_glb(mype,theta0f,z0f,theta2f,z2f,theta3f,z3f)
               end do
            end do
         end if
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         if(mype==0) write(lunin) outwork0
      end do
 

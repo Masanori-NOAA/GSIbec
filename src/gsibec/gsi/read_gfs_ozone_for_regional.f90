@@ -46,7 +46,7 @@ subroutine read_gfs_ozone_for_regional
                      use_gfs_ncio,ncepgfs_head,ncepgfs_headv
   use constants,only: zero,half,rd_over_cp,one,h300,r60,r3600
   use constants, only: max_varname_length
-  use m_mpimod, only: mpi_comm_world,ierror,mype,mpi_rtype,mpi_min,mpi_max,npe
+  use m_mpimod, only: gsi_mpi_comm_world,ierror,mype,mpi_rtype,mpi_min,mpi_max,npe
   use mpeu_util, only: die
   use m_kinds, only: r_kind,i_kind,r_single
   use general_sub2grid_mod, only: sub2grid_info,general_sub2grid_create_info
@@ -552,8 +552,8 @@ subroutine read_gfs_ozone_for_regional
   do k=1,grd_gfs%nsig
      ozmin=minval(oz(:,:,k))
      ozmax=maxval(oz(:,:,k))
-     call mpi_allreduce(ozmin,ozmin0,1,mpi_rtype,mpi_min,mpi_comm_world,ierror)
-     call mpi_allreduce(ozmax,ozmax0,1,mpi_rtype,mpi_max,mpi_comm_world,ierror)
+     call mpi_allreduce(ozmin,ozmin0,1,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
+     call mpi_allreduce(ozmax,ozmax0,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
      if(mype == 0) write(6,'(" k,min,max gfs oz = ",i3,2e15.4)')k,ozmin0,ozmax0
   end do
 
@@ -592,8 +592,8 @@ subroutine read_gfs_ozone_for_regional
   do k=1,grd_gfs%nsig+1
      ozmin=minval(pri(:,:,k))
      ozmax=maxval(pri(:,:,k))
-     call mpi_allreduce(ozmin,ozmin0,1,mpi_rtype,mpi_min,mpi_comm_world,ierror)
-     call mpi_allreduce(ozmax,ozmax0,1,mpi_rtype,mpi_max,mpi_comm_world,ierror)
+     call mpi_allreduce(ozmin,ozmin0,1,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
+     call mpi_allreduce(ozmax,ozmax0,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
      if(mype == 0) write(6,'(" k,min,max gfs pri = ",i3,2e15.4)')k,ozmin0,ozmax0
   end do
 
@@ -620,8 +620,8 @@ subroutine read_gfs_ozone_for_regional
   do k=1,grd_gfs%nsig
      ozmin=minval(prsl(:,:,k))
      ozmax=maxval(prsl(:,:,k))
-     call mpi_allreduce(ozmin,ozmin0,1,mpi_rtype,mpi_min,mpi_comm_world,ierror)
-     call mpi_allreduce(ozmax,ozmax0,1,mpi_rtype,mpi_max,mpi_comm_world,ierror)
+     call mpi_allreduce(ozmin,ozmin0,1,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
+     call mpi_allreduce(ozmax,ozmax0,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
      if(mype == 0) write(6,'(" k,min,max gfs prsl = ",i3,2e15.4)')k,ozmin0,ozmax0
   end do
 
@@ -662,14 +662,14 @@ subroutine read_gfs_ozone_for_regional
   do k=1,grd_gfs%nsig
      ozmin=minval(work_sub(:,:,k,1))
      ozmax=maxval(work_sub(:,:,k,1))
-     call mpi_allreduce(ozmin,ozmin0,1,mpi_rtype,mpi_min,mpi_comm_world,ierror)
-     call mpi_allreduce(ozmax,ozmax0,1,mpi_rtype,mpi_max,mpi_comm_world,ierror)
+     call mpi_allreduce(ozmin,ozmin0,1,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
+     call mpi_allreduce(ozmax,ozmax0,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
   end do
   do k=1,grd_gfs%nsig
      ozmin=minval(work_sub(:,:,k+ndim,1))
      ozmax=maxval(work_sub(:,:,k+ndim,1))
-     call mpi_allreduce(ozmin,ozmin0,1,mpi_rtype,mpi_min,mpi_comm_world,ierror)
-     call mpi_allreduce(ozmax,ozmax0,1,mpi_rtype,mpi_max,mpi_comm_world,ierror)
+     call mpi_allreduce(ozmin,ozmin0,1,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
+     call mpi_allreduce(ozmax,ozmax0,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
   end do
 
 ! finally, interpolate/extrapolate in vertical using yoshi's spline code.  deposit result in ges_oz.
@@ -710,10 +710,10 @@ subroutine read_gfs_ozone_for_regional
      end do
   end do
   deallocate(work_sub)
-  call mpi_allreduce(reg_ozmax,reg_ozmax0,nsig,mpi_rtype,mpi_max,mpi_comm_world,ierror)
-  call mpi_allreduce(reg_ozmin,reg_ozmin0,nsig,mpi_rtype,mpi_min,mpi_comm_world,ierror)
-  call mpi_allreduce(glb_ozmax,glb_ozmax0,grd_mix%nsig,mpi_rtype,mpi_max,mpi_comm_world,ierror)
-  call mpi_allreduce(glb_ozmin,glb_ozmin0,grd_mix%nsig,mpi_rtype,mpi_min,mpi_comm_world,ierror)
+  call mpi_allreduce(reg_ozmax,reg_ozmax0,nsig,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
+  call mpi_allreduce(reg_ozmin,reg_ozmin0,nsig,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
+  call mpi_allreduce(glb_ozmax,glb_ozmax0,grd_mix%nsig,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
+  call mpi_allreduce(glb_ozmin,glb_ozmin0,grd_mix%nsig,mpi_rtype,mpi_min,gsi_mpi_comm_world,ierror)
   if(mype == 0) then
      do k=1,grd_mix%nsig
         write(6,'(" k,glb_ozmin,max=",i4,2e15.4)') k,glb_ozmin0(k),glb_ozmax0(k)

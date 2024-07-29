@@ -756,39 +756,39 @@ subroutine broadcast_gfs_stratosphere_vars
 !
 !$$$
 
-   use m_mpimod, only: mype,mpi_integer4,mpi_rtype,mpi_comm_world,ierror
+   use m_mpimod, only: mype,mpi_integer4,mpi_rtype,gsi_mpi_comm_world,ierror
 
    implicit none
 
-   call mpi_bcast(nsig_max,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(nsig_save,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(k0m,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(k1m,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(k0r,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(k1g,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(k0rm,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(k1mp,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(k0rp,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(nsigg,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(nsigm,1,mpi_integer4,0,mpi_comm_world,ierror)
-   call mpi_bcast(pblend0,1,mpi_rtype,0,mpi_comm_world,ierror)
-   call mpi_bcast(pblend1,1,mpi_rtype,0,mpi_comm_world,ierror)
+   call mpi_bcast(nsig_max,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(nsig_save,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(k0m,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(k1m,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(k0r,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(k1g,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(k0rm,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(k1mp,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(k0rp,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(nsigg,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(nsigm,1,mpi_integer4,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(pblend0,1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(pblend1,1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
    if ( mype /= 0 ) then
       allocate(deta1_save(nsig_save),aeta1_save(nsig_save),eta1_save(nsig_save+1))
       allocate(deta2_save(nsig_save),aeta2_save(nsig_save),eta2_save(nsig_save+1))
       allocate(blend_rm(nsigm),blend_gm(nsigm))
       allocate(ak5(nsigg+1),bk5(nsigg+1))
    endif
-   call mpi_bcast(deta1_save,nsig_save,mpi_rtype,0,mpi_comm_world,ierror)
-   call mpi_bcast(aeta1_save,nsig_save,mpi_rtype,0,mpi_comm_world,ierror)
-   call mpi_bcast(eta1_save,nsig_save+1,mpi_rtype,0,mpi_comm_world,ierror)
-   call mpi_bcast(deta2_save,nsig_save,mpi_rtype,0,mpi_comm_world,ierror)
-   call mpi_bcast(aeta2_save,nsig_save,mpi_rtype,0,mpi_comm_world,ierror)
-   call mpi_bcast(eta2_save,nsig_save+1,mpi_rtype,0,mpi_comm_world,ierror)
-   call mpi_bcast(blend_rm,nsigm,mpi_rtype,0,mpi_comm_world,ierror)
-   call mpi_bcast(blend_gm,nsigm,mpi_rtype,0,mpi_comm_world,ierror)
-   call mpi_bcast(ak5,nsigg+1,mpi_rtype,0,mpi_comm_world,ierror)
-   call mpi_bcast(bk5,nsigg+1,mpi_rtype,0,mpi_comm_world,ierror)
+   call mpi_bcast(deta1_save,nsig_save,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(aeta1_save,nsig_save,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(eta1_save,nsig_save+1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(deta2_save,nsig_save,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(aeta2_save,nsig_save,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(eta2_save,nsig_save+1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(blend_rm,nsigm,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(blend_gm,nsigm,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(ak5,nsigg+1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
+   call mpi_bcast(bk5,nsigg+1,mpi_rtype,0,gsi_mpi_comm_world,ierror)
 
    return
 
@@ -869,7 +869,7 @@ subroutine add_gfs_stratosphere
    use gridmod, only: use_gfs_ozone,jcap_gfs,nlat_gfs,nlon_gfs
    use constants,only: zero,one_tenth,half,one,ten,fv,t0c,r0_05,r60,r3600
    use m_mpimod, only: mype
-   use m_mpimod, only: mpi_comm_world
+   use m_mpimod, only: gsi_mpi_comm_world
    use m_mpimod, only: npe
    use gsi_bundlemod, only: gsi_bundlegetpointer
    use gsi_bundlemod, only: gsi_bundlecreate
@@ -1971,7 +1971,7 @@ subroutine revert_to_nmmb
    use gridmod, only: aeta1_ll,aeta2_ll,pdtop_ll,pt_ll
    use gridmod, only: lat2,lon2,nsig
    use constants,only: zero,one_tenth,one,ten
-   use m_mpimod, only: mpi_comm_world
+   use m_mpimod, only: gsi_mpi_comm_world
    use guess_grids, only: ntguessig
    use guess_grids, only: ges_tsen
    use aniso_ens_util, only: intp_spl
@@ -2298,7 +2298,7 @@ subroutine restore_nmmb_gfs
 !$$$ enddocumentation block
 
    use gridmod, only: lat2,lon2,nsig
-   use m_mpimod, only: mpi_comm_world
+   use m_mpimod, only: gsi_mpi_comm_world
    use guess_grids, only: ntguessig
    use guess_grids, only: ges_tsen
 !   use gfs_stratosphere, only: ges_tv_r_g,ges_q_r_g,ges_u_r_g,ges_v_r_g,ges_tsen_r_g,ges_oz_r_g

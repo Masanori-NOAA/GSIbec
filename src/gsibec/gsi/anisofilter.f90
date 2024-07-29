@@ -140,7 +140,7 @@ module anisofilter
 
   use m_m_mpimod, only: npe,levs_id,nvar_id,ierror,&
                     mpi_real8,mpi_real4,mpi_integer4,mpi_rtype,&
-                    mpi_sum,mpi_comm_world
+                    mpi_sum,gsi_mpi_comm_world
 
   use gsi_metguess_mod, only: gsi_metguess_bundle
   use gsi_bundlemod, only: gsi_bundlegetpointer
@@ -3025,8 +3025,8 @@ subroutine get_theta_corrl_lenghts(mype)
         end do
      end do
      mcount0=lon2*lat2! It's OK to count buffer points
-     call mpi_allreduce(pbar4a,pbar4(k),1,mpi_real8,mpi_sum,mpi_comm_world,ierror)
-     call mpi_allreduce(mcount0,mcount,1,mpi_integer4,mpi_sum,mpi_comm_world,ierror)
+     call mpi_allreduce(pbar4a,pbar4(k),1,mpi_real8,mpi_sum,gsi_mpi_comm_world,ierror)
+     call mpi_allreduce(mcount0,mcount,1,mpi_integer4,mpi_sum,gsi_mpi_comm_world,ierror)
      pbar4(k)=pbar4(k)/real(mcount,r_kind)
      if(print_verbose) write(6,*)'in get_theta_corrl_lenghts,k,pbar4=',k,pbar4(k)
      call w3fa03(pbar4(k),hgt4(k),tbar4(k),thetabar4(k))
@@ -4377,7 +4377,7 @@ subroutine get_ensmber(kens,ifld,igrid,ntensmax,ifldlevs,truewind,unbalens, &
      if ( mod(kk,npe)==0 .or. kk==ifldlevs(kens,ifld) ) then
         call mpi_alltoallv(tempa,ijn_s,displs_s,mpi_real4, &
                 h_loc(1,1,kslab_prev),irc_s_reg,ird_s_reg, &
-                            mpi_real4,mpi_comm_world,ierror)
+                            mpi_real4,gsi_mpi_comm_world,ierror)
         kslab_prev=kk+1
     end if
 200 continue
@@ -4568,7 +4568,7 @@ subroutine get_ensmber(kens,ifld,igrid,ntensmax,ifldlevs,truewind,unbalens, &
         auxa(:,:)=field(:,:,k)
         call strip(auxa,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-             tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
         if (mype==0) then
            auxb(:,:)=zero_single
            call unfill_mass_grid2t(tempa,nlon,nlat,auxb)
@@ -4579,7 +4579,7 @@ subroutine get_ensmber(kens,ifld,igrid,ntensmax,ifldlevs,truewind,unbalens, &
            auxa(:,:)=field(:,:,k)
            call strip(auxa,strp)
            call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-                tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+                tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
            if (mype==0) then
               auxb(:,:)=zero_single
               call unfill_mass_grid2t(tempa,nlon,nlat,auxb)
@@ -5281,7 +5281,7 @@ subroutine get2berr_reg_subdomain_option(mype)
      endif
 
      if (lreadnorm) then
-        call mpi_allreduce(fltvals0,fltvals,ngauss*nlatf*nlonf,mpi_real4,mpi_sum,mpi_comm_world,ierror)
+        call mpi_allreduce(fltvals0,fltvals,ngauss*nlatf*nlonf,mpi_real4,mpi_sum,gsi_mpi_comm_world,ierror)
      endif
 
      do igauss=1,ngauss
@@ -5297,7 +5297,7 @@ subroutine get2berr_reg_subdomain_option(mype)
      enddo
      if(.not.lreadnorm)  then 
         fltvals0=zero_single
-        call mpi_reduce(fltvals,fltvals0,ngauss*nlatf*nlonf,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(fltvals,fltvals0,ngauss*nlatf*nlonf,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         if (mype==0) write(94) fltvals0
      endif
      if (mype==0) close(94)
@@ -5411,7 +5411,7 @@ subroutine get2berr_reg_subdomain_option(mype)
            bckgvar4t(i,j)=real(bckgvar0f(i,j,k),kind=r_single)
         end do
      end do
-     call mpi_reduce(bckgvar4t,bckgvar4f,nlatf*nlonf,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+     call mpi_reduce(bckgvar4t,bckgvar4f,nlatf*nlonf,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
 !
 !     CONVERT bckgvar4 FROM FILTER GRID TO ANALYSIS GRID BEFORE WRITING OUT
 !
@@ -5439,7 +5439,7 @@ subroutine get2berr_reg_subdomain_option(mype)
         zsmooth4a(iglob,jglob)=z0f(i,j,1)
      end do
   end do
-  call mpi_reduce(zsmooth4a,zsmooth4,nlata*nlona,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+  call mpi_reduce(zsmooth4a,zsmooth4,nlata*nlona,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
 
 !!!!!!!!!!!!! OK, psg is on analysis grid
   allocate(psg4a(nlata,nlona))
@@ -5452,7 +5452,7 @@ subroutine get2berr_reg_subdomain_option(mype)
         psg4a(iglob,jglob)=psg(i,j,1)
      end do
   end do
-  call mpi_reduce(psg4a,psg4,nlata*nlona,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+  call mpi_reduce(psg4a,psg4,nlata*nlona,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
 
   if (R_option) then
      allocate(hwllp_lcbas4a(nlat,nlon))
@@ -5466,7 +5466,7 @@ subroutine get2berr_reg_subdomain_option(mype)
            hwllp_lcbas4a(iglob,jglob)=hwllp_lcbas(i,j)
         end do
      end do
-     call mpi_reduce(hwllp_lcbas4a,hwllp_lcbas4,nlat*nlon,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+     call mpi_reduce(hwllp_lcbas4a,hwllp_lcbas4,nlat*nlon,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
      if (mype==0) then
         open (95,file='hwllp_lcbas.dat',form='unformatted')
         write(95) hwllp_lcbas4
@@ -5482,7 +5482,7 @@ subroutine get2berr_reg_subdomain_option(mype)
            hwllp_lcbas4a(iglob,jglob)=wgt0f(i,j,1)
         end do
      end do
-     call mpi_reduce(hwllp_lcbas4a,hwllp_lcbas4,nlat*nlon,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+     call mpi_reduce(hwllp_lcbas4a,hwllp_lcbas4,nlat*nlon,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
      if (mype==0) then
         open (95,file='wgt0f.dat',form='unformatted')
         write(95) hwllp_lcbas4
@@ -5529,7 +5529,7 @@ subroutine get2berr_reg_subdomain_option(mype)
              slab00(iglob,jglob)=bckg_stdz0f(i,j,1,n)
           end do
        end do
-       call mpi_reduce(slab00,slab11,nlat*nlon,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+       call mpi_reduce(slab00,slab11,nlat*nlon,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
        if (mype==0) print*,'3D-n:chvarname,slab11,min,max=',n,trim(chvarname),minval(slab11),maxval(slab11)
        if (mype==0) then
           open (54,file='FLD_STD.dat_'//trim(chvarname),form='unformatted')
@@ -5553,7 +5553,7 @@ subroutine get2berr_reg_subdomain_option(mype)
              slab00(iglob,jglob)=bckg_stdp0f(i,j,1,n)
           end do
        end do
-       call mpi_reduce(slab00,slab11,nlat*nlon,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+       call mpi_reduce(slab00,slab11,nlat*nlon,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
        if (mype==0) print*,'2D-n:chvarname,slab11,min,max=',n,trim(chvarname),minval(slab11),maxval(slab11)
        if (mype==0) then
           open (54,file='FLD_STD.dat_'//trim(chvarname),form='unformatted')
@@ -5578,7 +5578,7 @@ subroutine get2berr_reg_subdomain_option(mype)
              slab00(iglob,jglob)=bckg_stdp0f(i,j,1,nn)
           end do
        end do
-       call mpi_reduce(slab00,slab11,nlat*nlon,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+       call mpi_reduce(slab00,slab11,nlat*nlon,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
        if (mype==0) print*,'2D-n:chvarname,slab11,min,max=',n,trim(chvarname),minval(slab11),maxval(slab11)
        if (mype==0) then
           open (54,file='FLD_STD.dat_'//trim(chvarname),form='unformatted')
@@ -5597,7 +5597,7 @@ subroutine get2berr_reg_subdomain_option(mype)
           slab00(iglob,jglob)=z0f_std(i,j,1)
        end do
     end do
-    call mpi_reduce(slab00,slab11,nlat*nlon,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+    call mpi_reduce(slab00,slab11,nlat*nlon,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
     if (mype==0) print*,'2D-n:chvarname,slab11,min,max=',n,trim(chvarname),minval(slab11),maxval(slab11)
     if (mype==0) then
        open (54,file='FLD_STD.dat_'//trim(chvarname),form='unformatted')
@@ -5615,7 +5615,7 @@ subroutine get2berr_reg_subdomain_option(mype)
           slab00(iglob,jglob)=valleys0f(i,j,1)
        end do
     end do
-    call mpi_reduce(slab00,slab11,nlat*nlon,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+    call mpi_reduce(slab00,slab11,nlat*nlon,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
     if (mype==0) print*,'2D-n:chvarname,slab11,min,max=',n,trim(chvarname),minval(slab11),maxval(slab11)
     if (mype==0) then
        open (54,file='FLD_STD.dat_'//trim(chvarname),form='unformatted')
@@ -6014,7 +6014,7 @@ subroutine get_background_subdomain_option(mype)
                       end do
                    end do
 
-                   call mpi_allreduce(slab0,slab1,(ide-ids+1)*(jde-jds+1)*nsig,mpi_real4,mpi_sum,mpi_comm_world,ierror)
+                   call mpi_allreduce(slab0,slab1,(ide-ids+1)*(jde-jds+1)*nsig,mpi_real4,mpi_sum,gsi_mpi_comm_world,ierror)
                    call get_fldstd(slab1,ids,ide,jds,jde,1,nsig,std_radius,npass_for_std,mype)
 
                    do k=1,nsig
@@ -6065,7 +6065,7 @@ subroutine get_background_subdomain_option(mype)
                 end do
                 if (trim(chvarname)=='ps')    slab0 = slab0*1000._r_single
 
-                call mpi_allreduce(slab0,slab1,(ide-ids+1)*(jde-jds+1)*nsig,mpi_real4,mpi_sum,mpi_comm_world,ierror)
+                call mpi_allreduce(slab0,slab1,(ide-ids+1)*(jde-jds+1)*nsig,mpi_real4,mpi_sum,gsi_mpi_comm_world,ierror)
                 call get_fldstd(slab1,ids,ide,jds,jde,1,nsig,std_radius,npass_for_std,mype)
   
                 do k=1,nsig
@@ -6158,7 +6158,7 @@ subroutine get_background_subdomain_option(mype)
   end do
 
   slab1=zero_single
-  call mpi_allreduce(slab0,slab1,(ide-ids+1)*(jde-jds+1)*nsig,mpi_real4,mpi_sum,mpi_comm_world,ierror)
+  call mpi_allreduce(slab0,slab1,(ide-ids+1)*(jde-jds+1)*nsig,mpi_real4,mpi_sum,gsi_mpi_comm_world,ierror)
   call get_fldstd(slab1,ids,ide,jds,jde,1,nsig,std_radius,npass_for_std,mype)
 
   do k=1,nsig
@@ -6191,7 +6191,7 @@ subroutine get_background_subdomain_option(mype)
             read(55) valleys
             close(55)
         endif
-        call mpi_bcast (valleys, (jde-jds+1)*(ide-ids+1), mpi_real4, 0, mpi_comm_world, ierror)
+        call mpi_bcast (valleys, (jde-jds+1)*(ide-ids+1), mpi_real4, 0, gsi_mpi_comm_world, ierror)
 
         do k=kps0,kpe0
            do j=jps,jpe
@@ -6234,7 +6234,7 @@ subroutine get_background_subdomain_option(mype)
                close(55)
            endif
 
-           call mpi_bcast (valleys, (jde-jds+1)*(ide-ids+1), mpi_real4, 0, mpi_comm_world, ierror)
+           call mpi_bcast (valleys, (jde-jds+1)*(ide-ids+1), mpi_real4, 0, gsi_mpi_comm_world, ierror)
 
            do k=1,nsig
               do j=1,lon2
@@ -6631,8 +6631,8 @@ subroutine isotropic_scales_subdomain_option(scale1,scale2,scale3,k,mype)
               scaleauxb(iglob,jglob)=scale2(i,j)
            enddo
         enddo
-        call mpi_allreduce(scaleauxa,scaleaux1,nlata*nlona,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
-        call mpi_allreduce(scaleauxb,scaleaux2,nlata*nlona,mpi_rtype,mpi_sum,mpi_comm_world,ierror)
+        call mpi_allreduce(scaleauxa,scaleaux1,nlata*nlona,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
+        call mpi_allreduce(scaleauxb,scaleaux2,nlata*nlona,mpi_rtype,mpi_sum,gsi_mpi_comm_world,ierror)
 
         call smther_one_8(scaleaux1,1,nlata,1,nlona,nhscale_pass)
         call smther_one_8(scaleaux2,1,nlata,1,nlona,nhscale_pass)

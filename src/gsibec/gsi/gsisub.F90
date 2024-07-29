@@ -79,7 +79,7 @@ subroutine gsisub(init_pass,last_pass)
   use observermod, only: observer_init,observer_run,observer_finalize
   use gridmod, only: twodvar_regional,create_grid_vars,destroy_grid_vars,fv3_regional
   use gridmod, only: wrf_mass_regional,wrf_nmm_regional,nems_nmmb_regional,cmaq_regional
-  use m_mpimod, only: mype,npe,mpi_comm_world,ierror
+  use m_mpimod, only: mype,npe,gsi_mpi_comm_world,ierror
   use radinfo, only: radinfo_read
   use correlated_obsmod, only: corr_ob_initialize,corr_ob_finalize
   use pcpinfo, only: pcpinfo_read,create_pcp_random,&
@@ -139,7 +139,7 @@ subroutine gsisub(init_pass,last_pass)
      else if(mype==0 .and. oneob_type/='rw') then
         call oneobmakebufr
      end if
-     call mpi_barrier(mpi_comm_world,ierror)
+     call mpi_barrier(gsi_mpi_comm_world,ierror)
   end if
 
 ! Process any level 2 bufr format land doppler radar winds and create radar wind superob file

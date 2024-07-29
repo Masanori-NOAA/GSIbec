@@ -175,7 +175,7 @@ subroutine get_user_ens_gfs_fastread_(ntindex,atm_bundle, &
 !
 !$$$
 
-    use m_mpimod, only: mpi_comm_world,ierror,mpi_real8,mpi_integer4,mpi_max
+    use m_mpimod, only: gsi_mpi_comm_world,ierror,mpi_real8,mpi_integer4,mpi_max
     use constants, only: zero
     use general_sub2grid_mod, only: sub2grid_info,general_sub2grid_destroy_info
     use gsi_4dvar, only: ens_fhrlevs
@@ -311,8 +311,8 @@ subroutine get_user_ens_gfs_fastread_(ntindex,atm_bundle, &
 
 ! scatter to subdomains:
 
-    call mpi_allreduce(m_cvars2dw,m_cvars2d,nc2d,mpi_integer4,mpi_max,mpi_comm_world,ierror)
-    call mpi_allreduce(m_cvars3dw,m_cvars3d,nc3d,mpi_integer4,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(m_cvars2dw,m_cvars2d,nc2d,mpi_integer4,mpi_max,gsi_mpi_comm_world,ierror)
+    call mpi_allreduce(m_cvars3dw,m_cvars3d,nc3d,mpi_integer4,mpi_max,gsi_mpi_comm_world,ierror)
     deallocate(m_cvars2dw,m_cvars3dw)
 
     ! Check hydrometeors in control variables 

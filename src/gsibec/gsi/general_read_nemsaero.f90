@@ -395,7 +395,7 @@ subroutine aerosol_reload(grd,ae_d1,ae_d2,ae_d3,ae_d4,ae_d5, &
 ! !USES:
 
   use m_kinds, only: r_kind,i_kind
-  use m_mpimod, only: npe,mpi_comm_world,ierror,mpi_rtype
+  use m_mpimod, only: npe,gsi_mpi_comm_world,ierror,mpi_rtype
   use general_sub2grid_mod, only: sub2grid_info
   implicit none
 
@@ -437,7 +437,7 @@ subroutine aerosol_reload(grd,ae_d1,ae_d2,ae_d3,ae_d4,ae_d5, &
 
   call mpi_alltoallv(work,grd%sendcounts_s,grd%sdispls_s,mpi_rtype,&
        sub,grd%recvcounts_s,grd%rdispls_s,mpi_rtype,&
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 !$omp parallel do  schedule(dynamic,1) private(k,i,j,ij,klev)
   do k=1,icount
      klev=ilev(k)

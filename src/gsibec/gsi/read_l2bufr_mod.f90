@@ -142,7 +142,7 @@ contains
 
     use m_kinds, only: r_double,r_quad
     use constants, only: zero,half,one,two,rearth,deg2rad,rad2deg,zero_quad,one_quad
-    use m_mpimod, only: mpi_comm_world,mpi_min,mpi_sum,mpi_real8,ierror,mpi_real16
+    use m_mpimod, only: gsi_mpi_comm_world,mpi_min,mpi_sum,mpi_real8,ierror,mpi_real16
     use m_mpimod, only: mpi_max,mpi_integer4
     use obsmod,only: iadate,ndat,dsis,dfile,dtype
     use qcmod, only: vadwnd_l2rw_qc
@@ -400,7 +400,7 @@ contains
        end do
     end do
 
-    call mpi_allreduce(num_radars,num_radars_max,1,mpi_integer4,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(num_radars,num_radars_max,1,mpi_integer4,mpi_max,gsi_mpi_comm_world,ierror)
     if(num_radars_max<=0) then
        if(rite) write(6,*)'RADAR_BUFR_READ_ALL:  NO RADARS KEPT IN radar_bufr_read_all, ',&
             'continue without level 2 data'
@@ -408,20 +408,20 @@ contains
        close(inbufr)
        return
     end if
-    call mpi_reduce(num_radars,num_radars_min,1,mpi_integer4,mpi_min,0,mpi_comm_world,ierror)
+    call mpi_reduce(num_radars,num_radars_min,1,mpi_integer4,mpi_min,0,gsi_mpi_comm_world,ierror)
     if(rite) write(6,*)' min,max num_radars=',num_radars_min,num_radars_max
 
 !  Create master station list
 
 !  First gather all stn id and lat,lon,hgt lists
     call mpi_allgather(stn_id_table,max_num_radars,mpi_integer4, &
-         stn_id_table_all,max_num_radars,mpi_integer4,mpi_comm_world,ierror)
+         stn_id_table_all,max_num_radars,mpi_integer4,gsi_mpi_comm_world,ierror)
     call mpi_allgather(stn_lat_table,max_num_radars,mpi_real8, &
-         stn_lat_table_all,max_num_radars,mpi_real8,mpi_comm_world,ierror)
+         stn_lat_table_all,max_num_radars,mpi_real8,gsi_mpi_comm_world,ierror)
     call mpi_allgather(stn_lon_table,max_num_radars,mpi_real8, &
-         stn_lon_table_all,max_num_radars,mpi_real8,mpi_comm_world,ierror)
+         stn_lon_table_all,max_num_radars,mpi_real8,gsi_mpi_comm_world,ierror)
     call mpi_allgather(stn_hgt_table,max_num_radars,mpi_real8, &
-         stn_hgt_table_all,max_num_radars,mpi_real8,mpi_comm_world,ierror)
+         stn_hgt_table_all,max_num_radars,mpi_real8,gsi_mpi_comm_world,ierror)
 !   Create unique master list of all radar names,lats,lons
     jj=0
     do j=1,max_num_radars*npe
@@ -464,8 +464,8 @@ contains
     call indexset(indx)
     call indexsort(indx,master_stn_table)
 
-    call mpi_allreduce(ddiffmin,ddiffmin0,1,mpi_real8,mpi_min,mpi_comm_world,ierror)
-    call mpi_allreduce(idups,idups0,1,mpi_integer4,mpi_sum,mpi_comm_world,ierror)
+    call mpi_allreduce(ddiffmin,ddiffmin0,1,mpi_real8,mpi_min,gsi_mpi_comm_world,ierror)
+    call mpi_allreduce(idups,idups0,1,mpi_integer4,mpi_sum,gsi_mpi_comm_world,ierror)
     distfact=zero
     if(nint(ddiffmin0)==1)     distfact=r250
     if(nint(ddiffmin0)==2)     distfact=r125
@@ -708,24 +708,24 @@ contains
     if (.not. allocated(ibins2)) allocate(ibins2(nthisrad,num_radars_0))
 
     ibins2=0
-    call mpi_allreduce(ibins,ibins2,nthisrad*num_radars_0,mpi_integer4,mpi_sum,mpi_comm_world,ierror)
+    call mpi_allreduce(ibins,ibins2,nthisrad*num_radars_0,mpi_integer4,mpi_sum,gsi_mpi_comm_world,ierror)
     deallocate(ibins)
 
-    call mpi_reduce(nradials_in,nradials_in1,1,mpi_integer4,mpi_sum,0,mpi_comm_world,ierror)
+    call mpi_reduce(nradials_in,nradials_in1,1,mpi_integer4,mpi_sum,0,gsi_mpi_comm_world,ierror)
     call mpi_reduce(nradials_fail_angmax,nradials_fail_angmax1,1,&
-	 mpi_integer4,mpi_sum,0,mpi_comm_world,ierror)
+	 mpi_integer4,mpi_sum,0,gsi_mpi_comm_world,ierror)
     call mpi_reduce(nradials_fail_time,nradials_fail_time1,1,&
-	 mpi_integer4,mpi_sum,0,mpi_comm_world,ierror)
+	 mpi_integer4,mpi_sum,0,gsi_mpi_comm_world,ierror)
     call mpi_reduce(nradials_fail_elb,nradials_fail_elb1,1,&
-	 mpi_integer4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(nobs_in,nobs_in1,1,mpi_integer4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(nobs_badvr,nobs_badvr1,1,mpi_integer4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(nobs_badsr,nobs_badsr1,1,mpi_integer4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(nobs_lrbin,nobs_lrbin1,1,mpi_integer4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(nobs_hrbin,nobs_hrbin1,1,mpi_integer4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(nrange_max,nrange_max1,1,mpi_integer4,mpi_sum,0,mpi_comm_world,ierror)
-    call mpi_reduce(timemax,timemax1,1,mpi_real8,mpi_max,0,mpi_comm_world,ierror)
-    call mpi_reduce(timemin,timemin1,1,mpi_real8,mpi_min,0,mpi_comm_world,ierror)
+	 mpi_integer4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(nobs_in,nobs_in1,1,mpi_integer4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(nobs_badvr,nobs_badvr1,1,mpi_integer4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(nobs_badsr,nobs_badsr1,1,mpi_integer4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(nobs_lrbin,nobs_lrbin1,1,mpi_integer4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(nobs_hrbin,nobs_hrbin1,1,mpi_integer4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(nrange_max,nrange_max1,1,mpi_integer4,mpi_sum,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(timemax,timemax1,1,mpi_real8,mpi_max,0,gsi_mpi_comm_world,ierror)
+    call mpi_reduce(timemin,timemin1,1,mpi_real8,mpi_min,0,gsi_mpi_comm_world,ierror)
 
     if(mype==0 ) then
     
@@ -778,10 +778,10 @@ contains
        krad=indx(irad)
        if(r_double==r_quad) then
           call mpi_gather(bins(1,1,krad),nthisbins,mpi_real8 ,bins_work,nthisbins, &
-                       mpi_real8 ,0,mpi_comm_world,ierror)
+                       mpi_real8 ,0,gsi_mpi_comm_world,ierror)
        else
           call mpi_gather(bins(1,1,krad),nthisbins,mpi_real16,bins_work,nthisbins, &
-                       mpi_real16,0,mpi_comm_world,ierror)
+                       mpi_real16,0,gsi_mpi_comm_world,ierror)
        endif
        if(mype == 0)then
     

@@ -521,7 +521,7 @@ contains
 !$$$ end documentation block
 
     use gridmod, only: nsig1o,vlevs
-    use m_m_mpimod, only: levs_id,nvar_id,npe,ierror,mpi_comm_world, &
+    use m_m_mpimod, only: levs_id,nvar_id,npe,ierror,gsi_mpi_comm_world, &
            mpi_max,mpi_integer4
     use control_vectors, only: nrf_var
     use mpeu_util, only: getindex
@@ -566,12 +566,12 @@ contains
        if(k==1.or.k>=nsig1o-2_i_long .and. print_verbose) write(6,*)' k,levs_id(k)=',k,levs_id(k)
     end do
 
-    call mpi_allreduce(nlevs0,nlevs1,npe,mpi_integer4,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(nlevs0,nlevs1,npe,mpi_integer4,mpi_max,gsi_mpi_comm_world,ierror)
     nvar_id0=0
     do k=1,nsig1o
        nvar_id0(mype*nsig1o+k)=nvar_id(k)
     end do
-    call mpi_allreduce(nvar_id0,nvar_id1,npe*nsig1o,mpi_integer4,mpi_max,mpi_comm_world,ierror)
+    call mpi_allreduce(nvar_id0,nvar_id1,npe*nsig1o,mpi_integer4,mpi_max,gsi_mpi_comm_world,ierror)
 
     kk=0
     do k=1,npe*nsig1o
@@ -818,7 +818,7 @@ subroutine halo_update_reg0(mype)
 !$$$ end documentation block
 
   use gridmod, only: lat2,lon2,istart,jstart,nlat,nlon
-  use m_m_mpimod, only: npe,mpi_integer4,mpi_sum,mpi_comm_world,ierror
+  use m_m_mpimod, only: npe,mpi_integer4,mpi_sum,gsi_mpi_comm_world,ierror
   use raflib, only: indexxi4
   implicit none
 
@@ -843,7 +843,7 @@ subroutine halo_update_reg0(mype)
         ijglob_pe0(iglob,jglob)=mype
      end do
   end do
-  call mpi_allreduce(ijglob_pe0,ijglob_pe,nlat*nlon,mpi_integer4,mpi_sum,mpi_comm_world,ierror)
+  call mpi_allreduce(ijglob_pe0,ijglob_pe,nlat*nlon,mpi_integer4,mpi_sum,gsi_mpi_comm_world,ierror)
 
 !  create list of all points to be received with global i,j coordinates
   ii=0
@@ -881,7 +881,7 @@ subroutine halo_update_reg0(mype)
      ndrecv_halo(mpe)=ndrecv_halo(mpe-1)+nrecv_halo(mpe-1)
   end do
 
-  call mpi_alltoall(nrecv_halo,1,mpi_integer4,nsend_halo,1,mpi_integer4,mpi_comm_world,ierror)
+  call mpi_alltoall(nrecv_halo,1,mpi_integer4,nsend_halo,1,mpi_integer4,gsi_mpi_comm_world,ierror)
   ndsend_halo(0)=0
   do mpe=1,npe
      ndsend_halo(mpe)=ndsend_halo(mpe-1)+nsend_halo(mpe-1)
@@ -907,7 +907,7 @@ subroutine halo_update_reg0(mype)
   call mpi_type_contiguous(2,mpi_integer4,mpi_string1,ierror)
   call mpi_type_commit(mpi_string1,ierror)
   call mpi_alltoallv(info_recv_halo,nrecv_halo,ndrecv_halo,mpi_string1, &
-                     info_send_halo,nsend_halo,ndsend_halo,mpi_string1,mpi_comm_world,ierror)
+                     info_send_halo,nsend_halo,ndsend_halo,mpi_string1,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string1,ierror)
 
 !   convert info arrays back to local coordinate units
@@ -954,7 +954,7 @@ subroutine halo_update_reg(f,nvert)
 !$$$ end documentation block
 
   use gridmod, only: lat2,lon2
-  use m_m_mpimod, only: npe,mpi_rtype,mpi_comm_world,ierror
+  use m_m_mpimod, only: npe,mpi_rtype,gsi_mpi_comm_world,ierror
   implicit none
 
   integer(i_kind),intent(in   ) :: nvert
@@ -974,7 +974,7 @@ subroutine halo_update_reg(f,nvert)
   call mpi_type_contiguous(nvert,mpi_rtype,mpi_string2,ierror)
   call mpi_type_commit(mpi_string2,ierror)
   call mpi_alltoallv(bufsend,nsend_halo,ndsend_halo,mpi_string2, &
-                     bufrecv,nrecv_halo,ndrecv_halo,mpi_string2,mpi_comm_world,ierror)
+                     bufrecv,nrecv_halo,ndrecv_halo,mpi_string2,gsi_mpi_comm_world,ierror)
   call mpi_type_free(mpi_string2,ierror)
 !   finally distribute points back
   do i=1,nrecv_halo_loc

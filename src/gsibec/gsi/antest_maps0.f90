@@ -34,7 +34,7 @@ subroutine antest_maps0(mype,theta0f,z0f)
   use anberror, only: kvar_start,kvar_end,var_names,pf2aP1,indices
   use gridmod, only: nsig,nsig1o,nlon,nlat,istart,jstart,lat2,lon2
   use constants, only: zero_single,zero,one,rd_over_cp,r100
-  use m_m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,mpi_comm_world
+  use m_m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,gsi_mpi_comm_world
   use guess_grids, only: ntguessig,ges_prsl
   use fgrid2agrid_mod, only: fgrid2agrid
   use control_vectors, only: nvars
@@ -189,7 +189,7 @@ subroutine antest_maps0(mype,theta0f,z0f)
      if(ivar_plot==4) h00=twork(iloc,jloc,kloc)
      if(ivar_plot==5) h00=qwork(iloc,jloc,kloc)
 
-     call mpi_allreduce(h00,h000,1,mpi_real8,mpi_sum,mpi_comm_world,ierror)
+     call mpi_allreduce(h00,h000,1,mpi_real8,mpi_sum,gsi_mpi_comm_world,ierror)
 
      stwork=stwork/h000
      vpwork=vpwork/h000
@@ -209,7 +209,7 @@ subroutine antest_maps0(mype,theta0f,z0f)
               outwork(jglob,iglob)=ges_tv_it(i,j,k)/(ges_prsl(i,j,k ,it)/r100)**rd_over_cp
            end do
         end do
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         if(mype==0) write(lunin) outwork0
      end do
 
@@ -230,7 +230,7 @@ subroutine antest_maps0(mype,theta0f,z0f)
               end do
            end do
         end if
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         if(mype==0) write(lunin) outwork0
      end do
 
@@ -256,7 +256,7 @@ subroutine antest_maps0(mype,theta0f,z0f)
         end do
 !             very slow way to move field from local processor to processor 0
 
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         if(mype==0) write(lunin) outwork0
      end do
 
@@ -271,7 +271,7 @@ subroutine antest_maps0(mype,theta0f,z0f)
            outwork(jglob,iglob)=ges_z_it(i,j)
         end do
      end do
-     call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+     call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
      if(mype==0) write(lunin) outwork0
 
 !             output "smoothed terrain"
@@ -292,7 +292,7 @@ subroutine antest_maps0(mype,theta0f,z0f)
               end do
            end do
         end if
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         if(mype==0) write(lunin) outwork0
      end do
 
@@ -337,7 +337,7 @@ subroutine antest_maps0_subdomain_option(mype,theta0f,z0f)
   use anberror, only: kvar_start,kvar_end,var_names,levs_jdvar,indices,pf2aP1
   use gridmod, only: nsig,nlon,nlat,istart,jstart,lat2,lon2
   use constants, only: zero_single,zero,one,rd_over_cp,r100
-  use m_m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,mpi_comm_world
+  use m_m_mpimod, only: ierror,mpi_real4,mpi_real8,mpi_sum,gsi_mpi_comm_world
   use guess_grids, only: ntguessig,ges_prsl
   use control_vectors, only: nvars
   use gsi_bundlemod, only: gsi_bundlecreate
@@ -496,7 +496,7 @@ subroutine antest_maps0_subdomain_option(mype,theta0f,z0f)
         if(ivar_plot==4) h00=twork(iloc,jloc,kloc)
         if(ivar_plot==5) h00=qwork(iloc,jloc,kloc)
      end if
-     call mpi_allreduce(h00,h000,1,mpi_real8,mpi_sum,mpi_comm_world,ierror)
+     call mpi_allreduce(h00,h000,1,mpi_real8,mpi_sum,gsi_mpi_comm_world,ierror)
      stwork=stwork/h000
      vpwork=vpwork/h000
      pwork=pwork/h000
@@ -516,7 +516,7 @@ subroutine antest_maps0_subdomain_option(mype,theta0f,z0f)
               outwork(jglob,iglob)=ges_tv_it(i,j,k)/(ges_prsl(i,j,k ,it)/r100)**rd_over_cp
            end do
         end do
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         !if(mype==0) write(lunin) outwork0
         if(mype==0) call outgrads1(outwork0,nlon,nlat,'theta')
      end do
@@ -532,7 +532,7 @@ subroutine antest_maps0_subdomain_option(mype,theta0f,z0f)
               outwork(jglob,iglob)=theta0f(i,j,k)
            end do
         end do
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         !if(mype==0) write(lunin) outwork0
         if(mype==0) call outgrads1(outwork0,nlon,nlat,'sm_theta')
      end do
@@ -553,7 +553,7 @@ subroutine antest_maps0_subdomain_option(mype,theta0f,z0f)
         end do
 !             very slow way to move field from local processor to processor 0
 
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         !if(mype==0) write(lunin) outwork0
         if(mype==0) then
            write(plotname,'("sub_",a)')trim(var_plotcor)
@@ -572,7 +572,7 @@ subroutine antest_maps0_subdomain_option(mype,theta0f,z0f)
            outwork(jglob,iglob)=ges_z_it(i,j)
         end do
      end do
-     call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+     call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
      !if(mype==0) write(lunin) outwork0
      if(mype==0) call outgrads1(outwork0,nlon,nlat,'z')
 
@@ -589,7 +589,7 @@ subroutine antest_maps0_subdomain_option(mype,theta0f,z0f)
               outwork(jglob,iglob)=z0f(i,j,k)
            end do
         end do
-        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,mpi_comm_world,ierror)
+        call mpi_reduce(outwork,outwork0,nlon*nlat,mpi_real4,mpi_sum,0,gsi_mpi_comm_world,ierror)
         !if(mype==0) write(lunin) outwork0
         if(mype==0) call outgrads1(outwork0,nlon,nlat,'sm_z')
      end do

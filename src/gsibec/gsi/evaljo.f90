@@ -31,7 +31,7 @@ subroutine evaljo(pjo,kobs,kprt,louter)
   use m_obsdiagNode, only: obs_diag
   use gsi_4dvar, only: nobs_bins
   use constants, only: zero_quad
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_sum,mpi_integer,mype
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_sum,mpi_integer,mype
   use jfunc, only: jiter
   use mpl_allreducemod, only: mpl_allreduce
   use mpeu_util, only: perr,die
@@ -104,7 +104,7 @@ call mpl_allreduce(nobs_type*nobs_bins,qpvals=zprods)
 ! Sum number of observations
 ilen=nobs_bins*nobs_type
 call mpi_allreduce(iobsgrp,iobsglb,ilen, &
-                 & mpi_integer,mpi_sum,mpi_comm_world,ierror)
+                 & mpi_integer,mpi_sum,gsi_mpi_comm_world,ierror)
 
 ! Gather Jo contributions
 

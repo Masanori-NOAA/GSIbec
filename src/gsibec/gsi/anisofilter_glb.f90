@@ -120,7 +120,7 @@ module anisofilter_glb
 
   use m_m_mpimod, only: npe,levs_id,nvar_id,ierror,&
                     mpi_real8,mpi_real4,mpi_integer4,&
-                    mpi_sum,mpi_comm_world
+                    mpi_sum,gsi_mpi_comm_world
 
   use gsi_metguess_mod, only: gsi_metguess_bundle
   use gsi_bundlemod, only: gsi_bundlegetpointer
@@ -969,8 +969,8 @@ subroutine read_bckgstats_glb(mype)
         end do
      end do
      mcount0=lon2*lat2! It's OK to count buffer points
-     call mpi_allreduce(pbar4a,pbar4(k),1,mpi_real8,mpi_sum,mpi_comm_world,ierror)
-     call mpi_allreduce(mcount0,mcount,1,mpi_integer4,mpi_sum,mpi_comm_world,ierror)
+     call mpi_allreduce(pbar4a,pbar4(k),1,mpi_real8,mpi_sum,gsi_mpi_comm_world,ierror)
+     call mpi_allreduce(mcount0,mcount,1,mpi_integer4,mpi_sum,gsi_mpi_comm_world,ierror)
      pbar4(k)=pbar4(k)/real(mcount,r_kind)
   end do
 
@@ -1755,8 +1755,8 @@ subroutine get_theta_corrl_lenghts_glb(mype)
         end do
      end do
      mcount0=lon2*lat2! It's OK to count buffer points
-     call mpi_allreduce(pbar4a,pbar4(k),1,mpi_real8,mpi_sum,mpi_comm_world,ierror)
-     call mpi_allreduce(mcount0,mcount,1,mpi_integer4,mpi_sum,mpi_comm_world,ierror)
+     call mpi_allreduce(pbar4a,pbar4(k),1,mpi_real8,mpi_sum,gsi_mpi_comm_world,ierror)
+     call mpi_allreduce(mcount0,mcount,1,mpi_integer4,mpi_sum,gsi_mpi_comm_world,ierror)
      pbar4(k)=pbar4(k)/real(mcount,r_kind)
      call w3fa03(pbar4(k),hgt4(k),tbar4(k),thetabar4(k))
   end do
@@ -3415,7 +3415,7 @@ subroutine get_ensmber_glb(kens,ifld,igrid,ifldlevs, &
      if ( mod(kk,npe)==0 .or. kk==ifldlevs(ifld) ) then
         call mpi_alltoallv(tempa(1)         ,ijn_s,displs_s,mpi_real4, &
                            sub(1,kslab_prev),irc_s,ird_s,   mpi_real4, &
-                           mpi_comm_world,ierror)
+                           gsi_mpi_comm_world,ierror)
 
         kslab_prev=kk+1
      end if
@@ -3559,7 +3559,7 @@ subroutine get_ensmber_glb(kens,ifld,igrid,ifldlevs, &
         auxa(:,:)=field(:,:,k)
         call strip(auxa,strp)
         call mpi_gatherv(strp,ijn(mype+1),mpi_real4, &
-             tempa,ijn,displs_g,mpi_real4,0,mpi_comm_world,ierror)
+             tempa,ijn,displs_g,mpi_real4,0,gsi_mpi_comm_world,ierror)
         if (mype==0) then
            auxb(:,:)=zero_single
            call unfill_mass_grid2t(tempa,nlon,nlat,auxb)

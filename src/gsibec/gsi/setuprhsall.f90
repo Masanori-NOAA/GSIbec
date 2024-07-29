@@ -138,7 +138,7 @@ subroutine setuprhsall(ndata,mype,init_pass,last_pass)
   use ozinfo, only: mype_oz,jpch_oz,ihave_oz
   use coinfo, only: mype_co,jpch_co,ihave_co
   use lightinfo, only: mype_light
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_rtype,mpi_sum
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_rtype,mpi_sum
   use gridmod, only: twodvar_regional,wrf_mass_regional,nems_nmmb_regional
   use gridmod, only: cmaq_regional,fv3_regional
   use gsi_4dvar, only: nobs_bins,l4dvar
@@ -560,7 +560,7 @@ write(6,*)"Test!!"
     call obsdiags_write('obsdiags.ttt',force=.true.)
         ! call Barrier() before obsdiags_read(), to make sure all PEs have
         ! finished their obsdiags_write().
-    if(mPEs_observer>0) call MPI_Barrier(mpi_comm_world,ier)
+    if(mPEs_observer>0) call MPI_Barrier(gsi_mpi_comm_world,ier)
 
     call obsdiags_read('obsdiags.ttt',mPEs=mPEs_observer,force=.true.)
     call inquire_obsdiags(miter)
@@ -584,24 +584,24 @@ write(6,*)"Test!!"
 
 ! Collect satellite and precip. statistics
   call mpi_reduce(aivals,aivals1,size(aivals1),mpi_rtype,mpi_sum,mype_rad, &
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
   call mpi_reduce(stats,stats1,size(stats1),mpi_rtype,mpi_sum,mype_rad, &
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
   if (ihave_oz) call mpi_reduce(stats_oz,stats_oz1,size(stats_oz1),mpi_rtype,mpi_sum,mype_oz, &
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
   if (ihave_co) call mpi_reduce(stats_co,stats_co1,size(stats_co1),mpi_rtype,mpi_sum,mype_co, &
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
 ! Collect conventional data statistics
   
   call mpi_allreduce(bwork,bwork1,size(bwork1),mpi_rtype,mpi_sum,&
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
   
   call mpi_allreduce(awork,awork1,size(awork1),mpi_rtype,mpi_sum, &
-       mpi_comm_world,ierror)
+       gsi_mpi_comm_world,ierror)
 
 ! Compute and print statistics for radiance, precipitation, and ozone data.
 ! These data types are NOT processed when running in 2dvar mode.  Hence

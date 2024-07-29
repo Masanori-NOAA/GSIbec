@@ -1675,7 +1675,7 @@ contains
 ! !USES:
 
    use obsmod, only: ndat,dplat,dtype,dsis
-   use m_mpimod, only:  npe,mype,mpi_comm_world,ierror
+   use m_mpimod, only:  npe,mype,gsi_mpi_comm_world,ierror
    use read_diag, only: read_radiag_header,read_radiag_data,diag_header_fix_list,&
         diag_header_chan_list,diag_data_fix_list,diag_data_chan_list,&
         diag_data_extra_list,diag_data_name_list,open_radiag,close_radiag,set_netcdf_read
@@ -2127,7 +2127,7 @@ contains
 !  Wait for all mpi tasks to finish processing the
 !  satellite/sensors assigned to them.
 !  write(6,*)'INIT_PREDX:  Wait after satellite/sensor loop'
-   call mpi_barrier(mpi_comm_world,ierror)
+   call mpi_barrier(gsi_mpi_comm_world,ierror)
 
 
 !  Combine the satellite/sensor specific predx together

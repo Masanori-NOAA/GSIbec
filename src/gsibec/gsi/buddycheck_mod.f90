@@ -472,7 +472,7 @@ subroutine execute_buddy_check(mype,is,numobs,pevals,range,difmax,pebuddyuse)
 
 ! !USES:
   use jfunc, only: jiter
-  use m_m_mpimod, only: ierror,mpi_rtype,mpi_itype,mpi_sum,mpi_comm_world
+  use m_m_mpimod, only: ierror,mpi_rtype,mpi_itype,mpi_sum,gsi_mpi_comm_world
   use constants, only: zero, one,one_tenth,r100,tiny_r_kind
   use obsmod, only: obs_sub_comm,bmiss,dtype
   use qcmod, only: buddydiag_save

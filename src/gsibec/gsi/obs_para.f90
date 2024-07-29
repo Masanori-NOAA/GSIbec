@@ -56,7 +56,7 @@ subroutine obs_para(ndata,mype)
   use m_kinds, only: i_kind
   use constants, only: zero
   use jfunc, only: factqmin,factqmax
-  use m_mpimod, only: npe,mpi_itype,mpi_comm_world,ierror
+  use m_mpimod, only: npe,mpi_itype,gsi_mpi_comm_world,ierror
   use obsmod, only: obs_setup,dtype,mype_diaghdr,ndat,nsat1
   use obsmod, only: obsfile_all,dplat,nobs_sub,obs_sub_comm 
   use gridmod, only: twodvar_regional 
@@ -145,7 +145,7 @@ subroutine obs_para(ndata,mype)
            !   which only talks to pe's who have obs on their subdomains.  This is 
            !   needed for MPI communication within the setup* routines (e.g. a buddy check). 
                
-           call mpi_comm_split(mpi_comm_world,icolor(mm1),ikey(mm1),obs_sub_comm(is),ierror)   
+           call mpi_comm_split(gsi_mpi_comm_world,icolor(mm1),ikey(mm1),obs_sub_comm(is),ierror)   
            CALL MPI_COMM_SIZE(obs_sub_comm(is), newprocs, ierror) 
            CALL MPI_COMM_RANK(obs_sub_comm(is), newrank, ierror) 
            if (buddydiag_save) write(6,'(A,I3,I10,A,I20,A,I3,A,I3)') 'obs_para: mype/myobs=',& 

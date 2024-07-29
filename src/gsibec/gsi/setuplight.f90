@@ -111,7 +111,7 @@ subroutine setuplight(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,light_di
   use gsi_bundlemod, only: gsi_bundlegetpointer
   use gsi_metguess_mod, only: gsi_metguess_get,gsi_metguess_bundle
 
-  use m_mpimod, only: ierror,mpi_comm_world,mpi_rtype,mpi_itype,mpi_sum
+  use m_mpimod, only: ierror,gsi_mpi_comm_world,mpi_rtype,mpi_itype,mpi_sum
 !--
 !--
 
@@ -518,12 +518,12 @@ subroutine setuplight(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,light_di
 !          the online bias correction applied to the forward operator for
 !          lightning flash rate.
 
-     call mpi_barrier(mpi_comm_world,ierror)
+     call mpi_barrier(gsi_mpi_comm_world,ierror)
      call sumslightbias(dlight,lightges0,mype,nobs,nobs_loc,sum_loc)
      call mpi_allreduce(nobs_loc,nobs_gbl,1,mpi_itype,mpi_sum,&
-                        mpi_comm_world,ierror)
+                        gsi_mpi_comm_world,ierror)
      call mpi_allreduce(sum_loc,sum_gbl,1,mpi_rtype,mpi_sum,&
-                        mpi_comm_world,ierror)
+                        gsi_mpi_comm_world,ierror)
 
 !           Calculation of an optimal multiplicative bias correction parameter
 !           eps=eps0*exp[(1/nobs)*sum[log(y/(eps0*h(x)))]/(1+r0/w0)], as in
