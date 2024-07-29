@@ -233,6 +233,18 @@
                                cld_cv, cld_nt_updt,  i_w_updt,                     &
                                l_cvpnr, cvpnr_pval, l_use_tdep_radarz
 
+  use state_vectors,         only: svars2d,svars3d
+  use control_vectors,         only: cvars2d,cvars3d
+
+  !added
+  use derivsmod, only: dvars2d, dvars3d
+  use tendsmod, only: create_ges_tendencies
+  use tendsmod, only: destroy_ges_tendencies
+  use derivsmod, only: create_ges_derivatives
+  use guess_grids, only: nfldsig
+  use control_vectors, only:cvarsmd
+  use general_commvars_mod, only: init_general_commvars_dims
+
   implicit none
 
   private
@@ -1753,9 +1765,9 @@
 
   call gsi_4dcoupler_parallel_init
 
-  call mpi_comm_size(gsi_mpi_comm_world,npe,ierror)
-  call mpi_comm_rank(gsi_mpi_comm_world,mype,ierror)
-  if (mype==0) call w3tagb('GSI_ANL',1999,0232,0055,'NP23')
+!  call mpi_comm_size(gsi_mpi_comm_world,npe,ierror)
+!  call mpi_comm_rank(gsi_mpi_comm_world,mype,ierror)
+!  if (mype==0) call w3tagb('GSI_ANL',1999,0232,0055,'NP23')
 
 ! Initialize defaults of vars in modules
   call init_4dvar
@@ -1766,6 +1778,7 @@
   call gsi_metguess_init
   call gsi_chemguess_init
   call init_anasv
+!write(6,*)"Test15"
   call init_anacv
   call init_wrf_vars
   call radiance_mode_init
@@ -1805,7 +1818,6 @@
   call gsi_nstcoupler_init_nml
   call init_radaruse_directDA
   call CADS_Setup_Cloud
-
  if(mype==0) write(6,*)' at 0 in gsimod, use_gfs_stratosphere,nems_nmmb_regional = ', &
                        use_gfs_stratosphere,nems_nmmb_regional
 
@@ -2351,27 +2363,26 @@
         if(i_gsdcldanal_type.ne.6) call regional_io%convert_regional_guess(mype,ctph0,stph0,tlm0)
      endif
   endif
-            
   if (regional.and.use_gfs_stratosphere) call broadcast_gfs_stratosphere_vars
 
-
 ! Initialize variables, create/initialize arrays
+  call create_ges_tendencies(tendsflag)  ! added 
+  call create_ges_derivatives(switch_on_derivatives,nfldsig)  ! added
   call init_reg_glob_ll(mype,lendian_in)
   call init_grid_vars(jcap,npe,cvars3d,cvars2d,nrf_var,mype)
   if (switch_on_derivatives) call init_anadv  ! moved from derivsmod 
+  call init_general_commvars_dims (cvars2d,cvars3d,cvarsmd,nrf_var, &  ! added
+                                   dvars2d,dvars3d)
   call init_general_commvars
   call create_obsmod_vars
   call gpsStats_create()                ! extracted from obsmod::create_obsmod_vars()
   call obsdiags_create()                ! extracted from obsmod::create_obsmod_vars()
   if (passive_bc) call prad_create()    ! replacing -- call obsmod::create_passive_obsmod_vars()
-
   
 ! Initialize values in radinfo
   call init_rad_vars
-
 ! Initialize values in aeroinfo
   call init_aero_vars
-
 ! Initialize values in the radar emulator
   iret_init_mphyopt = -1
   if ( l_use_dbz_directDA ) then
@@ -2396,8 +2407,6 @@
         end if
      end if
    end if
-
-
 
   end subroutine gsimain_initialize
 
