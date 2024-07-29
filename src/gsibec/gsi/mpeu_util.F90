@@ -38,9 +38,9 @@ module mpeu_util
 !   This module provides some basic utilities with generic interfaces.
 !   These generic interfaces support limited argument type-kind-ranks,
 !   such as default INTERGER, default REAL and DOUBLE PRECISION, etc..
-!   The combination of these argument type-m_kinds, is efficient to most
+!   The combination of these argument type-kinds, is efficient to most
 !   user applications, without additional KIND specifications.  The
-!   matching(or mismatching) of the type-m_kinds in this module to user
+!   matching(or mismatching) of the type-kinds in this module to user
 !   specific calls is left to the compiler to handle.  Therefore, this
 !   implementation is designed NOT having to explicitly use user
 !   defined KIND parameters.
@@ -154,6 +154,7 @@ module mpeu_util
       public :: stdout_close
       public :: stdout_lead
 #endif
+    public :: StrUpCase
 
     integer,parameter :: STDIN = 5
     integer,parameter :: STDOUT= 6
@@ -258,6 +259,10 @@ module mpeu_util
 !EOP ___________________________________________________________________
 
   character(len=*),parameter :: myname="mpeu_util"
+
+  ! List of character for case conversion
+  CHARACTER(*), PARAMETER :: LOWER_CASE = 'abcdefghijklmnopqrstuvwxyz'
+  CHARACTER(*), PARAMETER :: UPPER_CASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 #ifndef NCEP_ENV
   integer,parameter :: Ix=1
@@ -374,6 +379,7 @@ function top_()
   enddo
 end function top_
 
+#ifdef INCLUDE_MPOUT
 subroutine stdout_open(prefix,rewind,stat,mask,comm)
   use mpeu_mpif, only : MPI_comm_world
 !! -- This routine redirects local STDOUT to a file, named as
@@ -411,6 +417,7 @@ subroutine stdout_open(prefix,rewind,stat,mask,comm)
     call stdout_open__('stdout',rewind=rewind,stat=stat,mask=mask,comm=comm)
   endif
 end subroutine stdout_open
+#endif /* INCLUDE_MPOUT */
 
 subroutine stdout_open__(prefix,rewind,stat,mask,comm)
   implicit none
@@ -553,6 +560,22 @@ subroutine close_if_(fname,stat)
   endif
 end subroutine close_if_
 
+#ifdef _NEW_CODE_
+!! need to send outputs to variables.
+!! need to set return code (stat=).
+subroutine ls_(files)       ! show information? or just inquire(exists(file))
+  call system("ls "//files)
+end subroutine ls_
+subroutine rm_(files)     ! delete, open();close(status='delete')
+  call system("rm "//files)
+end subroutine rm_
+subroutine mkdir_(dir,mode,parents)
+  call system("mkdir "//files)
+end subroutine mkdir_
+subroutine size_(file)    ! faster access?
+  call system("wc -c "//files)
+end subroutine size_
+#endif
 #endif
 
 function myid_(who)
@@ -961,7 +984,7 @@ end subroutine tell_dbl_
 
 subroutine dropdead_()
 #ifdef USE_MPI_ABORT
-  use mpeu_mpif, only: mpi_comm_world
+  use mpeu_mpif, only: gsi_mpi_comm_world
 #endif
   implicit none
   integer:: ier
@@ -976,7 +999,7 @@ subroutine dropdead_()
   call mprint(stderr,'dropdead','at '//cdate//':'//ctime//'(z'//czone//'00)')
 
 #ifdef USE_MPI_ABORT
-  call mpi_abort(mpi_comm_world,myer,ier)
+  call mpi_abort(gsi_mpi_comm_world,myer,ier)
 #else
   call exit(myer)
 #endif
@@ -1095,11 +1118,12 @@ end subroutine assert_GE_
 !       "%j"    dims(2) of dims=(/im,jm,km,lm/)
 !       "%k"    dims(3) of dims=(/im,jm,km,lm/)
 !       "%l"    dims(4) of dims=(/im,jm,km,lm/)
+!       "%eX"   where X in range(1,4) for ensemble numbering
 !       "%%"    a "%"
 !
 ! !INTERFACE:
 
-    subroutine strTemplate(str,tmpl,nymd,nhms,dims,xid,stat)
+    subroutine strTemplate(str,tmpl,nymd,nhms,dims,xid,ens,stat)
       !! use m_stdio, only : stderr
       !! use m_die,   only : die,perr
       implicit none
@@ -1122,6 +1146,10 @@ end subroutine assert_GE_
       character(len=*),intent(in ),optional :: xid
                         ! a string substituting a "%s".  Trailing
                         ! spaces will be ignored
+
+      integer,intent(in ),optional :: ens
+                        ! substituting "%e1", "%e2", "%e3",
+                        ! and "%e4"
 
       integer,intent(out),optional :: stat
                         ! error code
@@ -1157,6 +1185,7 @@ end subroutine assert_GE_
 
 
   integer :: iy4,iy2,imo,idy
+  integer :: ie1,ie2,ie3,ie4
   integer :: ihr,imn
   integer :: i,i1,i2,m,k
   integer :: ln_tmpl,ln_str
@@ -1165,6 +1194,23 @@ end subroutine assert_GE_
 
   character(len=1) :: c0,c1,c2
   character(len=8) :: sbuf
+!________________________________________
+! Determine %e
+  ie1=-1;ie2=-1;ie3=-1;ie4=-1
+  if(present(ens)) then
+    if(ens <= 0) then
+        call perr(myname_,'ens <= 0',ens)
+        if(.not.present(stat)) call die(myname_)
+        stat=1
+        return
+    endif
+  endif
+
+  ie4=ens
+  ie3=mod(ie4,1000)
+  ie2=mod(ie3,100)
+  ie1=mod(ie2,10)
+
 !________________________________________
 ! Determine iyr, imo, and idy
   iy4=-1
@@ -1327,6 +1373,16 @@ do while( i+istp <= ln_tmpl )   ! A loop over all tokens in (tmpl)
         endif
         istp=3
 
+      case("e1","e2","e3","e4")
+        if(.not.present(ens)) then
+           write(stderr,'(2a)') myname_,          &
+              ': optional argument expected, "ens="'
+           if(.not.present(stat)) call die(myname_)
+           stat=1
+           return
+        endif
+        istp=3
+
       case default
 
         write(stderr,'(4a)') myname_,     &
@@ -1340,6 +1396,28 @@ do while( i+istp <= ln_tmpl )   ! A loop over all tokens in (tmpl)
 !________________________________________
 
     select case(c1)
+
+    case("e")
+      select case(c2)
+      case("1")
+        write(sbuf,'(i1)') ie1
+        kstp=1
+      case("2")
+        write(sbuf,'(i2.2)') ie2
+        kstp=2
+      case("3")
+        write(sbuf,'(i3.4)') ie3
+        kstp=3
+      case("4")
+        write(sbuf,'(i4.4)') ie4
+        kstp=4
+      case default
+        write(stderr,'(4a)') myname_,                  &
+             ': invalid template entry, "',trim(tmpl(i:)),'"'
+        if(.not.present(stat)) call die(myname_)
+        stat=2
+        return
+      end select
 
     case("y")
       select case(c2)
@@ -2176,17 +2254,77 @@ function lowercase(str) result(lstr)
 end function lowercase
 
 subroutine check_iostat_(ierror,myname,message)
-   use m_mpimod, only: mype
+!  use m_mpimod, only: mype
    implicit none
    integer,intent(in) :: ierror
    character(len=*),intent(in) :: myname,message
 
    if ( ierror /= 0 ) then
-      if ( mype == 0 ) &
+!     if ( mype == 0 ) &
       write(6,'(A,I5)') 'Error occured in ' // trim(myname) // ' during ' // trim(message) // ', iostat = ', ierror
       call die(myname)
    endif
    return
 end subroutine check_iostat_
+
+!------------------------------------------------------------------------------
+!:sdoc+:
+!
+! NAME:
+!       StrUpCase
+!
+! PURPOSE:
+!       Function to convert an input string to upper case.
+!
+! CALLING SEQUENCE:
+!       Result = StrUpCase( String )
+!
+! INPUT ARGUMENTS:
+!       String:  Character string to be converted to upper case.
+!                UNITS:      N/A
+!                TYPE:       CHARACTER(*)
+!                DIMENSION:  Scalar
+!                ATTRIBUTES: INTENT(IN)
+!
+! FUNCTION RESULT:
+!       Result:  The input character string converted to upper case.
+!                UNITS:      N/A
+!                TYPE:       CHARACTER(LEN(String))
+!                DIMENSION:  Scalar
+!
+! EXAMPLE:
+!       string = 'this is a string'
+!       WRITE( *, '( a )' ) StrUpCase( string )
+!   THIS IS A STRING
+!
+! PROCEDURE:
+!       Figure 3.5B, pg 80, "Upgrading to Fortran 90", by Cooper Redwine,
+!       1995 Springer-Verlag, New York.
+!
+! CREATION HISTORY:
+!       Written by:     Paul van Delst, CIMSS/SSEC 18-Oct-1999
+!                       paul.vandelst@ssec.wisc.edu
+!       Stolen from CRTM: R. Todling
+!
+!:sdoc-:
+!------------------------------------------------------------------------------
+
+  FUNCTION StrUpCase( Input_String ) RESULT( Output_String )
+    ! Arguments
+    CHARACTER(*), INTENT(IN)     :: Input_String
+    ! Function result
+    CHARACTER(LEN(Input_String)) :: Output_String
+    ! Local variables
+    INTEGER :: i, n
+
+    ! Copy input string
+    Output_String = Input_String
+
+    ! Convert case character by character
+    DO i = 1, LEN(Output_String)
+      n = INDEX(LOWER_CASE, Output_String(i:i))
+      IF ( n /= 0 ) Output_String(i:i) = UPPER_CASE(n:n)
+    END DO
+  END FUNCTION StrUpCase
 
 end module mpeu_util
