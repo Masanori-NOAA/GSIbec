@@ -35,6 +35,7 @@ module general_commvars_mod
 
    use m_kinds, only: r_kind,i_kind
    use general_sub2grid_mod, only: sub2grid_info
+   use constants, only : max_varname_length
 
    implicit none
 
@@ -63,6 +64,11 @@ module general_commvars_mod
    public :: load_grid
    public :: ltosj_s,ltosi_s,ltosj,ltosi
 
+   public :: init_general_commvars_dims
+   interface init_general_commvars_dims
+     module procedure init_dims_
+   end interface init_general_commvars_dims
+
    integer(i_kind),allocatable,dimension(:):: ltosi   !   lats in iglobal array excluding buffer
    integer(i_kind),allocatable,dimension(:):: ltosj   !   lons in iglobal array excluding buffer
    integer(i_kind),allocatable,dimension(:):: ltosi_s !   lats in itotsub array including buffer
@@ -72,7 +78,51 @@ module general_commvars_mod
 
    type(sub2grid_info),save :: s2g_raf,s2g_cv,s2g2,s1q4,s1g4,s2g4,s2guv,s2g_d,g1,g3,g33p1
 
+   integer :: mvars
+   character(len=max_varname_length),allocatable,dimension(:) :: nrf_var
+   character(len=max_varname_length),allocatable,dimension(:) :: cvars2d
+   character(len=max_varname_length),allocatable,dimension(:) :: cvars3d
+   character(len=max_varname_length),allocatable,dimension(:) :: evars2d
+   character(len=max_varname_length),allocatable,dimension(:) :: evars3d
+   character(len=max_varname_length),allocatable,dimension(:) :: cvarsmd
+   character(len=max_varname_length),allocatable,dimension(:) :: dvars2d
+   character(len=max_varname_length),allocatable,dimension(:) :: dvars3d
 contains
+!   create general_sub2grid structure variables currently made locally for get_derivatives, etc.
+
+   subroutine init_dims_ (cvars2d_in,cvars3d_in,cvarsmd_in,nrf_var_in, &
+                          dvars2d_in, dvars3d_in )
+!  Todling: Add to relax code dependency
+   character(len=*),intent(in) :: cvars2d_in(:),cvars3d_in(:),cvarsmd_in(:),nrf_var_in(:)
+   character(len=*),intent(in) :: dvars2d_in(:),dvars3d_in(:)
+
+   if(size(cvars2d_in)>=0) then
+     if(.not.allocated(cvars2d)) allocate(cvars2d(size(cvars2d_in)))
+     cvars2d = cvars2d_in
+   endif
+   if(size(cvars3d_in)>=0) then
+     if(.not.allocated(cvars3d)) allocate(cvars3d(size(cvars3d_in)))
+     cvars3d = cvars3d_in
+   endif
+   if(size(cvarsmd_in)>=0) then
+      if(.not.allocated(cvarsmd)) allocate(cvarsmd(size(cvarsmd_in)))
+      cvarsmd = cvarsmd_in
+   endif
+   if(size(nrf_var_in)>=0) then
+     if(.not.allocated(nrf_var)) allocate(nrf_var(size(nrf_var_in)))
+     nrf_var = nrf_var_in
+   endif
+
+   if(size(dvars2d_in)>=0) then
+     if(.not.allocated(dvars2d)) allocate(dvars2d(size(dvars2d_in)))
+     dvars2d = dvars2d_in
+   endif
+   if(size(dvars3d_in)>=0) then
+     if(.not.allocated(dvars3d)) allocate(dvars3d(size(dvars3d_in)))
+     dvars3d = dvars3d_in
+   endif
+
+   end subroutine init_dims_
 
 !   create general_sub2grid structure variables currently made locally for get_derivatives, etc.
 
@@ -106,7 +156,7 @@ contains
       use gridmod, only: displs_s,ird_s,itotsub,&
                          ijn_s,irc_s,ijn,displs_g,isc_g,isd_g,vlevs
       use m_mpimod, only: npe,levs_id,nvar_id,nvar_pe
-      use control_vectors, only: cvars2d,cvars3d,mvars,cvarsmd,nrf_var
+      !use control_vectors, only: cvars2d,cvars3d,mvars,cvarsmd,nrf_var
       use derivsmod, only: dvars2d, dvars3d, drv_set_ 
       use general_sub2grid_mod, only: general_sub2grid_create_info
       use mpeu_util, only: getindex
