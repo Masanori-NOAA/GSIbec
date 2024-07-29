@@ -32,7 +32,8 @@ use m_kinds, only: sp,dp,dpc,i_kind
 use pietc, only: t,f
 implicit none
 private
-public:: ldum,udlmm,inv,L1Lm,LdLm,invl,invu
+public:: ldum,udlmm,inv,L1Lm,LdLm!,invu
+!public:: ldum,udlmm,inv,L1Lm,LdLm,invl,invu
 interface swpvv;  module procedure sswpvv,dswpvv,cswpvv;        end interface
 interface ldum
    module procedure sldum,dldum,cldum,sldumf,dldumf,cldumf;     end interface
@@ -46,8 +47,9 @@ iinvf
                                                                end interface
 interface L1Lm;   module procedure sL1Lm,dL1Lm,sL1Lmf,dL1Lmf;  end interface
 interface LdLm;   module procedure sLdLm,dLdLm,sLdLmf,dLdLmf;  end interface
-interface invl;   module procedure sinvl,dinvl,slinlv,dlinlv;  end interface
-interface invu;   module procedure sinvu,dinvu,slinuv,dlinuv;  end interface
+!interface invl;   module procedure sinvl,dinvl,slinlv,dlinlv;  end interface
+!interface invu;   module procedure sinvu,dinvu,slinuv,dlinuv;  end interface
+!interface invu;   module procedure slinuv,dlinuv;  end interface
 
 contains
 
@@ -1028,22 +1030,22 @@ enddo
 end subroutine dldlmf
 
 !==============================================================================
-subroutine sinvu(a)!                                                     [invu]
+!subroutine sinvu(a)!                                                     [invu]
 !==============================================================================
 ! Invert the upper triangular matrix in place by transposing, calling
 ! invl, and transposing again.
 !==============================================================================
-implicit none
-real,dimension(:,:),intent(inout):: a
-a=transpose(a); call sinvl(a); a=transpose(a)
-end subroutine sinvu
+!implicit none
+!real,dimension(:,:),intent(inout):: a
+!a=transpose(a); call sinvl(a); a=transpose(a)
+!end subroutine sinvu
 !==============================================================================
-subroutine dinvu(a)!                                                     [invu]
+!subroutine dinvu(a)!                                                     [invu]
 !==============================================================================
-implicit none
-real(dp),dimension(:,:),intent(inout):: a
-a=transpose(a); call dinvl(a); a=transpose(a)
-end subroutine dinvu
+!implicit none
+!real(dp),dimension(:,:),intent(inout):: a
+!a=transpose(a); call dinvl(a); a=transpose(a)
+!end subroutine dinvu
 !==============================================================================
 subroutine sinvl(a)!                                                     [invl]
 !==============================================================================
@@ -1103,29 +1105,29 @@ do i=1,size(u); u(i)=(u(i) - sum(u(:i-1)*a(i,:i-1)))/a(i,i); enddo
 end subroutine dlinlv
 
 !==============================================================================
-subroutine slinuv(a,u)!                                                  [invu]
+!subroutine slinuv(a,u)!                                                  [invu]
 !==============================================================================
 !     Solve linear system involving upper triangular system matrix.
 !==============================================================================
-implicit none
-real,    intent(in   ) :: a(:,:)
-real,    intent(inout) :: u(:)
-integer(i_kind)        :: i
-if(size(a,1) /= size(a,2) .or. size(a,1) /= size(u))&
-     stop 'In linuv; incompatible array dimensions'
-do i=size(u),1,-1; u(i)=(u(i) - sum(a(i+1:,i)*u(i+1:)))/a(i,i); enddo
-end subroutine slinuv
+!implicit none
+!real,    intent(in   ) :: a(:,:)
+!real,    intent(inout) :: u(:)
+!integer(i_kind)        :: i
+!if(size(a,1) /= size(a,2) .or. size(a,1) /= size(u))&
+!     stop 'In linuv; incompatible array dimensions'
+!do i=size(u),1,-1; u(i)=(u(i) - sum(a(i+1:,i)*u(i+1:)))/a(i,i); enddo
+!end subroutine slinuv
 !==============================================================================
-subroutine dlinuv(a,u)!                                                  [invu]
+!subroutine dlinuv(a,u)!                                                  [invu]
 !==============================================================================
-implicit none
-real(dp), intent(in   ) :: a(:,:)
-real(dp), intent(inout) :: u(:)
-integer(i_kind)         :: i
-if(size(a,1) /= size(a,2) .or. size(a,1) /= size(u))&
-     stop 'In dlinuv; incompatible array dimensions'
-do i=size(u),1,-1; u(i)=(u(i) - sum(a(i+1:,i)*u(i+1:)))/a(i,i); enddo
-end subroutine dlinuv
+!implicit none
+!real(dp), intent(in   ) :: a(:,:)
+!real(dp), intent(inout) :: u(:)
+!integer(i_kind)         :: i
+!if(size(a,1) /= size(a,2) .or. size(a,1) /= size(u))&
+!     stop 'In dlinuv; incompatible array dimensions'
+!do i=size(u),1,-1; u(i)=(u(i) - sum(a(i+1:,i)*u(i+1:)))/a(i,i); enddo
+!end subroutine dlinuv
 
 end module pmat
 
