@@ -457,12 +457,13 @@ contains
    gsi_iamset_ = .true.
   end subroutine set_
 !--------------------------------------------------------
-  subroutine get_hgrid_ (gsi_lats,gsi_lons) ! for now: redundant routine
+  subroutine get_hgrid_ (units,gsi_lats,gsi_lons) ! for now: redundant routine
   use constants, only: init_constants_derived, init_constants
   use constants, only: pi,one,two,half,rad2deg
   use mpeu_util, only: die
   use m_gsi_rfv3io_mod, only: gsi_rfv3io_get_grid_specs
   implicit none
+   character(len=*), intent(in) :: units
    logical :: regional
    integer :: ierr
    real(r_kind),intent(inout) :: gsi_lats(:,:),gsi_lons(:,:)
@@ -472,6 +473,11 @@ contains
    call init_constants_derived
    call init_constants(regional) 
    call gsi_rfv3io_get_grid_specs(gsi_lats,gsi_lons,ierr)
+
+   if (trim(units)=='degree') then
+      gsi_lons=gsi_lons*rad2deg
+      gsi_lats=gsi_lats*rad2deg
+   endif
 
   end subroutine get_hgrid_
 !--------------------------------------------------------
