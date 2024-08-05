@@ -63,8 +63,8 @@ subroutine tv_to_t_tl_(tv,tv_tl,q,q_tl,t_tl)
  real(r_kind), intent(in   ) ::  q_tl(:,:,:)
  real(r_kind), intent(inout) ::  t_tl(:,:,:)
 
- t_tl = (tv_tl*(one+epsilon*q)-tv*epsilon*q_tl)/(one+epsilon*q)**2
-
+ !t_tl = (tv_tl*(one+epsilon*q)-tv*epsilon*q_tl)/(one+epsilon*q)**2
+ t_tl = tv_tl * (one+epsilon*q)
 end subroutine tv_to_t_tl_
 
 !----------------------------------------------------------------------------
