@@ -125,7 +125,7 @@ subroutine m_generate_anl_grid(nx,ny,grid_lon,grid_lont,grid_lat,grid_latt,gsi_l
 !$$$ end documentation block
 
   use m_kinds, only: r_kind,i_kind
-  use constants, only: quarter,one,two,half,zero,deg2rad,rearth,rad2deg
+  use constants, only: quarter,one,two,half,zero,deg2rad,rearth,rad2deg,pi
   use gridmod,  only:grid_ratio_fv3_regional, region_lat,region_lon,nlat,nlon
   use gridmod,  only: region_dy,region_dx,region_dyi,region_dxi,coeffy,coeffx
   use gridmod,  only:init_general_transform,region_dy,region_dx 
@@ -313,6 +313,7 @@ subroutine m_generate_anl_grid(nx,ny,grid_lon,grid_lont,grid_lat,grid_latt,gsi_l
      do i=1,nlon
         gsi_lats(i,j)=region_lat(j,i)
         gsi_lons(i,j)=region_lon(j,i)
+        if(gsi_lons(i,j)<0.) gsi_lons(i,j)= gsi_lons(i,j) + 2.*pi
      enddo
   enddo
   
