@@ -2793,13 +2793,15 @@ subroutine other_set_(need)
           need='filled-'//need
        endwhere
     endif
+
+    call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'delp' ,ges_delp ,istatus )
+    ges_prsi(:,:,nsig+1,it)=eta1_ll(nsig+1)
+    do i=nsig,1,-1
+      ges_prsi(:,:,i,it)=ges_delp(:,:,i)+ges_prsi(:,:,i+1,it)
+    enddo
+
     if (any(need=='ps')) then
        call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'ps' ,ges_ps ,istatus )
-       call GSI_BundleGetPointer ( GSI_MetGuess_Bundle(it), 'delp' ,ges_delp ,istatus )
-       ges_prsi(:,:,nsig+1,it)=eta1_ll(nsig+1)
-       do i=nsig,1,-1
-         ges_prsi(:,:,i,it)=ges_delp(:,:,i)+ges_prsi(:,:,i+1,it)
-       enddo
        ges_ps(:,:)=ges_prsi(:,:,1,it)
        where(need=='ps')
           need='filled-'//need
