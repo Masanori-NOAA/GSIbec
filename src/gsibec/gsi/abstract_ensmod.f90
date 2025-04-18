@@ -65,7 +65,7 @@ module abstract_ensmod
   end interface
 
   abstract interface
-    subroutine get_user_ens(this,grd,member,nymd,nhms,tau,atm_bundle,iret)
+    subroutine get_user_ens(this,grd,member,ntindex,atm_bundle,iret)
       use m_kinds, only: i_kind
       use general_sub2grid_mod, only: sub2grid_info
       use gsi_bundlemod, only: gsi_bundle
@@ -74,15 +74,14 @@ module abstract_ensmod
       class(abstractEnsemble), intent(inout) :: this
       type(sub2grid_info), intent(in   ) :: grd
       integer(i_kind),     intent(in   ) :: member
-      integer(i_kind),     intent(in   ) :: nymd,nhms
-      integer(i_kind),     intent(in   ) :: tau
+      integer(i_kind),     intent(in   ) :: ntindex
       type(gsi_bundle),    intent(inout) :: atm_bundle
       integer(i_kind),     intent(  out) :: iret
     end subroutine get_user_ens
   end interface
 
   abstract interface
-    subroutine get_user_Nens(this,grd,members,nymd,nhms,tau,atm_bundle,iret)
+    subroutine get_user_Nens(this,grd,members,ntindex,atm_bundle,iret)
       use m_kinds, only: i_kind
       use general_sub2grid_mod, only: sub2grid_info
       use gsi_bundlemod, only: gsi_bundle
@@ -91,8 +90,7 @@ module abstract_ensmod
       class(abstractEnsemble), intent(inout) :: this
       type(sub2grid_info), intent(in   ) :: grd
       integer(i_kind),     intent(in   ) :: members
-      integer(i_kind),     intent(in   ) :: nymd,nhms
-      integer(i_kind),     intent(in   ) :: tau
+      integer(i_kind),     intent(in   ) :: ntindex
       type(gsi_bundle),    intent(inout) :: atm_bundle(:)
       integer(i_kind),     intent(  out) :: iret
     end subroutine get_user_Nens

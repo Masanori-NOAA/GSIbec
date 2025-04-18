@@ -3,7 +3,7 @@
 !-------------------------------------------------------------------------
 !BOP
 !
-! !MODULE:  mpimod --- GSI Module containing mpi related variables
+! !MODULE:  m_mpimod --- GSI Module containing mpi related variables
 !
 ! !INTERFACE:
 !
@@ -47,7 +47,7 @@ module m_mpimod
   use mpeu_mpif, only : mpi_logical
   use mpeu_mpif, only : mpi_character
 #ifndef HAVE_ESMF
-  use mpeu_mpif, only : mpi_comm_world
+  use mpeu_mpif, only : gsi_mpi_comm_world
   use mpeu_mpif, only : gsi_mpi_comm_world
 #endif /* HAVE_ESMF */
 #endif
@@ -77,7 +77,7 @@ module m_mpimod
 !   2009-04-21  derber - add communications for strong balance constraint (bal)
 !                        and unified uv (vec) transformation
 !   2010-04-01  treadon - remove routines reorder, reorder2, strip_single, strip,
-!                         vectosub, reload, and strip_periodic from mpimod - these
+!                         vectosub, reload, and strip_periodic from m_mpimod - these
 !                         routines are now found in gridmod
 !   2010-05-23  todling - nvarbal_id no longer wired to 1,2,3,4, rather linked
 !                         to where fields are in control vector
@@ -124,7 +124,7 @@ module m_mpimod
   integer(i_kind) :: gsi_mpi_comm_world
 #endif
 #ifdef HAVE_ESMF
-  integer(i_kind) :: mpi_comm_world
+  integer(i_kind) :: gsi_mpi_comm_world
 #endif
 
 #if defined(ibm_sp) || defined(_JEDI_)

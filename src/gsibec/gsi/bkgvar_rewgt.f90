@@ -75,7 +75,6 @@ subroutine bkgvar_rewgt(sfvar,vpvar,tvar,psvar,mype)
   real(r_kind),dimension(nsig):: max_dz,max_dd,max_dt,max_dz0,max_dd0,&
        max_dt0,rmax_dz0,rmax_dd0,rmax_dt0
   real(r_kind) max_dps,max_dps0,rmax_dps0
-  real(r_kind) isend(1),irec(1)
   integer(i_kind) i,j,k,l,nsmth,mm1,nf,ier,istatus
 
   real(r_kind),dimension(:,:  ),pointer::ges_ps_01 =>NULL()
@@ -100,7 +99,7 @@ subroutine bkgvar_rewgt(sfvar,vpvar,tvar,psvar,mype)
   balt   =zero ; bald    =zero ; balps =zero
 
 ! Set count to number of global grid points in quad precision
-  fcount = float(nlat)*float(nlon)
+  fcount = real(nlat*nlon,r_kind)
 
 ! Set parameter for communication
   mm1=mype+1
@@ -223,15 +222,15 @@ subroutine bkgvar_rewgt(sfvar,vpvar,tvar,psvar,mype)
   do k=1,nsig
      do j=1,lon2
         do i=1,lat2
-           delpsi(i,j,k)=sqrt( delpsi(i,j,k)**two )
-           delchi(i,j,k)=sqrt( delchi(i,j,k)**two )
-           deltv (i,j,k)=sqrt( deltv (i,j,k)**two )
+           delpsi(i,j,k)=abs( delpsi(i,j,k) )
+           delchi(i,j,k)=abs( delchi(i,j,k) )
+           deltv (i,j,k)=abs( deltv (i,j,k) )
         end do
      end do
   end do
   do j=1,lon2
      do i=1,lat2
-        delps(i,j)=sqrt( delps(i,j)**two )
+        delps(i,j)=abs( delps(i,j) )
      end do
   end do
 
@@ -286,9 +285,7 @@ subroutine bkgvar_rewgt(sfvar,vpvar,tvar,psvar,mype)
   call mpi_allreduce(max_dz,max_dz0,nsig,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
   call mpi_allreduce(max_dd,max_dd0,nsig,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
   call mpi_allreduce(max_dt,max_dt0,nsig,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
-  isend(1)=max_dps
-  call mpi_allreduce(isend,irec,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
-  max_dps0=irec(1)
+  call mpi_allreduce(max_dps,max_dps0,1,mpi_rtype,mpi_max,gsi_mpi_comm_world,ierror)
 
 ! Reintegrate quad precision number and sum over all mpi tasks  
   mean_dz =zero_quad ; mean_dd=zero_quad ; mean_dt=zero_quad
@@ -668,7 +665,6 @@ subroutine gather_stuff2(f,g,mype,outpe)
 !$$$
   use m_kinds, only: r_kind,i_kind
   use m_mpimod, only: mpi_rtype,gsi_mpi_comm_world,ierror
-  use m_mpimod, only: mpi_real8
   use general_commvars_mod, only: g1
   implicit none
 

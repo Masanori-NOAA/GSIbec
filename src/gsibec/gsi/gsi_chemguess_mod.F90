@@ -207,7 +207,7 @@ module gsi_chemguess_mod
 !
 ! !DESCRIPTION: Module to handle chemistry fields, tracers, and aerosols.
 !               This still uses wired-in type arrays to hold the guess. Soon
-!               we''ll generalize this.
+!               we'll generalize this.
 !
 ! !REMARKS:
 !   1. VERY IMPORTANT: No object from this file is to be make
@@ -281,7 +281,7 @@ type(GSI_Bundle),pointer :: GSI_ChemGuess_Bundle(:)   ! still a common for now
 !
 !   20Apr2010 Todling  Initial code.
 !   03May2010 Treadon - add iostat error check to ibm_sp read(lu,chemguess) in init_
-!   19May2010 Todling - porter Hou''s igfsco2 flag from setup namelist to this namelist
+!   19May2010 Todling - porter Hou's igfsco2 flag from setup namelist to this namelist
 !   30May2010 Todling - remove namelist; revamp the way fields/info read in (i90-style)
 !   25Jun2010 Treadon - consistently intialize ivar; check/use length of desc (gsi_chemguess_get)
 !   07Oct2010 Todling - add entry usrname to differentiate gsi-names w/ in-file names
@@ -316,7 +316,7 @@ character(len=MAXSTR),allocatable :: usrname3d(:)  ! chem user-defined (original
 character(len=MAXSTR),allocatable :: usrname2d(:)  ! chem user-defined (original) 2d name (in file)
 character(len=MAXSTR),allocatable :: usrname(:)    ! chem user-defined (original) name (in file)
 integer(i_kind),allocatable,dimension(:) :: i4crtm ! controls use of gas in CRTM:
-                                                   ! < 0 don''t use in CRTM
+                                                   ! < 0 don't use in CRTM
                                                    ! = 0 use predefined global mean co2 mixing ration
                                                    ! = 1 use gfs yearly global annual mean historical co2 value
                                                    ! = 2 use gfs monthly horizontal 2-d historical co2 value
@@ -336,12 +336,11 @@ contains
 !
 ! !INTERFACE:
 !
-subroutine init_ (iamroot,rcname)
+subroutine init_ (iamroot)
 ! USES:
 implicit none
 ! !INPUT PARAMETER:
    logical,optional,intent(in) :: iamroot 
-   character(len=*),optional,intent(in) :: rcname 
 ! !DESCRIPTION: Define contents of Chem Bundle through rc file (typilcally
 !               embedded in anavinfo text file.
 !
@@ -359,8 +358,8 @@ implicit none
 !EOP
 !-------------------------------------------------------------------------
 !BOC
-!character(len=*),parameter:: rcname_def='anavinfo.txt'
-character(len=*),parameter:: rcname_def='anavinfo'  ! filename should have extension
+!character(len=*),parameter:: rcname='anavinfo.txt'
+character(len=*),parameter:: rcname='anavinfo'  ! filename should have extension
 character(len=*),parameter:: tbname='chem_guess::'
 integer(i_kind) luin,i,ii,ntot,icrtmuse
 character(len=256),allocatable,dimension(:):: utable
@@ -377,11 +376,7 @@ if(present(iamroot)) iamroot_=iamroot
 
 ! load file
 luin=get_lun()
-if(present(rcname)) then
-  open(luin,file=rcname,form='formatted')
-else
-  open(luin,file=rcname_def,form='formatted')
-endif
+open(luin,file=rcname,form='formatted')
 
 ! Scan file for desired table first
 ! and get size of table
@@ -922,7 +917,7 @@ end subroutine final_
 !   2010-04-10  todling  initial code
 !   2011-04-06  ho-chung fix return status code
 !   2011-05-17  todling  protect against use of unavailable label
-!   2012-05-12  todling  fix to return aero-4crtm of all aero''s
+!   2012-05-12  todling  fix to return aero-4crtm of all aero's
 !
 ! !REMARKS:
 !   language: f90

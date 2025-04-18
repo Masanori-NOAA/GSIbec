@@ -71,7 +71,7 @@ subroutine rfdpar1(be,rate,m)
   cof=zero
   cof(0)=one
   do i=1,m
-     cof(i)=half*cof(i-1)/float(i)
+     cof(i)=half*cof(i-1)/real(i,r_kind)
   enddo
 ! Locate the m roots of this polynomial:
   call zroots(cof,m,croot,polish)
@@ -142,7 +142,7 @@ subroutine rfdpar2(be,rate,turn,samp,m)
 ! program history log:
 !   1998-01-01  purser
 !   2004-06-23  purser - added documentation
-!   2011-07-03  todling - use mathkinds for math-intrisic
+!   2011-07-03  todling - use mathm_kinds for math-intrisic
 !
 !   input argument list:
 !     be   - Recursive filter coefficients listed by characteristic modes
@@ -535,7 +535,7 @@ subroutine zroots(a,m,roots,polish)
 !   2004-06-23  purser  - added documentation
 !   2004-10-28  treadon - replace "tiny" with "tiny_r_kind"
 !   2005-03-29  treadon - define small = sqrt(tiny_r_kind)
-!   2011-07-03  todling - use mathkinds for math-intrisic
+!   2011-07-03  todling - use mathm_kinds for math-intrisic
 !
 !   input argument list:
 !     a    - complex array of m+1 polynomial coefficients

@@ -47,7 +47,7 @@ module general_sub2grid_mod
 !                             lnames:    optional level index for each variable (assigned as user desires)
 !                             names:     optional names for each variable (assigned as desired)
 !   2012-06-25  parrish  - add subroutine general_sub2grid_destroy_info.
-!   2013-08-03  todling  - protect write-out with verbose (set to false)
+!   2013-08-03  todling  - protect write-out with print_verbose (set to false)
 !   2013-10-25  todling  - nullify work pointers
 !   2014-12-03  derber   - optimization changes
 !
@@ -84,10 +84,12 @@ module general_sub2grid_mod
 ! set passed variables to public
    public :: sub2grid_info
    public :: general_deter_subdomain_withLayout ! TEMPORARY _RT
+   public :: general_deter_subdomain_nolayout 
 
    interface general_sub2grid
      module procedure general_sub2grid_r_single_rank11
      module procedure general_sub2grid_r_single_rank14
+     module procedure general_sub2grid_r_single_rank13
      module procedure general_sub2grid_r_single_rank4
      module procedure general_sub2grid_r_double_rank11
      module procedure general_sub2grid_r_double_rank14
@@ -98,6 +100,7 @@ module general_sub2grid_mod
      module procedure general_grid2sub_r_single_rank11
      module procedure general_grid2sub_r_single_rank41
      module procedure general_grid2sub_r_single_rank4
+     module procedure general_grid2sub_r_single_rank31
      module procedure general_grid2sub_r_double_rank11
      module procedure general_grid2sub_r_double_rank41
      module procedure general_grid2sub_r_double_rank4
@@ -199,16 +202,18 @@ module general_sub2grid_mod
       integer(i_kind),pointer :: lnames(:,:)    => null()    !  optional level index for each variable
       character(64),pointer   :: names(:,:)     => null()    !  optional variable names
       logical:: lallocated = .false.
+    
 
    end type sub2grid_info
 
+   logical :: print_verbose=.false.
 
 !  other declarations  ...
 
    contains
 
    subroutine general_sub2grid_create_info(s,inner_vars,nlat,nlon,nsig,num_fields,regional, &
-                                           vector,names,lnames,nskip,s_ref,verbose)
+                                           vector,names,lnames,nskip,s_ref)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    general_sub2grid_create_info populate info variable s
@@ -266,7 +271,6 @@ module general_sub2grid_mod
 !$$$
       use m_kinds, only: r_single
       use m_mpimod, only: gsi_mpi_comm_world
-      use m_mpimod, only: mype
       implicit none
 
       type(sub2grid_info),     intent(inout) :: s
@@ -277,16 +281,10 @@ module general_sub2grid_mod
       integer(i_kind),optional,intent(in   ) :: lnames(inner_vars,num_fields)
       integer(i_kind),optional,intent(in   ) :: nskip
       type(sub2grid_info),optional,intent(inout) :: s_ref
-      logical,        optional,intent(in   ) :: verbose
 
       integer(i_kind) i,ierror,j,k,num_loc_groups,nextra,mm1,n,ns,npe_used,iadd
       integer(i_kind),allocatable:: idoit(:)
-      logical :: verbose_
 
-      verbose_=.false.
-      if(present(verbose)) then
-         verbose_=verbose
-      endif
       call mpi_comm_size(gsi_mpi_comm_world,s%npe,ierror)
       call mpi_comm_rank(gsi_mpi_comm_world,s%mype,ierror)
       s%inner_vars=inner_vars
@@ -327,8 +325,7 @@ module general_sub2grid_mod
 
 !      first determine subdomains
       call general_deter_subdomain(s%npe,s%mype,s%nlat,s%nlon,regional, &
-            s%periodic,s%periodic_s,s%lon1,s%lon2,s%lat1,s%lat2,s%ilat1,s%istart,s%jlon1,s%jstart,&
-            verbose_)
+            s%periodic,s%periodic_s,s%lon1,s%lon2,s%lat1,s%lat2,s%ilat1,s%istart,s%jlon1,s%jstart)
       s%latlon11=s%lat2*s%lon2
       s%latlon1n=s%latlon11*s%nsig
 
@@ -436,9 +433,9 @@ module general_sub2grid_mod
 !      next, determine vertical layout:
       allocate(idoit(0:s%npe-1))
       if(.not.present(nskip).and.s%num_fields<s%npe) then
-         call get_iuse_pe(s%npe,s%num_fields,idoit,verbose_)
+         call get_iuse_pe(s%npe,s%num_fields,idoit)
          npe_used=s%num_fields
-         if(s%mype==0.and.verbose_) &
+         if(s%mype==0.and.print_verbose) &
            write(6,*)' npe,num_fields,npe_used,idoit=',s%npe,s%num_fields,npe_used,idoit
       else
          idoit=0
@@ -449,11 +446,7 @@ module general_sub2grid_mod
          end do
       end if
       allocate(s%kbegin(0:s%npe),s%kend(0:s%npe-1))
-      if (npe_used/= 0) then ! _RT bug fix?
-         num_loc_groups=s%num_fields/npe_used
-      else
-         num_loc_groups=0
-      endif
+      num_loc_groups=s%num_fields/npe_used
       nextra=s%num_fields-num_loc_groups*npe_used
       s%kbegin(0)=1
       k=0
@@ -466,7 +459,7 @@ module general_sub2grid_mod
       do k=0,s%npe-1
          s%kend(k)=s%kbegin(k+1)-1
       end do
-      if(s%mype == 0.and.verbose_) then
+      if(s%mype == 0.and.print_verbose) then
          do k=0,s%npe-1
             write(6,*)' in general_sub2grid_create_info, k,kbegin,kend,nlevs_loc,nlevs_alloc=', &
                k,s%kbegin(k),s%kend(k),s%kend(k)-s%kbegin(k)+1,max(s%kbegin(k),s%kend(k))-s%kbegin(k)+1
@@ -511,7 +504,7 @@ module general_sub2grid_mod
 
    end subroutine general_sub2grid_create_info
 
-subroutine get_iuse_pe(npe,nz,iuse_pe,verbose)
+subroutine get_iuse_pe(npe,nz,iuse_pe)
 
   use constants, only: one,zero
   use m_mpimod, only: mype
@@ -519,7 +512,6 @@ subroutine get_iuse_pe(npe,nz,iuse_pe,verbose)
 
   integer(i_kind),intent(in) ::npe,nz
   integer(i_kind),intent(out)::iuse_pe(0:npe-1)
-  logical,        intent(in) :: verbose
 
   integer(i_kind) i,icount,nskip,ipoint
   real(r_kind) :: point,skip2
@@ -531,7 +523,7 @@ subroutine get_iuse_pe(npe,nz,iuse_pe,verbose)
      else                    
         nskip=npe-nz
         if(nskip > 0)then
-          skip2=float(npe)/float(nskip)
+          skip2=real(npe,r_kind)/real(nskip,r_kind)
           point=zero
           do i=1,nskip
             ipoint=min(max(0,nint(point)),npe) 
@@ -547,7 +539,7 @@ subroutine get_iuse_pe(npe,nz,iuse_pe,verbose)
            write(6,*)' get_pe2 - inconsistent icount,nz ',nz,icount,'program stops',npe,skip2
            call stop2(999)
         end if
-        if(mype == 0 .and. verbose)write(6,*) ' in get_pe2 ',nz,icount,npe,skip2
+        if(mype == 0 .and. print_verbose)write(6,*) ' in get_pe2 ',nz,icount,npe,skip2
    
      end if
      return
@@ -578,10 +570,11 @@ end subroutine get_iuse_pe
 !   machine:  ibm RS/6000 SP
 !
 !$$$
+      use m_mpimod, only: gsi_mpi_comm_world
       implicit none
 
       type(sub2grid_info),     intent(inout) :: s
-      type(sub2grid_info),optional,intent(inout) :: s_ref
+      type(sub2grid_info),optional,intent(in) :: s_ref
 
       if(s%lallocated) then
          deallocate(s%periodic_s,s%vector,s%ilat1,s%jlon1,s%istart,s%jstart,s%recvcounts,s%displs_g)
@@ -589,19 +582,12 @@ end subroutine get_iuse_pe
          deallocate(s%irc_s,s%ird_s,s%isc_g,s%isd_g,s%displs_s,s%rdispls_s,s%sendcounts_s,s%sdispls_s)
          deallocate(s%ijn_s,s%kbegin,s%kend,s%lnames,s%names)
          if(present(s_ref)) then
-!           s_ref%ltosj   => NULL()
-!           s_ref%ltosi   => NULL()
-!           s_ref%ltosj_s => NULL()
-!           s_ref%ltosi_s => NULL()
-            if(associated(s_ref%ltosj_s)) deallocate(s_ref%ltosj_s)
-            if(associated(s_ref%ltosi_s)) deallocate(s_ref%ltosi_s)
-            if(associated(s_ref%ltosj)) deallocate(s_ref%ltosj)
-            if(associated(s_ref%ltosi)) deallocate(s_ref%ltosi)
+            s%ltosj   => NULL()
+            s%ltosi   => NULL()
+            s%ltosj_s => NULL()
+            s%ltosi_s => NULL()
          else
-            if(associated(s%ltosj_s)) deallocate(s%ltosj_s)
-            if(associated(s%ltosi_s)) deallocate(s%ltosi_s)
-            if(associated(s%ltosj)) deallocate(s%ltosj)
-            if(associated(s%ltosi)) deallocate(s%ltosi)
+            deallocate(s%ltosj,s%ltosi,s%ltosj_s,s%ltosi_s)
          end if
          s%lallocated=.false.
       end if
@@ -609,8 +595,7 @@ end subroutine get_iuse_pe
    end subroutine general_sub2grid_destroy_info
 
    subroutine general_deter_subdomain(npe,mype,nlat,nlon,regional, &
-                    periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart,&
-                    verbose)
+                    periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    deter_subdomain          perform domain decomposition
@@ -626,7 +611,7 @@ end subroutine get_iuse_pe
 ! program history log:
 !   2006-06-28  da Silva - added option to perform an ESMF-like
 !                          domain decomposition based on a layout.
-!                          If no layout is defined in mpimod then
+!                          If no layout is defined in m_mpimod then
 !                          it reverts back to NCEP's original algorithm.
 !   2011-04-07 todling   - embed in this package; update argument list
 !
@@ -641,7 +626,7 @@ end subroutine get_iuse_pe
 !
 !$$$
   use m_kinds, only: i_kind
-  use m_mpimod, only: nxPE, nyPE
+  use m_mpimod, only: nxpe, nype
   use mpeu_util, only: die
   implicit none
 
@@ -651,7 +636,6 @@ end subroutine get_iuse_pe
   logical        ,intent(  out) :: periodic,periodic_s(npe)
   integer(i_kind),intent(  out) :: lon1,lon2,lat1,lat2
   integer(i_kind),intent(  out) :: ilat1(npe),istart(npe),jlon1(npe),jstart(npe)
-  logical        ,intent(in   ) :: verbose
 
   character(len=*), parameter :: myname_='general_deter_subdomain'
 ! integer(i_kind)  :: npe2,npsqrt
@@ -665,20 +649,20 @@ end subroutine get_iuse_pe
 ! end if
 ! If a layout is provided, use it for the domain decomposition
 ! ------------------------------------------------------------
-  if ( nxPE > 0 .AND. nyPE > 0 ) then
+  if ( nxpe > 0 .AND. nype > 0 ) then
 
      if( npe/=nxpe*nype ) then
          call die(myname_,'NPE inconsistent from  NxPE NyPE ',npe)
      endif
-     call general_deter_subdomain_withLayout(npe,nxPE,nyPE,mype,nlat,nlon,regional, &
-                    periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart,verbose)
+     call general_deter_subdomain_withLayout(npe,nxpe,nype,mype,nlat,nlon,regional, &
+                    periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart)
 
 ! Otherwise, use NCEP original algorithm
 ! --------------------------------------
   else
 
      call general_deter_subdomain_nolayout(npe,mype,nlat,nlon,regional, &
-                    periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart,verbose)
+                    periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart)
 
   endif
 
@@ -688,8 +672,7 @@ end subroutine get_iuse_pe
 !BOP
 
   subroutine general_deter_subdomain_withLayout(npe,nxpe,nype,mype,nlat,nlon,regional, &
-                    periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart, &
-                    verbose)
+                    periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart)
 
 ! !USES:
 
@@ -705,7 +688,6 @@ end subroutine get_iuse_pe
   logical        ,intent(  out) :: periodic,periodic_s(npe)  ! ??
   integer(i_kind),intent(  out) :: lon1,lon2,lat1,lat2
   integer(i_kind),intent(  out) :: ilat1(npe),istart(npe),jlon1(npe),jstart(npe)
-  logical,        intent(in   ) :: verbose
 
 
 ! !OUTPUT PARAMETERS:
@@ -780,6 +762,16 @@ end subroutine get_iuse_pe
      END DO
   END DO
 
+  if ( print_verbose ) then
+     do k=1,nxpe*nype
+        if(mype == 0) &
+             write(6,100) k,istart(k),jstart(k),ilat1(k),jlon1(k)
+     end do
+  end if
+
+100 format('general_DETER_SUBDOMAIN_withlayout:  task,istart,jstart,ilat1,jlon1=',5(i6,1x))
+  
+        
 ! Set number of latitude and longitude for given subdomain
   mm1=mype+1
   lat1=ilat1(mm1)
@@ -787,15 +779,6 @@ end subroutine get_iuse_pe
   lat2=lat1+2
   lon2=lon1+2
 !@  periodic=periodic_s(mm1)
-
-  if ( verbose ) then
-     do k=1,nxpe*nype
-!       if(mype == 0) &
-             write(6,100) k,istart(k),jstart(k),ilat1(k),jlon1(k),lat1*lon1
-     end do
-  end if
-100 format('general_DETER_SUBDOMAIN_withlayout:  task,istart,jstart,ilat1,jlon1=',6(i6,1x))
-  
 
   return
 
@@ -842,8 +825,7 @@ end subroutine get_iuse_pe
    end subroutine get_local_dims_
 
    subroutine general_deter_subdomain_nolayout(npe,mype,nlat,nlon,regional, &
-                    periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart,&
-                    verbose)
+                    periodic,periodic_s,lon1,lon2,lat1,lat2,ilat1,istart,jlon1,jstart)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    general_deter_subdomain_nolayout   perform domain decomposition
@@ -885,7 +867,6 @@ end subroutine get_iuse_pe
       logical        ,intent(  out) :: periodic,periodic_s(npe)
       integer(i_kind),intent(  out) :: lon1,lon2,lat1,lat2
       integer(i_kind),intent(  out) :: ilat1(npe),istart(npe),jlon1(npe),jstart(npe)
-      logical,        intent(in   ) :: verbose
 
 !     Declare local variables
       integer(i_kind) npts,nrnc,iinum,iileft,jrows,jleft,k,i,jjnum
@@ -899,8 +880,7 @@ end subroutine get_iuse_pe
 !     Compute number of points on full grid and target number of
 !     point per mpi task (pe)
       npts=nlat*nlon
-      anperpe=float(npts)/float(npe)
-
+      anperpe=real(npts,r_kind)/real(npe,r_kind)
 !     Start with square subdomains
       nrnc=sqrt(anperpe)
       iinum=nlon/nrnc
@@ -936,7 +916,7 @@ end subroutine get_iuse_pe
                periodic=.true.
                periodic_s(k)=.true.
             endif
-            if(mype == 0 .and. verbose) &
+            if(mype == 0 .and. print_verbose) &
                  write(6,100) k-1,istart(k),jstart(k),ilat1(k),jlon1(k)
          end do
       end do
@@ -1042,13 +1022,100 @@ end subroutine get_iuse_pe
 
    end subroutine general_sub2grid_r_single_rank14
 
+   subroutine general_sub2grid_r_single_rank13(s,sub_vars,grid_vars)
+!$$$  subprogram documentation block
+!                .      .    .                                       .
+! subprogram:    general_sub2grid_r_single_rank4  convert from subdomains to full horizontal grid
+!   prgmmr: parrish          org: np22                date: 2010-02-11
+!
+! abstract: generalized version of sub2grid--uses only gsi module m_kinds.
+!              All information needed is contained in the structure variable
+!              "s", instead of various modules.  This allows
+!              for easy adaptation for any collection/ordering of variables
+!              defined on subdomains, which need to be made available on
+!              full horizontal grid for horizontal operations.
+!              The structure variable is specified by subroutine general_sub2grid_setup.
+!              This version works with single precision (4-byte) real variables.
+!              Input sub_vars, the desired arrays on horizontal subdomains, has one
+!              halo row, for now, which is filled with zero, since for ensemble use,
+!              there is no need for a halo, but is easiest for now to keep it.
+!              A later version will have variable number of halo rows, filled with proper values.
+!
+! program history log:
+!   2010-02-11  parrish, initial documentation
+!
+!   input argument list:
+!     s          - structure variable, contains all necessary information for
+!                    moving this set of subdomain variables sub_vars to
+!                    the corresponding set of full horizontal grid variables.
+!     sub_vars   - input grid values in vertical subdomain mode (contains one halo row)
+!
+!   output argument list:
+!     grid_vars  - output grid values in horizontal slab mode.
+!
+! attributes:
+!   language: f90
+!   machine:  ibm RS/6000 SP
+!
+!$$$
+      use m_mpimod, only: gsi_mpi_comm_world,mpi_real4
+      implicit none
+
+      type(sub2grid_info),intent(in   ) :: s
+      real(r_single),     intent(in   ) :: sub_vars(s%lat2*s%lon2*s%num_fields)
+      real(r_single),     intent(  out) :: grid_vars(s%nlat,s%nlon,s%kbegin_loc:s%kend_alloc)
+
+      real(r_single) :: sub_vars_r4(s%lat2,s%lon2,s%num_fields)
+      real(r_single) :: sub_vars0(s%lat1,s%lon1,s%num_fields)
+      real(r_single) :: work(s%itotsub*(s%kend_alloc-s%kbegin_loc+1)) 
+      integer(i_kind) iloc,iskip,i,i0,j,j0,k,n,k_in,ilat,jlon,ierror,ioffset
+
+      sub_vars_r4  =  reshape(sub_vars,(/s%lat2,s%lon2,s%num_fields/))
+!    remove halo row
+!$omp parallel do  schedule(dynamic,1) private(k,j,j0,i0,i)
+      do k=1,s%num_fields
+         do j=2,s%lon2-1
+            j0=j-1
+            do i=2,s%lat2-1
+               i0=i-1
+               sub_vars0(i0,j0,k)=sub_vars_r4(i,j,k)
+            end do
+         end do
+      end do
+
+      call mpi_alltoallv(sub_vars0,s%recvcounts,s%rdispls,mpi_real4, &
+                        work,s%sendcounts,s%sdispls,mpi_real4,gsi_mpi_comm_world,ierror)
+
+
+      k_in=s%kend_loc-s%kbegin_loc+1
+
+! Load grid_vars array in desired order
+!$omp parallel do  schedule(dynamic,1) private(k,iskip,iloc,n,i,ilat,jlon,ioffset)
+      do k=s%kbegin_loc,s%kend_loc
+         iskip=0
+         iloc=0
+         do n=1,s%npe
+            if (n/=1) then
+               iskip=iskip+s%ijn(n-1)*k_in
+            end if
+            ioffset=iskip+(k-s%kbegin_loc)*s%ijn(n)
+            do i=1,s%ijn(n)
+               iloc=iloc+1
+               ilat=s%ltosi(iloc)
+               jlon=s%ltosj(iloc)
+               grid_vars(ilat,jlon,k)=work(i + ioffset)
+            end do
+         end do
+      end do
+
+   end subroutine general_sub2grid_r_single_rank13
    subroutine general_sub2grid_r_single_rank4(s,sub_vars,grid_vars)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    general_sub2grid_r_single_rank4  convert from subdomains to full horizontal grid
 !   prgmmr: parrish          org: np22                date: 2010-02-11
 !
-! abstract: generalized version of sub2grid--uses only gsi module kinds.
+! abstract: generalized version of sub2grid--uses only gsi module m_kinds.
 !              All information needed is contained in the structure variable
 !              "s", instead of various modules.  This allows
 !              for easy adaptation for any collection/ordering of variables
@@ -1222,13 +1289,91 @@ end subroutine get_iuse_pe
 
    end subroutine general_grid2sub_r_single_rank41
 
+   subroutine general_grid2sub_r_single_rank31(s,grid_vars,sub_vars)
+!$$$  subprogram documentation block
+!                .      .    .                                       .
+! subprogram:    general_sub2grid  convert from subdomains to full horizontal grid
+!   prgmmr: parrish          org: np22                date: 2010-02-11
+!
+! abstract: generalized version of grid2sub--uses only gsi module m_kinds.
+!              All information needed is contained in the structure variable
+!              "s", instead of various modules.  This allows
+!              for easy adaptation for any collection/ordering of variables
+!              defined on subdomains, which need to be made available on
+!              full horizontal grid for horizontal operations.
+!              The structure variable is specified by subroutine general_sub2grid_setup.
+!              This version works with single precision (4-byte) real variables.
+!              Output sub_vars, the desired arrays on horizontal subdomains, has one 
+!              halo row, for now, which is filled with zero, since for ensemble use,
+!              there is no need for a halo, but is easiest for now to keep it.
+!              A later version will have variable number of halo rows, filled with proper values.
+!
+! program history log:
+!   2010-02-11  parrish, initial documentation
+!   2010-03-02  parrish - remove setting halo to zero in output
+!   2014-12-03  derber - make similar optimization changes already in code for
+!                      double precision.
+!
+!   input argument list:
+!     s          - structure variable, contains all necessary information for
+!                    moving this set of subdomain variables sub_vars to
+!                    the corresponding set of full horizontal grid variables.
+!     grid_vars  - input grid values in horizontal slab mode.
+!
+!   output argument list:
+!     sub_vars   - output grid values in vertical subdomain mode
+!
+! attributes:
+!   language: f90
+!   machine:  ibm RS/6000 SP
+!
+!$$$
+      use constants, only: zero
+      use m_mpimod, only: gsi_mpi_comm_world,mpi_real4
+      implicit none
+
+      type(sub2grid_info),intent(in   ) :: s
+      real(r_single), intent(in   )     :: grid_vars(s%nlat,s%nlon,s%kbegin_loc:s%kend_alloc)
+      real(r_single),     intent(  out) :: sub_vars(s%lat2*s%lon2*s%num_fields)
+
+      real(r_single) :: sub_vars_r4(s%lat2,s%lon2,s%num_fields)
+      real(r_single) :: temp(s%itotsub*(s%kend_loc-s%kbegin_loc+1))
+      integer(i_kind) iloc,i,ii,k,n,ilat,jlon,ierror,icount
+      integer(i_kind),dimension(s%npe) ::iskip
+
+!     reorganize for eventual distribution to local domains
+      iskip(1)=0
+      do n=2,s%npe
+        iskip(n)=iskip(n-1)+s%ijn_s(n-1)*(s%kend_loc-s%kbegin_loc+1)
+      end do
+!$omp parallel do  schedule(dynamic,1) private(n,k,i,jlon,ii,ilat,iloc,icount)
+      do k=s%kbegin_loc,s%kend_loc
+         icount=0
+         do n=1,s%npe
+            iloc=iskip(n)+(k-s%kbegin_loc)*s%ijn_s(n)
+            do i=1,s%ijn_s(n)
+               iloc=iloc+1
+               icount=icount+1
+               ilat=s%ltosi_s(icount)
+               jlon=s%ltosj_s(icount)
+               temp(iloc)=grid_vars(ilat,jlon,k)
+            end do
+         end do
+      end do
+
+
+      call mpi_alltoallv(temp,s%sendcounts_s,s%sdispls_s,mpi_real4, &
+                        sub_vars_r4,s%recvcounts_s,s%rdispls_s,mpi_real4,gsi_mpi_comm_world,ierror)
+
+      sub_vars  =  reshape(sub_vars_r4,(/s%lat2*s%lon2*s%num_fields/))
+   end subroutine general_grid2sub_r_single_rank31
    subroutine general_grid2sub_r_single_rank4(s,grid_vars,sub_vars)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    general_sub2grid  convert from subdomains to full horizontal grid
 !   prgmmr: parrish          org: np22                date: 2010-02-11
 !
-! abstract: generalized version of grid2sub--uses only gsi module kinds.
+! abstract: generalized version of grid2sub--uses only gsi module m_kinds.
 !              All information needed is contained in the structure variable
 !              "s", instead of various modules.  This allows
 !              for easy adaptation for any collection/ordering of variables
@@ -1398,7 +1543,7 @@ end subroutine get_iuse_pe
 ! subprogram:    general_sub2grid_r_double_rank4  convert from subdomains to full horizontal grid
 !   prgmmr: parrish          org: np22                date: 2010-02-11
 !
-! abstract: generalized version of sub2grid--uses only gsi module kinds.
+! abstract: generalized version of sub2grid--uses only gsi module m_kinds.
 !              All information needed is contained in the structure variable
 !              "s", instead of various modules.  This allows
 !              for easy adaptation for any collection/ordering of variables
@@ -1578,7 +1723,7 @@ end subroutine get_iuse_pe
 ! subprogram:    general_grid2sub_r_double_rank4  convert from subdomains to full horizontal grid
 !   prgmmr: parrish          org: np22                date: 2010-02-11
 !
-! abstract: generalized version of grid2sub--uses only gsi module kinds.
+! abstract: generalized version of grid2sub--uses only gsi module m_kinds.
 !              All information needed is contained in the structure variable
 !              "s", instead of various modules.  This allows
 !              for easy adaptation for any collection/ordering of variables

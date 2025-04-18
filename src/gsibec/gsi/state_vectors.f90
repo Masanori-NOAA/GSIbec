@@ -50,7 +50,6 @@ use constants, only: one,zero,zero_quad,max_varname_length
 use m_mpimod, only: mype
 !use file_utility, only : get_lun
 use mpeu_util, only: get_lun => luavail
-use mpeu_util, only: warn
 use mpl_allreducemod, only: mpl_allreduce,mpl_reduce
 use GSI_BundleMod, only : GSI_BundleCreate
 use GSI_BundleMod, only : GSI_Bundle
@@ -64,8 +63,7 @@ use GSI_BundleMod, only : GSI_Grid
 use GSI_BundleMod, only : GSI_GridCreate
 
 use mpeu_util, only: gettablesize
-use mpeu_util, only: gettable
-use mpeu_util, only: perr,die
+use mpeu_util, only: gettable,getindex
 
 implicit none
 
@@ -86,6 +84,8 @@ private
   public  svars
   public  levels
   public  ns2d,ns3d,nsdim
+  public  qgpresent,qspresent,qrpresent,qipresent,qlpresent
+  public  cldchpresent,lcbaspresent,howvpresent,wspd10mpresent,pblhpresent,vispresent,gustpresent
 
 ! State vector definition
 ! Could contain model state fields plus other fields required
@@ -104,6 +104,8 @@ character(len=max_varname_length),allocatable,dimension(:) :: svars3d
 character(len=max_varname_length),allocatable,dimension(:) :: svars2d
 integer(i_kind)                  ,allocatable,dimension(:) :: levels
 
+logical qgpresent,qspresent,qrpresent,qipresent,qlpresent
+logical cldchpresent,lcbaspresent,howvpresent,wspd10mpresent,pblhpresent,vispresent,gustpresent
 
 ! ----------------------------------------------------------------------
 INTERFACE PRT_STATE_NORMS
@@ -160,6 +162,8 @@ subroutine setup_state_vectors(katlon11,katlon1n,kval_len,kat2,kon2,ksig)
   nsig=ksig
   latlon1n1=latlon1n+latlon11
 
+  llinit = .true.
+
   m_st_alloc=0
   max_st_alloc=0
   m_allocs=0
@@ -168,11 +172,10 @@ subroutine setup_state_vectors(katlon11,katlon1n,kval_len,kat2,kon2,ksig)
   return
 end subroutine setup_state_vectors
 ! ----------------------------------------------------------------------
-subroutine init_anasv(rcname)
+subroutine init_anasv
 implicit none
-character(len=*),optional,intent(in) :: rcname
-!character(len=*),parameter:: rcname_def='anavinfo.txt'
-character(len=*),parameter:: rcname_def='anavinfo'  ! filename should have extension
+!character(len=*),parameter:: rcname='anavinfo.txt'
+character(len=*),parameter:: rcname='anavinfo'  ! filename should have extension
 character(len=*),parameter:: tbname='state_vector::'
 integer(i_kind) luin,i,ii,ntot
 character(len=256),allocatable,dimension(:):: utable
@@ -180,18 +183,9 @@ character(len=20) var,source,funcof
 character(len=*),parameter::myname_=myname//'*init_anasv'
 integer(i_kind) ilev, itracer
 
-if(llinit) then
-  if(mype==0) call warn(myname_,': SV already initialized')
-  return
-endif
-
 ! load file
 luin=get_lun()
-if(present(rcname)) then
-  open(luin,file=trim(rcname),form='formatted')
-else
-  open(luin,file=rcname_def,form='formatted')
-endif
+open(luin,file=rcname,form='formatted')
 
 ! Scan file for desired table first
 ! and get size of table
@@ -256,21 +250,27 @@ if (mype==0) then
     write(6,*) myname_,':  3D-STATE VARIABLES ', svars3d
     write(6,*) myname_,': ALL STATE VARIABLES ', svars
 end if
-llinit = .true.
+qgpresent=getindex(svars3d,'qg')>0
+qspresent=getindex(svars3d,'qs')>0
+qrpresent=getindex(svars3d,'qr')>0
+qipresent=getindex(svars3d,'qi')>0
+qlpresent=getindex(svars3d,'ql')>0
+cldchpresent=getindex(svars2d,'cldch')>0
+lcbaspresent=getindex(svars2d,'lcbas')>0
+howvpresent=getindex(svars2d,'howv')>0
+wspd10mpresent=getindex(svars2d,'wspd10m')>0
+pblhpresent=getindex(svars2d,'pblh')>0
+vispresent=getindex(svars2d,'vis')>0
+gustpresent=getindex(svars2d,'gust')>0
 
 end subroutine init_anasv
 subroutine final_anasv
 implicit none
-integer :: istatus
-character(len=*),parameter :: myname_ = myname//'*final_anasv'
-deallocate(svars,stat=istatus)
-if(istatus/=0) call die(myname_)
-deallocate(svars3d,svars2d,levels,stat=istatus)
-if(istatus/=0) call die(myname_)
-llinit = .false.
+deallocate(svars)
+deallocate(svars3d,svars2d,levels)
 end subroutine final_anasv
 ! ----------------------------------------------------------------------
-subroutine allocate_state(yst,whocalled)
+subroutine allocate_state(yst)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    allocate_state
@@ -294,29 +294,17 @@ subroutine allocate_state(yst,whocalled)
 !$$$ end documentation block
   implicit none
   type(gsi_bundle), intent(inout) :: yst
-  character(len=*), optional, intent(in) :: whocalled
   type(gsi_grid) :: grid
   integer(i_kind) :: ierror
-  character(len=*), parameter :: myname_ = myname//'*allocate_state'
   character(len=80) :: bname
 
-  if(ns2d<0.and.ns3d<0) then
-    call die(myname_,': dims are not good ',ns2d+ns3d)
-  endif
   call GSI_GridCreate(grid,lat2,lon2,nsig)
   write(bname,'(a)') 'State Vector'
   call GSI_BundleCreate(yst,grid,bname,ierror, &
                         names2d=svars2d,names3d=svars3d,levels=levels,bundle_kind=r_kind)  
-  if(ierror/=0) then
-    call die(myname_,': error from create bundle',ierror)
-  endif
 
   if (yst%ndim/=nval_len) then
-     if (present(whocalled)) then
-     write(6,*) myname_,'>',trim(whocalled),': error length, (ndim,nval_len):', yst%ndim,nval_len,lat2,lon2,nsig
-     else
-     write(6,*) myname_,': error length, (ndim,nval_len):', yst%ndim,nval_len,lat2,lon2,nsig
-     endif
+     write(6,*)'allocate_state: error length'
      call stop2(313)
   end if
 
@@ -399,7 +387,7 @@ subroutine norms_vars(xst,pmin,pmax,psum,pnum)
 ! local variables
   real(r_kind),allocatable,dimension(:)   :: zloc,nloc
   real(r_kind),allocatable,dimension(:,:) :: zall,nall
-  integer(i_kind) :: i,ii
+  integer(i_kind) :: i
 
   pmin=zero
   pmax=zero
@@ -412,59 +400,32 @@ subroutine norms_vars(xst,pmin,pmax,psum,pnum)
   zloc=zero
 
 ! Independent part of vector
-! Sum
-  ii=0
+! Sum,Max,Min and number of points
+!$omp parallel do schedule(static,1) private(i)
   do i = 1,ns3d
-     ii=ii+1
      if(xst%r3(i)%mykind==r_single)then
-        zloc(ii)= sum_mask(xst%r3(i)%qr4,ihalo=1)
+        zloc(i)= sum_mask(xst%r3(i)%qr4,ihalo=1)
+        zloc(nvars+i)= minval(xst%r3(i)%qr4)
+        zloc(2*nvars+i)= maxval(xst%r3(i)%qr4)
      else
-        zloc(ii)= sum_mask(xst%r3(i)%q,ihalo=1)
+        zloc(i)= sum_mask(xst%r3(i)%q,ihalo=1)
+        zloc(nvars+i)= minval(xst%r3(i)%q)
+        zloc(2*nvars+i)= maxval(xst%r3(i)%q)
      endif
-     nloc(ii) = real((lat2-2)*(lon2-2)*levels(i), r_kind) ! dim of 3d fields
+     nloc(i) = real((lat2-2)*(lon2-2)*levels(i), r_kind) ! dim of 3d fields
   enddo
+!$omp parallel do schedule(static,1) private(i)
   do i = 1,ns2d
-     ii=ii+1
      if(xst%r2(i)%mykind==r_single)then
-        zloc(ii)= sum_mask(xst%r2(i)%qr4,ihalo=1)
+        zloc(ns3d+i)= sum_mask(xst%r2(i)%qr4,ihalo=1)
+        zloc(nvars+ns3d+i)= minval(xst%r2(i)%qr4)
+        zloc(2*nvars+ns3d+i)= maxval(xst%r2(i)%qr4)
      else
-        zloc(ii)= sum_mask(xst%r2(i)%q,ihalo=1)
+        zloc(ns3d+i)= sum_mask(xst%r2(i)%q,ihalo=1)
+        zloc(nvars+ns3d+i)= minval(xst%r2(i)%q)
+        zloc(2*nvars+ns3d+i)= maxval(xst%r2(i)%q)
      endif
-     nloc(ii) = real((lat2-2)*(lon2-2), r_kind)           ! dim of 2d fields
-  enddo
-! Min
-  do i = 1,ns3d
-     ii=ii+1
-     if(xst%r3(i)%mykind==r_single)then
-        zloc(ii)= minval(xst%r3(i)%qr4)
-     else
-        zloc(ii)= minval(xst%r3(i)%q)
-     endif
-  enddo
-  do i = 1,ns2d
-     ii=ii+1
-     if(xst%r2(i)%mykind==r_single)then
-        zloc(ii)= minval(xst%r2(i)%qr4)
-      else
-        zloc(ii)= minval(xst%r2(i)%q)
-     endif
-  enddo
-! Max
-  do i = 1,ns3d
-     ii=ii+1
-     if(xst%r3(i)%mykind==r_single)then
-        zloc(ii)= maxval(xst%r3(i)%qr4)
-     else
-        zloc(ii)= maxval(xst%r3(i)%q)
-     endif
-  enddo
-  do i = 1,ns2d
-     ii=ii+1
-     if(xst%r2(i)%mykind==r_single)then
-        zloc(ii)= maxval(xst%r2(i)%qr4)
-     else
-        zloc(ii)= maxval(xst%r2(i)%q)
-     endif
+     nloc(ns3d+i) = real((lat2-2)*(lon2-2), r_kind)           ! dim of 2d fields
   enddo
 
 ! Gather contributions
@@ -473,20 +434,12 @@ subroutine norms_vars(xst,pmin,pmax,psum,pnum)
   call mpi_allgather(nloc,size(nloc),mpi_rtype, &
                    & nall,size(nloc),mpi_rtype, gsi_mpi_comm_world,ierror)
 
-  ii=0
-  do i=1,ns3d
-     ii=ii+1
-     psum(ii)=SUM(zall(ii,:))
-     pnum(ii)=SUM(nall(ii,:))
-  enddo
-  do i=1,ns2d
-     ii=ii+1
-     psum(ii)=SUM(zall(ii,:))
-     pnum(ii)=SUM(nall(ii,:))
-  enddo
-  do ii=1,nvars
-     pmin(ii)=MINVAL(zall(  nvars+ii,:))
-     pmax(ii)=MAXVAL(zall(2*nvars+ii,:))
+!$omp parallel do schedule(static,1) private(i)
+  do i=1,nvars
+     psum(i)=SUM(zall(i,:))
+     pnum(i)=SUM(nall(i,:))
+     pmin(i)=MINVAL(zall(  nvars+i,:))
+     pmax(i)=MAXVAL(zall(2*nvars+i,:))
   enddo
 
 ! Release work space
@@ -602,7 +555,6 @@ real(r_quad) function dot_prod_st(xst,yst,which)
 !   2012-09-14  Syed RH Rizvi, NCAR/NESL/MMM/DAS - bug fix: for 
 !                                    if(xst%r3(i)%mykind==r_single .and. yst%r3(i)%mykind==r_single)
 !                                    if( present (which)), ipntx and ipnty indexes should be used and not i 
-!   2020-05-08  Todling - a litte more check on dims
 !
 !   input argument list:
 !    xst,yst
@@ -617,24 +569,16 @@ real(r_quad) function dot_prod_st(xst,yst,which)
 !$$$ end documentation block
   implicit none
   type(gsi_bundle)         , intent(in) :: xst, yst
-  character(len=*),optional, intent(in) :: which  ! variable name
+  character(len=*)  ,optional, intent(in) :: which  ! variable name
 
   real(r_quad),dimension(1) :: zz
-  integer(i_kind) :: i,ii,ipntx,ipnty,irkx,irky,ier,ist,n2d,n3d
+  integer(i_kind) :: i,ii,ipntx,ipnty,irkx,irky,ier,ist
 
   if (.not.present(which)) then
 
-     if(xst%n3d/=yst%n3d .or. xst%n2d/=yst%n2d) then
-       if(mype==0) &
-       write(6,*) 'dot_prod_st: improper dims (x,y)', xst%n3d,yst%n3d,xst%n2d,yst%n2d
-       call stop2(998)
-     else
-        n2d=xst%n2d
-        n3d=xst%n3d
-     endif
      zz(1)=zero_quad
      ii=0
-     do i = 1,n3d
+     do i = 1,ns3d
         ii=ii+1
         if(xst%r3(i)%mykind==r_single .and. yst%r3(i)%mykind==r_single)then
            zz(1)= zz(1)+dplevs(xst%r3(i)%qr4,yst%r3(i)%qr4,ihalo=1)
@@ -645,7 +589,7 @@ real(r_quad) function dot_prod_st(xst,yst,which)
            return
         endif
      enddo
-     do i = 1,n2d
+     do i = 1,ns2d
         ii=ii+1
         if(xst%r2(i)%mykind==r_single .and. yst%r2(i)%mykind==r_single)then
            zz(1)= zz(1)+dplevs(xst%r2(i)%qr4,yst%r2(i)%qr4,ihalo=1)
@@ -705,6 +649,7 @@ end function dot_prod_st
 ! ----------------------------------------------------------------------
 function dot_prod_st_r0(xst,yst,which) result(dotprod_red)
 !  Same as dot_prod_red_st_r0 except reduce to all processors.
+  use mpeu_util, only: perr,die
   implicit none
   type(gsi_bundle), intent(in) :: xst, yst
   character(len=*), optional    , intent(in) :: which  ! variable component name
@@ -725,6 +670,7 @@ end function dot_prod_st_r0
 ! ----------------------------------------------------------------------
 function dot_prod_st_r1(xst,yst,which) result(dotprod_red)
 !  Same as dot_prod_red_st_r1 except reduce to all processors.
+  use mpeu_util, only: perr,die
   implicit none
   type(gsi_bundle), dimension(:), intent(in) :: xst, yst
   character(len=*), optional    , intent(in) :: which  ! variable component name
@@ -753,6 +699,7 @@ end function dot_prod_st_r1
 ! ----------------------------------------------------------------------
 function dot_prod_red_st_r0(xst,yst,iroot,which) result(dotprod_red)
 !  Same as dot_prod_st_r0 except only reduce to one (iroot) processor.
+  use mpeu_util, only: perr,die
   implicit none
   type(gsi_bundle), intent(in) :: xst, yst
   character(len=*), optional    , intent(in) :: which  ! variable component name
@@ -775,6 +722,7 @@ end function dot_prod_red_st_r0
 ! ----------------------------------------------------------------------
 function dot_prod_red_st_r1(xst,yst,iroot,which) result(dotprod_red)
 !  Same as dot_prod_st_r1 except only reduce to one (iroot) processor.
+  use mpeu_util, only: perr,die
   implicit none
   type(gsi_bundle), dimension(:), intent(in) :: xst, yst
   character(len=*), optional    , intent(in) :: which  ! variable component name

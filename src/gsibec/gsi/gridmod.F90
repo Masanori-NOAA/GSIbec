@@ -14,8 +14,7 @@ module gridmod
   use m_kinds, only: i_byte,r_kind,r_single,i_kind
   use general_specmod, only: spec_vars,general_init_spec_vars,general_destroy_spec_vars
   use general_sub2grid_mod, only: sub2grid_info,general_sub2grid_create_info
-!_RT use omp_lib, only: omp_get_max_threads
-  use constants, only: kPa_per_Pa,Pa_per_kPa
+  use omp_lib, only: omp_get_max_threads
   use mpeu_util, only: die
   implicit none
 
@@ -50,7 +49,7 @@ module gridmod
 !   2010-03-30  treadon - move jcap, jcap_b, hires_b, and spectral transform initialization and
 !                         destroy from specmod to gridmod; add grd_a and grd_b structures
 !   2010-04-01  treadon - move routines reorder, reorder2, strip_single, strip,
-!                         vectosub, reload, and strip_periodic from mpimod to gridmod
+!                         vectosub, reload, and strip_periodic from m_mpimod to gridmod
 !   2010-07-19  lueken  - make required changes to use general_deter_subdomain
 !   2010-08-10  wu      - add number of types of vegetation for regional: nvege_type
 !   2010-09-08  parrish - introduce new more robust method for computing reference wind rotation angle
@@ -90,6 +89,11 @@ module gridmod
 !   2018-02-15  wu      - add fv3_regional & grid_ratio_fv3_regional
 !   2019-03-05  martin  - add wgtfactlats for factqmin/factqmax scaling
 !   2019-04-19  martin  - add use_fv3_aero option to distingiush between NGAC and FV3-Chem
+!   2019-09-04  martin  - add write_fv3_incr to write netCDF increment rather than analysis in NEMSIO format
+!   2019-09-23  martin  - add use_gfs_ncio to read global first guess from netCDF file
+!   2020-12-18  Hu      - add grid_type_fv3_regional
+!   2021-12-30  Hu      - add fv3_io_layout_y
+!   2022-03-01  X.Lu & X.Wang - add corresponding variables for dual ens for HAFS. POC: xuguang.wang@ou.edu
 !
 !                        
 !
@@ -109,8 +113,6 @@ module gridmod
   public :: init_subdomain_vars
   public :: create_grid_vars
   public :: destroy_grid_vars
-  public :: create_vgrid_vars
-  public :: destroy_vgrid_vars
   public :: init_reg_glob_ll
   public :: init_general_transform
   public :: tll2xy
@@ -129,7 +131,7 @@ module gridmod
   public :: vectosub
   public :: reload
   public :: strip_periodic
-  public :: gridmod_vgrid
+  public :: minmype
 
 ! set passed variables to public
   public :: nnnn1o,iglobal,itotsub,ijn,ijn_s,lat2,lon2,lat1,lon1,nsig,nsig_soil
@@ -145,14 +147,17 @@ module gridmod
   public :: regional_fhr,region_dyi,coeffx,region_dxi,coeffy,nsig_hlf,regional_fmin
   public :: nsig2,wgtlats,corlats,rbs2,ncepgfs_headv,regional_time,wgtfactlats
   public :: nlat_regional,nlon_regional,update_regsfc,half_grid,gencode
+  public :: nlat_regionalens,nlon_regionalens
   public :: diagnostic_reg,nmmb_reference_grid,filled_grid
   public :: grid_ratio_nmmb,isd_g,isc_g,dx_gfs,lpl_gfs,nsig5,nmmb_verttype
-  public :: grid_ratio_fv3_regional,fv3_regional
+  public :: grid_ratio_fv3_regional,fv3_io_layout_y,fv3_regional,fv3_cmaq_regional,grid_type_fv3_regional
+  public :: l_reg_update_hydro_delz
   public :: nsig3,nsig4,grid_ratio_wrfmass
   public :: use_gfs_ozone,check_gfs_ozone_date,regional_ozone,nvege_type
   public :: jcap,jcap_b,hires_b,sp_a,grd_a
   public :: jtstart,jtstop,nthreads
   public :: use_gfs_nemsio
+  public :: use_gfs_ncio
   public :: fv3_full_hydro  
   public :: use_fv3_aero
   public :: sfcnst_comb
@@ -160,10 +165,8 @@ module gridmod
   public :: jcap_gfs,nlat_gfs,nlon_gfs
   public :: use_sp_eqspace,jcap_cut
   public :: wrf_mass_hybridcord
- 
-  interface gridmod_vgrid
-     module procedure load_vert_coord_
-  end interface
+  public :: write_fv3_incr
+
   interface strip
      module procedure strip_single_rank33_
      module procedure strip_single_rank21_
@@ -179,6 +182,8 @@ module gridmod
 
   logical wrf_nmm_regional  !
   logical fv3_regional      ! .t. to run with fv3 regional model
+  logical fv3_cmaq_regional ! .t. to run with fv3_cmaq_regional model
+  logical l_reg_update_hydro_delz  ! .true. to update delz in fv3 model
   logical nems_nmmb_regional! .t. to run with NEMS NMMB model
   logical wrf_mass_regional !
   logical wrf_mass_hybridcord
@@ -194,15 +199,19 @@ module gridmod
   logical update_regsfc     !
   logical hires_b           ! .t. when jcap_b requires double FFT
   logical use_gfs_nemsio    ! .t. for using NEMSIO to real global first guess
+  logical use_gfs_ncio      ! .t. for using netCDF to real global first guess
   logical fv3_full_hydro    ! .t. for using NEMSIO to real global first guess
   logical use_fv3_aero      ! .t. for using FV3 Aerosols, .f. for NGAC
   logical sfcnst_comb       ! .t. for using combined sfc & nst file
   logical use_sp_eqspace    ! .t. use equally-space grid in spectral transforms
+  logical write_fv3_incr    ! .t. write netCDF increment rather than NEMSIO analysis
 
   logical use_readin_anl_sfcmask        ! .t. for using readin surface mask
   character(1) nmmb_reference_grid      ! ='H': use nmmb H grid as reference for analysis grid
                                         ! ='V': use nmmb V grid as reference for analysis grid
   real(r_kind) grid_ratio_fv3_regional  ! ratio of analysis grid to fv3 model grid in fv3 grid units.
+  integer(i_kind) fv3_io_layout_y       ! = io_layout(2) of fv3 regional model (subdomain y direction).
+  integer(i_kind) grid_type_fv3_regional! type of fv3 model grid (grid orientation).
   real(r_kind) grid_ratio_nmmb ! ratio of analysis grid to nmmb model grid in nmmb model grid units.
   real(r_kind) grid_ratio_wrfmass ! ratio of analysis grid to wrf model grid in wrf mass grid units.
   character(3) nmmb_verttype   !   'OLD' for old vertical coordinate definition
@@ -261,6 +270,7 @@ module gridmod
   integer(i_kind) jcap              ! spectral triangular truncation of ncep global analysis
   integer(i_kind) jcap_b            ! spectral triangular truncation of ncep global background
   integer(i_kind) nthreads          ! number of threads used (currently only used in calctends routines)
+  integer(i_kind) minmype           ! processor with minimum size subdomain
 
 
   logical periodic                              ! logical flag for periodic e/w domains
@@ -321,7 +331,7 @@ module gridmod
   real(r_kind) rlon_min_dd,rlon_max_dd,rlat_min_dd,rlat_max_dd
   real(r_kind) dt_ll,pdtop_ll,pt_ll
 
-  integer(i_kind) nlon_regional,nlat_regional
+  integer(i_kind) nlon_regional,nlat_regional,nlon_regionalens,nlat_regionalens
   real(r_kind) regional_fhr,regional_fmin
   integer(i_kind) regional_time(6)
   integer(i_kind) jcap_gfs,nlat_gfs,nlon_gfs
@@ -380,8 +390,6 @@ module gridmod
   type(spec_vars),save:: sp_a
   type(sub2grid_info),save:: grd_a
 
-  logical :: verbose = .false.
-
   character(len=*),parameter::myname='gridmod'
 contains
    
@@ -414,6 +422,8 @@ contains
 !   2016-08-28       li - tic591: add use_readin_anl_sfcmask for consistent sfcmask
 !                         between analysis grids and others
 !   2019-04-19  martin  - add use_fv3_aero option for NGAC vs FV3-Chem
+!   2019-09-23  martin  - add flag use_gfs_ncio to determine whether to use netCDF to read global first gues field
+!   2021-01-05  x.zhang/lei  - add code for updating delz analysis in regional da
 !
 ! !REMARKS:
 !   language: f90
@@ -425,7 +435,7 @@ contains
 !EOP
 !-------------------------------------------------------------------------
     use constants, only: one,two
-!   use gsi_io, only: verbose
+    use gsi_io, only: verbose
     implicit none
 
     integer(i_kind) k
@@ -435,14 +445,14 @@ contains
     nsig1o = 7
     nlat = 96
     nlon = 384
-    idvc5 = 2  ! RTodling: change default from 1 to 2
+    idvc5 = 1
     idvm5 = 0
     idpsfc5 = 1
     idthrm5 = 1
     idsl5 = 1
     ntracer = 1
     ncloud = 0
-    gencode = 82
+    gencode = 80
     regional = .false.
     periodic = .false.
     wrf_nmm_regional = .false.
@@ -450,6 +460,8 @@ contains
     wrf_mass_hybridcord = .false.
     cmaq_regional=.false.
     fv3_regional=.false.
+    fv3_cmaq_regional=.false.
+    l_reg_update_hydro_delz=.false.
     nems_nmmb_regional = .false.
     twodvar_regional = .false. 
     use_gfs_ozone = .false.
@@ -459,6 +471,8 @@ contains
     filled_grid = .false.
     half_grid = .false.
     grid_ratio_fv3_regional = one
+    fv3_io_layout_y = 1
+    grid_type_fv3_regional = 0
     grid_ratio_nmmb = sqrt(two)
     grid_ratio_wrfmass = one
     nmmb_reference_grid = 'H'
@@ -473,6 +487,8 @@ contains
     update_regsfc = .false.
     nlon_regional = 0
     nlat_regional = 0
+    nlon_regionalens = 0
+    nlat_regionalens = 0
 
     msig = nsig
     do k=1,size(nlayers)
@@ -491,6 +507,7 @@ contains
     nthreads = 1  ! initialize the number of threads
 
     use_gfs_nemsio  = .false.
+    use_gfs_ncio = .false.
     fv3_full_hydro  = .false. 
     use_fv3_aero  = .false.
     sfcnst_comb = .false.
@@ -520,6 +537,7 @@ contains
 
     use mpeu_util, only: getindex
     use general_specmod, only: spec_cut
+    use gsi_io, only: verbose
     use gsi_metguess_mod, only: gsi_metguess_get
     implicit none
 
@@ -540,7 +558,7 @@ contains
 !   2004-07-15  todling, protex-compliant prologue
 !   2005-06-01  treadon - add computation of msig
 !   2010-03-15  zhu - add nrf3 and nvars for generalized control variable
-!   2010-06-04  todling - revisit Zhu''s general CV settings, and vector fields
+!   2010-06-04  todling - revisit Zhu's general CV settings, and vector fields
 !   2010-11-08  treadon - call create_mapping; perform init_subdomain_vars initializations
 !   2012-15-04  todling - revisit call to general_init_spec_vars
 !
@@ -562,7 +580,7 @@ contains
     integer(i_kind) n3d,n2d,nvars,tid,nth
     integer(i_kind) ipsf,ipvp,jpsf,jpvp,isfb,isfe,ivpb,ivpe
     integer(i_kind) istatus,icw,iql,iqi
-    integer(i_kind) icw_cv,iql_cv,iqi_cv
+    integer(i_kind) icw_cv,iql_cv,iqi_cv,minmax
     logical,allocatable,dimension(:):: vector
     logical print_verbose
 
@@ -660,7 +678,7 @@ contains
 
     endif
     call general_sub2grid_create_info(grd_a,inner_vars,nlat,nlon,nsig,num_fields, &
-         regional,vector,verbose=print_verbose)
+         regional,vector)
     deallocate(vector)
 
 ! Set values from grd_a to pertinent gridmod variables 
@@ -675,6 +693,8 @@ contains
 
     periodic=grd_a%periodic
 
+    minmype=0
+    minmax=grd_a%ilat1(1)*grd_a%jlon1(1)
     do i=1,npe
        istart(i)    =grd_a%istart(i)
        jstart(i)    =grd_a%jstart(i)
@@ -687,15 +707,19 @@ contains
        displs_s(i)  =grd_a%displs_s(i)
        ijn(i)       =grd_a%ijn(i)
        displs_g(i)  =grd_a%displs_g(i)
+       if(grd_a%ilat1(i)*grd_a%jlon1(i)< minmax)then
+         minmax=grd_a%ilat1(i)*grd_a%jlon1(i)
+         minmype=i-1
+       end if
     end do
+    if(mype == minmype) write(6,*) ' minmype = ',minmype
 
-!_#omp parallel private(nth,tid)
-    nth = 1 !_RT omp_get_max_threads()
-!_#omp end parallel
+!#omp parallel private(nth,tid)
+    nth = omp_get_max_threads()
+!#omp end parallel
     nthreads=nth
     if(print_verbose)write(6,*) 'INIT_GRID_VARS:  number of threads ',nthreads
-    if(.not.allocated(jtstart)) allocate(jtstart(nthreads))
-    if(.not.allocated(jtstop)) allocate(jtstop(nthreads))
+    allocate(jtstart(nthreads),jtstop(nthreads))
     do tid=1,nthreads
        call looplimits(tid-1, nthreads, 1, lon2, jtstart(tid), jtstop(tid))
        if(print_verbose)write(6,*)'INIT_GRID_VARS:  for thread ',tid,  &
@@ -819,19 +843,12 @@ contains
 !EOP
 !-------------------------------------------------------------------------
     implicit none
-
-    if(.not.allocated(rlats)) &
-      allocate(rlats(nlat),rlons(nlon),coslon(nlon),sinlon(nlon),&
-               wgtlats(nlat),rbs2(nlat),corlats(nlat),wgtfactlats(nlat))
-    call create_vgrid_vars()
+    allocate(rlats(nlat),rlons(nlon),coslon(nlon),sinlon(nlon),&
+             wgtlats(nlat),rbs2(nlat),corlats(nlat),wgtfactlats(nlat))
+    if(.not.allocated(ak5)) &
+            allocate(ak5(nsig+1),bk5(nsig+1),ck5(nsig+1),tref5(nsig))
     return
   end subroutine create_grid_vars
-
-  subroutine create_vgrid_vars
-    implicit none
-    if(.not.allocated(ak5)) &
-      allocate(ak5(nsig+1),bk5(nsig+1),ck5(nsig+1),tref5(nsig))
-  end subroutine create_vgrid_vars
     
 !-------------------------------------------------------------------------
 !    NOAA/NCEP, National Centers for Environmental Prediction GSI        !
@@ -866,17 +883,8 @@ contains
 !-------------------------------------------------------------------------
     implicit none
 
-    if(allocated(rlats)) deallocate(rlats)
-    if(allocated(rlons)) deallocate(rlons)
-    if(allocated(corlats)) deallocate(corlats)
-    if(allocated(coslon)) deallocate(coslon)
-    if(allocated(sinlon)) deallocate(sinlon)
-    if(allocated(wgtlats)) deallocate(wgtlats)
-    if(allocated(wgtfactlats)) deallocate(wgtfactlats)
-    if(allocated(rbs2)) deallocate(rbs2)
-
-    call destroy_vgrid_vars()
-
+    deallocate(rlats,rlons,corlats,coslon,sinlon,wgtlats,wgtfactlats,rbs2)
+    deallocate(ak5,bk5,ck5,tref5)
     if (allocated(cp5)) deallocate(cp5)
     if (allocated(dx_gfs)) deallocate(dx_gfs)
     if (allocated(lpl_gfs)) deallocate(lpl_gfs)
@@ -893,13 +901,6 @@ contains
     return
   end subroutine destroy_grid_vars
 
-  subroutine destroy_vgrid_vars
-    implicit none
-    if(allocated(ak5)) deallocate(ak5)
-    if(allocated(bk5)) deallocate(bk5)
-    if(allocated(ck5)) deallocate(ck5)
-    if(allocated(tref5)) deallocate(tref5)
-  end subroutine destroy_vgrid_vars
 !-------------------------------------------------------------------------
 !    NOAA/NCEP, National Centers for Environmental Prediction GSI        !
 !-------------------------------------------------------------------------
@@ -939,9 +940,8 @@ contains
 !-------------------------------------------------------------------------
     integer(i_kind) i
 
-    if(.not.allocated(periodic_s)) &
-       allocate(periodic_s(npe),jstart(npe),istart(npe),&
-       ilat1(npe),jlon1(npe),&
+    allocate(periodic_s(npe),jstart(npe),istart(npe),&
+         ilat1(npe),jlon1(npe),&
        ijn_s(npe),irc_s(npe),ird_s(npe),displs_s(npe),&
        ijn(npe),isc_g(npe),isd_g(npe),displs_g(npe))
 
@@ -996,7 +996,6 @@ contains
 !-------------------------------------------------------------------------
     implicit none
 
-    if(allocated(periodic_s)) &
     deallocate(periodic_s,jstart,istart,ilat1,jlon1,&
        ijn_s,irc_s,ird_s,displs_s,&
        ijn,isc_g,isd_g,displs_g)
@@ -1117,7 +1116,6 @@ contains
        dt_ll=zero
     end if
 
-#ifdef USE_ALL_ORIGINAL
 
     if(fv3_regional) then     ! begin fv3 regional section
        if(diagnostic_reg.and.mype==0) write(6,*)' in init_reg_glob_ll for FV3 '
@@ -1129,8 +1127,10 @@ contains
        rlat_max_dd=rlat_max_ll-r1_5/grid_ratio_fv3_regional
        rlon_min_dd=rlon_min_ll+r1_5/grid_ratio_fv3_regional
        rlon_max_dd=rlon_max_ll-r1_5/grid_ratio_fv3_regional
+       pt_ll=zero
     endif    !  fv3_regional
 
+#ifdef USE_ALL_ORIGINAL
     if(wrf_nmm_regional) then     ! begin wrf_nmm section
 ! This is a wrf_nmm regional run.
        if(diagnostic_reg.and.mype==0)  &
@@ -1621,6 +1621,7 @@ contains
        deallocate(dx_nmm,dy_nmm,dx_an,dy_an)
 
     end if   ! end if nems nmmb section
+#endif /* USE_ALL_ORIGINAL */
 
     if (cmaq_regional) then     ! begin cmaq core section
 
@@ -1862,7 +1863,6 @@ contains
        deallocate(dx_mc,dy_mc)
 
     end if   ! end if twodvar analysis section
-#endif /* USE_ALL_ORIGINAL */
 
     return
   end subroutine init_reg_glob_ll
@@ -3876,39 +3876,6 @@ end subroutine reload
 
     return
   end subroutine strip_periodic
-
-  subroutine load_vert_coord_(mype,fname)
-  use m_set_eta, only: set_eta
-  use m_set_eta, only: set_eta_read
-  ! ideally, these coordinates should be passed from JEDI
-  implicit none
-  integer(i_kind),intent(in) :: mype
-  character(len=*),optional,intent(in) :: fname
-  character(len=*),parameter:: myname_=myname//'*load_vert_coord_'
-  integer ks,ifail,ier
-  real(r_kind) :: ptop,pint
-  ifail=0 
-  if(.not.allocated(ak5)) ifail=1
-  if(.not.allocated(bk5)) ifail=1
-  if(ifail/=0) then
-     call create_vgrid_vars()
-     ifail=0
-  endif
-  ! Expect FV3 levels/orientation/units
-  if (present(fname)) then
-    if (trim(fname)=='/dev/null') then
-       call set_eta (nsig, ks, ptop, pint, ak5, bk5)
-    else
-       call set_eta_read(trim(fname),ak5,bk5,ier,myid=mype)
-    endif
-  else
-    call set_eta (nsig, ks, ptop, pint, ak5, bk5)
-  endif
-  ! Reorient and adjust units for GSI
-  ak5=kPa_per_Pa*ak5
-  ak5=ak5(nsig+1:1:-1)
-  bk5=bk5(nsig+1:1:-1)
-  end subroutine load_vert_coord_
 
 end module gridmod
 

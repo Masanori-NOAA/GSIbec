@@ -67,8 +67,7 @@ use m_kinds,only: r_double,r_quad,r_single,i_byte,i_long,i_llong,i_short
 use m_mpimod,only: gsi_mpi_comm_world,mpi_integer,mpi_integer1,mpi_integer2,mpi_integer4, &
               mpi_integer8,mpi_max,mpi_min,mpi_real4,mpi_real8,mpi_real16,mpi_sum
 use constants, only: zero,half,one,two,zero_quad,zero_single
-!_RT use gsi_io, only: verbose
-
+use gsi_io, only: verbose
 
 implicit none
 
@@ -175,8 +174,6 @@ implicit none
             integer(i_long)::ids, ide, jds, jde, kds, kde, &   ! domain indices
                              ips, ipe, jps, jpe, kps, kpe      ! patch indices
          end type filter_indices
-
-logical :: verbose=.false.
 
 contains
 
@@ -4338,7 +4335,7 @@ subroutine quadfil(n,dmat,rts,fmat)
 !
 !$$$ end documentation block
 
-use m_plib8mat2,only: mulbb,l1lb
+use module_pmat2,only: mulbb,l1lb
 implicit none
 
 integer(i_long)                   ,intent(IN   ) :: n
@@ -4491,14 +4488,14 @@ SUBROUTINE EIGEN(A,R,N,MV)
       end do
       if(anorm>zero) then
          ANORM=1.414_r_kind*SQRT(ANORM)
-         ANRMX=ANORM*RANGE/FLOAT(N)
+         ANRMX=ANORM*RANGE/real(N,r_kind)
 !
 !        INITIALIZE INDICATORS AND COMPUTE THRESHOLD, THR
 !
          IND=0
          THR=ANORM
          loop1: do
-            THR=THR/FLOAT(N)
+            THR=THR/real(N,r_kind)
             loop2: do
                L=1
                loop3: do

@@ -58,7 +58,7 @@ type predictors
    logical :: lallocated = .false.
 end type predictors
 
-integer(i_kind) :: nrclen,nsclen,npclen,ntclen
+integer(i_kind),save :: nrclen,nsclen,npclen,ntclen
 
 logical :: llinit = .false.
 

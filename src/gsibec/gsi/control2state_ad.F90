@@ -129,6 +129,11 @@ real(r_kind),pointer,dimension(:,:,:) :: rv_q=>NULL(),rv_tsen=>NULL(),rv_tv=>NUL
 real(r_kind),pointer,dimension(:,:,:) :: rv_rank3=>NULL()
 real(r_kind),pointer,dimension(:,:)   :: rv_rank2=>NULL()
 
+!Test
+real(r_kind),pointer,dimension(:,:) :: t2=>NULL()
+real(r_kind),pointer,dimension(:,:,:) :: t31=>NULL()
+real(r_kind),pointer,dimension(:,:,:) :: t32=>NULL()
+
 real(r_kind),allocatable,dimension(:,:,:):: uland,vland,uwter,vwter
 
 logical :: do_getuv,do_tv_to_tsen_ad,do_normal_rh_to_q_ad,do_getprs_ad,do_cw_to_hydro_ad
@@ -306,7 +311,7 @@ do jj=1,nsubwin
       enddo
    end if
 !  Calculate sensible temperature
-   if(do_tv_to_tsen_ad) call tv_to_tsen_ad(cv_t,rv_q,rv_tsen)
+   !if(do_tv_to_tsen_ad) call tv_to_tsen_ad(cv_t,rv_q,rv_tsen)
 
 !  Adjoint of convert input normalized RH to q to add contribution of moisture
 !  to t, p , and normalized rh
@@ -316,6 +321,13 @@ do jj=1,nsubwin
    if(do_getprs_ad) call getprs_ad(cv_ps,cv_t,rv_prse)
 
 
+!call gsi_bundlegetpointer (wbundle,'t' ,t31 ,istatus)
+!write(6,*)"t=",t31(:,:,1)
+!call gsi_bundlegetpointer (wbundle,'q' ,t32 ,istatus)
+!write(6,*)"q=",t32(1:10,1:10,1)
+!call gsi_bundlegetpointer (wbundle,'ps' ,t2 ,istatus)
+!write(6,*)"ps=",t2(1:10,1:10)
+!stop
 !$omp section
 
    call gsi_bundlegetpointer (rval(jj),'sst' ,rv_sst, istatus)
@@ -418,6 +430,13 @@ do jj=1,nsubwin
 
 !  Adjoint of transfer variables
 
+!call gsi_bundlegetpointer (wbundle,'t' ,t31 ,istatus)
+!write(6,*)"t=",t31(1:10,1:10,1)
+!call gsi_bundlegetpointer (wbundle,'q' ,t32 ,istatus)
+!write(6,*)"q=",t32(1:10,1:10,1)
+!call gsi_bundlegetpointer (wbundle,'ps' ,t2 ,istatus)
+!write(6,*)"ps=",t2(1:10,1:10)
+!stop
    do ii=1,wbundle%ndim
       grad%step(jj)%values(ii)=wbundle%values(ii)+grad%step(jj)%values(ii)
    enddo

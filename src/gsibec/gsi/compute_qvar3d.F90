@@ -10,7 +10,7 @@ subroutine compute_qvar3d
 ! program history log:
 ! 2010-03-15 zhu - extracted out from compute_derived
 ! 2010-04-10 parrish - make rhgues local, since removed from jfunc by derber (no longer used)
-! 2010-05-28 todling - obtain variable id''s on the fly (add getindex)
+! 2010-05-28 todling - obtain variable id's on the fly (add getindex)
 ! 2011-08-17 zhu  - add handling of dssv(:,:,:,nrf3_cw) for regional when total condensate is control variable 
 ! 2011-11-01 eliu - add qmin 
 ! 2012-02-08 kleist  - add computation of ges_qsat over nfldsig bins
@@ -37,6 +37,7 @@ subroutine compute_qvar3d
 !$$$
   use m_kinds, only: r_kind,i_kind,r_single
   use berror, only: dssv
+  use jfunc, only: varq,qoption,varcw,cwoption,clip_supersaturation,superfact
   use derivsmod, only: qsatg,qgues
   use control_vectors, only: cvars3d
   use gridmod, only: lat2,lon2,nsig
@@ -46,14 +47,10 @@ subroutine compute_qvar3d
   use gsi_metguess_mod,  only: gsi_metguess_bundle
   use gsi_bundlemod, only: gsi_bundlegetpointer
   use general_sub2grid_mod, only: general_sub2grid,general_grid2sub
-  use jfunc, only: qoption,clip_supersaturation
 #ifdef USE_ALL_ORIGINAL
-  use jfunc, only: varq,varcw,cwoption
   use radiance_mod, only: icloud_cv,n_clouds_fwd,cloud_names_fwd
-  use obsmod, only: l_wcp_cwm
-#else
-  use m_berror_stats, only: varq
 #endif /* USE_ALL_ORIGINAL */
+  use obsmod, only: l_wcp_cwm
 
   implicit none
 
@@ -99,7 +96,7 @@ subroutine compute_qvar3d
 ! Limit q to be >= qmin
               ges_q(i,j,k)=max(ges_q(i,j,k),qmin)
 ! Limit q to be <= ges_qsat
-              if(clip_supersaturation) ges_q(i,j,k)=min(ges_q(i,j,k),ges_qsat(i,j,k,it))
+              if(clip_supersaturation) ges_q(i,j,k)=min(ges_q(i,j,k),superfact*ges_qsat(i,j,k,it))
            end do
         end do
      end do
@@ -129,17 +126,16 @@ subroutine compute_qvar3d
   ice=.true.
   call genqsat(qsatg,ges_tsen(1,1,1,ntguessig),ges_prsl(1,1,1,ntguessig),lat2,lon2,nsig,ice,iderivative)
 
-  if (qoption==2) then
-     allocate(rhgues(lat2,lon2,nsig))
-
-     do k=1,nsig
-        do j=1,lon2
-           do i=1,lat2
-              rhgues(i,j,k)=qgues(i,j,k)/qsatg(i,j,k)
-           end do
+  allocate(rhgues(lat2,lon2,nsig))
+  do k=1,nsig
+     do j=1,lon2
+        do i=1,lat2
+           rhgues(i,j,k)=qgues(i,j,k)/qsatg(i,j,k)
         end do
      end do
+  end do
 
+  if (qoption==2) then
      maxvarq1=min(size(varq,1),25)
      do k=1,nsig
         do j=1,lon2
@@ -147,7 +143,7 @@ subroutine compute_qvar3d
               d=20.0_r_kind*rhgues(i,j,k) + one
               n=int(d)
               np=n+1
-              dn2=d-float(n)
+              dn2=d-real(n,r_kind)
               dn1=one-dn2
               n=min0(max(1,n),maxvarq1)
               np=min0(max(1,np),maxvarq1)
@@ -155,9 +151,9 @@ subroutine compute_qvar3d
            end do
         end do
      end do
-
-     deallocate(rhgues)
   end if
+
+  deallocate(rhgues)
 
 #ifdef USE_ALL_ORIGINAL
   if (.not. icloud_cv) return
@@ -207,7 +203,7 @@ subroutine compute_qvar3d
                  d=-2.0_r_kind*log(cwtmp) + one
                  n=int(d)
                  np=n+1
-                 dn2=d-float(n)
+                 dn2=d-real(n,r_kind)
                  dn1=one-dn2
                  n=min0(max(1,n),30)
                  np=min0(max(1,np),30)

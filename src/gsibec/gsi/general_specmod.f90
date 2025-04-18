@@ -133,7 +133,7 @@ contains
 !   2008-04-11  safford    - rm unused vars
 !   2010-02-18  parrish - substantial changes to simplify and introduce input/output variable
 !                            type(spec_vars) sp
-!   2010-04-01  treadon - remove mpimod and rad2deg constants (not used)
+!   2010-04-01  treadon - remove m_mpimod and rad2deg constants (not used)
 !   2013-10-23  el akkraoui - initialize lats to zero (otherwise point is undefined)
 !
 !   input argument list:
