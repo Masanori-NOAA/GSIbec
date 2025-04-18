@@ -33,7 +33,6 @@ module berror
 !   2011-04-07  todling - move newpc4pred to radinfo
 !   2012-10-09  Gu - add fut2ps to project unbalanced temp to surface pressure in static B modeling
 !   2013-05-27  zhu - add background error variances for aircraft temperature bias correction coefficients
-!   2013-10-02  zhu - add reset_predictors_var
 !
 ! subroutines included:
 !   sub init_berror         - initialize background error related variables
@@ -101,7 +100,6 @@ module berror
 !   def fpsproj   - controls full nsig projection onto surface pressure
 !   def bkgv_write- logical to turn on/off generation of binary file with reweighted variances
 !   def adjustozvar - adjust ozone variance in stratosphere based on guess field
-!   def adjustozhscl - adjust ozone horizontal scales (i.e., scale by this factor)
 !
 ! attributes:
 !   language: f90
@@ -111,42 +109,34 @@ module berror
 
   use m_kinds, only: r_kind,i_kind
   use control_vectors, only: nc3d,nvars,mvars
-#ifdef USE_ALL_ORIGINAL
-  use jfunc, only: nclen,nrclen,diag_precon,step_start,ntclen
-#endif /* USE_ALL_ORIGINAL */
   implicit none
 
 ! set default to private
   private
 ! set subroutines to public
   public :: init_berror
+#ifdef USE_ALL_ORIGINAL
+  public :: pcinfo
+#endif /* USE_ALL_ORIGINAL */
   public :: create_berror_vars
   public :: destroy_berror_vars
 #ifdef USE_ALL_ORIGINAL
   public :: set_predictors_var
-  public :: reset_predictors_var
-  public :: pcinfo
-  public :: varprd
-  public :: vprecond
 #endif /* USE_ALL_ORIGINAL */
   public :: init_rftable
-  public :: final_rftable
   public :: initable
   public :: create_berror_vars_reg
   public :: destroy_berror_vars_reg
 ! set passed variables to public
-  public :: qvar3d,nr,nf,fpsproj,bkgv_flowdep,fut2ps
+  public :: qvar3d,nr,nf,varprd,fpsproj,bkgv_flowdep,fut2ps
   public :: ndx,ndy,ndx2,nmix,nymx,nfg,nfnf,norm,nxem
-  public :: adjustozvar,adjustozhscl
+  public :: vprecond
+  public :: adjustozvar
   public :: dssvs,dssv,bkgv_write,bkgv_rewgtfct,hswgt
   public :: hzscl,bw,pert_berr_fct,pert_berr,ndeg,norh,vs
   public :: bl,bl2,be,slw2,slw1,slw,mr,inaxs,wtxrs,wtaxs,nx,ny
   public :: inxrs,jj1,ii2,jj2,ii,jj,ii1,table,alv,nhscrf
   public :: cwcoveqqcov
-  public :: bkgv_write_cv,bkgv_write_sv
-
-  public  :: simcv
-  logical :: simcv
 
   integer(i_kind) norh,ndeg,nta,nlath
   integer(i_kind) nx,ny,mr,nr,nf,ndx,ndy,ndx2,nmix,nymx,norm,nxem,nfg,nfnf
@@ -157,11 +147,7 @@ module berror
   real(r_kind) bw,vs
   real(r_kind),dimension(1:3):: hzscl,hswgt
 
-#ifdef USE_ALL_ORIGINAL
-  real(r_kind),allocatable,dimension(:):: varprd
-  real(r_kind),allocatable,dimension(:):: vprecond
-#endif /* USE_ALL_ORIGINAL */
-  real(r_kind),allocatable,dimension(:):: be,bl,bl2
+  real(r_kind),allocatable,dimension(:):: be,bl,bl2,varprd,vprecond
   real(r_kind),allocatable,dimension(:,:):: table,&
        slw,slw1,slw2
   real(r_kind),allocatable,dimension(:,:,:):: dssvs
@@ -169,15 +155,11 @@ module berror
   real(r_kind),allocatable,dimension(:,:,:,:):: alv,dssv
 
   logical pert_berr,bkgv_flowdep,bkgv_write,adjustozvar
-  character(len=255) :: bkgv_write_cv,bkgv_write_sv
   real(r_kind) pert_berr_fct,bkgv_rewgtfct
-  real(r_kind) adjustozhscl
 
   logical,save :: fpsproj
   logical,save :: fut2ps
   logical,save :: cwcoveqqcov
-
-  logical, save :: berror_initialized_ = .false.
 
 contains
 
@@ -197,7 +179,6 @@ contains
 !   2012-05-14  wargan - add adjustozvar
 !   2013-10-26  todling - remove initialization of as and tsfc_sdv (see control_vector)
 !   2014-01-05  todling - knob to allow cw-cov to be overwritten w/ q-cov
-!   2020-07-14  todling - add adjustozhscl
 !
 !   input argument list:
 !
@@ -217,10 +198,7 @@ contains
     pert_berr = .false.
     bkgv_flowdep = .false.
     adjustozvar = .false.
-    adjustozhscl = three
     bkgv_write = .false.
-    bkgv_write_cv = 'null'
-    bkgv_write_sv = 'null'
     pert_berr_fct = zero
     bkgv_rewgtfct = zero
     norh=2
@@ -241,8 +219,6 @@ contains
     end do
     vs=one/1.5_r_kind
 
-    simcv = .true. ! .t. - simulate CV; .f. simulate ST
-
   return
   end subroutine init_berror
 
@@ -260,7 +236,7 @@ contains
 !   2004-07-28  treadon - remove subroutine argument list to --> use modules
 !   2004-11-16  treadon - add longitude dimension to array dssv
 !   2008-10-24  zhu     - use nrf3,nvars & dssvs,remove dssvt
-!                       - change the order of dssv''s dimensions
+!                       - change the order of dssv's dimensions
 !   2010-04-27  zhu     - add vprecond for new preconditioner of predictors
 !   2010-06-01  todling - aas/atsfc_sdv now alloc/ble and initialized here
 !
@@ -275,11 +251,10 @@ contains
 !$$$
   use balmod, only: llmin,llmax
   use gridmod, only: nlat,nlon,lat2,lon2,nsig,nnnn1o
+  use jfunc, only: nrclen,nclen
   use constants, only: zero,one
   implicit none
   
-  if(berror_initialized_) return
-
   llmin=1
   llmax=nlat
 
@@ -319,10 +294,8 @@ contains
      allocate(dssvs(lat2,lon2,nvars-nc3d))
      dssvs = zero
   endif
-#ifdef USE_ALL_ORIGINAL
   allocate(varprd(nrclen))
-  if(diag_precon)allocate(vprecond(nclen))
-#endif /* USE_ALL_ORIGINAL */
+  allocate(vprecond(nclen))
   allocate(inaxs(nf,nlon/8),inxrs(nlon/8,mr:nr) )
 
   allocate(slw(ny*nx,nnnn1o),&
@@ -331,8 +304,6 @@ contains
   allocate(ii(ny,nx,nhscrf,nnnn1o),jj(ny,nx,nhscrf,nnnn1o),&
            ii1(2*nf+1,2*nf+1,nhscrf,nnnn1o),jj1(2*nf+1,2*nf+1,nhscrf,nnnn1o),&
            ii2(2*nf+1,2*nf+1,nhscrf,nnnn1o),jj2(2*nf+1,2*nf+1,nhscrf,nnnn1o))
-
-  berror_initialized_ = .true.
 
   return
  end subroutine create_berror_vars
@@ -363,36 +334,21 @@ contains
 !$$$
     implicit none
     if(allocated(table)) deallocate(table)
-    if(allocated(wtaxs)) deallocate(wtaxs)
-    if(allocated(wtxrs)) deallocate(wtxrs)
-    if(allocated(be)) deallocate(be)
-    if(allocated(bl)) deallocate(bl)
-    if(allocated(bl2)) deallocate(bl2)
-    if(allocated(qvar3d)) deallocate(qvar3d)
-    if(allocated(inaxs)) deallocate(inaxs)
-    if(allocated(inxrs)) deallocate(inxrs)
+    deallocate(wtaxs)
+    deallocate(wtxrs)
+    deallocate(be,bl,bl2)
+!_RT    if(allocated(qvar3d)) deallocate(qvar3d) ! _RTod somehow this makes GSI crash!when only single var in CV/SV
+    deallocate(inaxs,inxrs)
+    deallocate(varprd)
     if(allocated(alv))   deallocate(alv)
     if(allocated(dssv))  deallocate(dssv)
     if(allocated(dssvs)) deallocate(dssvs)
-#ifdef USE_ALL_ORIGINAL
-    if(allocated(varprd)) deallocate(varprd)
-    if(diag_precon)deallocate(vprecond)
-#endif /* USE_ALL_ORIGINAL */
-    if(allocated(slw)) deallocate(slw)
-    if(allocated(slw1)) deallocate(slw1)
-    if(allocated(slw2)) deallocate(slw2)
-    if(allocated(ii)) deallocate(ii)
-    if(allocated(jj)) deallocate(jj)
-    if(allocated(ii1)) deallocate(ii1)
-    if(allocated(jj1)) deallocate(jj1)
-    if(allocated(ii2)) deallocate(ii2)
-    if(allocated(jj2)) deallocate(jj2)
-
-    berror_initialized_ = .false.
+    deallocate(vprecond)
+    deallocate(slw,slw1,slw2)
+    deallocate(ii,jj,ii1,jj1,ii2,jj2)
 
     return
   end subroutine destroy_berror_vars
-
 
 #ifdef USE_ALL_ORIGINAL
   subroutine set_predictors_var
@@ -423,14 +379,14 @@ contains
 !
 !$$$
     use constants, only:  zero,one,two,one_tenth,r10
-    use radinfo, only: ostats,varA,jpch_rad,npred,inew_rad,newpc4pred,biaspredvar
-    use aircraftinfo, only: aircraft_t_bc_pof,aircraft_t_bc,biaspredt,ntail,npredt,ostats_t,varA_t
+    use radinfo, only: varA,jpch_rad,npred,inew_rad,newpc4pred,biaspredvar
+    use aircraftinfo, only: aircraft_t_bc_pof,aircraft_t_bc,biaspredt,ntail,npredt,varA_t
     use gridmod, only: twodvar_regional
+    use jfunc, only: nrclen, ntclen
     implicit none
 
     integer(i_kind) i,j,ii
     real(r_kind) stndev
-    real(r_kind) obs_count
     logical new_tail
     
     stndev = one/biaspredvar
@@ -452,17 +408,12 @@ contains
           do j=1,npred
              ii=ii+1
              if (inew_rad(i)) then
-                varprd(ii)=10000.0_r_kind
+                varA(j,i)=r10
              else
-                if (ostats(i)<=20.0_r_kind) then 
-                   varA(j,i)=two*varA(j,i)+1.0e-6_r_kind
-                   varprd(ii)=varA(j,i)
-                else
-                   varprd(ii)=1.1_r_kind*varA(j,i)+1.0e-6_r_kind
-                end if
-                if (varprd(ii)>r10) varprd(ii)=r10
-                if (varA(j,i)>10000.0_r_kind) varA(j,i)=10000.0_r_kind
+                varA(j,i)=1.1_r_kind*varA(j,i)+1.0e-6_r_kind
+                varA(j,i)= min(r10,varA(j,i))
              end if
+             varprd(ii)=varA(j,i)
           end do
        end do
 
@@ -472,46 +423,33 @@ contains
              do j=1,npredt
                 ii=ii+1
 
-                if (aircraft_t_bc_pof) then 
-                   obs_count = ostats_t(j,i)
-                   new_tail = varA_t(j,i)==zero
-                end if
+                new_tail = varA_t(j,i)==zero
                 if (aircraft_t_bc) then 
-                   obs_count = ostats_t(1,i)
                    new_tail = .true.
                    if (any(varA_t(:,i)/=zero)) new_tail = .false.
                 end if
 
                 if (new_tail) then
-                   varprd(ii)=one_tenth
-                   if (aircraft_t_bc .and. j==2) varprd(ii)=1.0e-3_r_kind
-                   if (aircraft_t_bc .and. j==3) varprd(ii)=1.0e-4_r_kind
-                else
-                   if (obs_count<=3.0_r_kind) then
-                      if (aircraft_t_bc .and. j==2) then
-                         varA_t(j,i)=1.05_r_kind*varA_t(j,i)+1.0e-5_r_kind
-                      else if (aircraft_t_bc .and. j==3) then
-                         varA_t(j,i)=1.05_r_kind*varA_t(j,i)+1.0e-6_r_kind
-                      else
-                         varA_t(j,i)=1.05_r_kind*varA_t(j,i)+1.0e-4_r_kind
-                      end if
-                      varprd(ii)=varA_t(j,i)
+                   if (aircraft_t_bc .and. j==2) then
+                      varA_t(j,i)=1.0e-4_r_kind
+                   else if (aircraft_t_bc .and. j==3) then
+                      varA_t(j,i)=1.0e-5_r_kind
                    else
-                      if (aircraft_t_bc .and. j==2) then
-                         varprd(ii)=1.005_r_kind*varA_t(j,i)+1.0e-5_r_kind
-                      else if (aircraft_t_bc .and. j==3) then
-                         varprd(ii)=1.005_r_kind*varA_t(j,i)+1.0e-6_r_kind
-                      else
-                         varprd(ii)=1.005_r_kind*varA_t(j,i)+1.0e-4_r_kind
-                      end if
+                      varA_t(j,i)=one_tenth*one_tenth
                    end if
-                   if (varprd(ii)>one) varprd(ii)=one
-                   if (varA_t(j,i)>one) varA_t(j,i)=one
-                   if (aircraft_t_bc .and. j>1) then
-                      if (varprd(ii)>one_tenth) varprd(ii)=one_tenth
-                      if (varA_t(j,i)>one_tenth) varA_t(j,i)=one_tenth
+                else
+                   if (aircraft_t_bc .and. j==2) then
+                      varA_t(j,i)=1.005_r_kind*varA_t(j,i)+1.0e-6_r_kind
+                      varA_t(j,i)=min(varA_t(j,i),1.0e-3_r_kind)
+                   else if (aircraft_t_bc .and. j==3) then
+                      varA_t(j,i)=1.005_r_kind*varA_t(j,i)+1.0e-7_r_kind
+                      varA_t(j,i)=min(varA_t(j,i),1.0e-4_r_kind)
+                   else
+                      varA_t(j,i)=1.005_r_kind*varA_t(j,i)+1.0e-5_r_kind
+                      varA_t(j,i)=min(varA_t(j,i),one_tenth)
                    end if
                 end if
+                varprd(ii)=varA_t(j,i)
              end do
           end do
        end if
@@ -519,69 +457,6 @@ contains
 
     return
   end subroutine set_predictors_var
-
-
-  subroutine reset_predictors_var
-!$$$  subprogram documentation block
-!                .      .    .                                       .
-! subprogram:    reset_predictors_var sets variances for bias correction predictors
-!   prgmmr: yanqiu           org: np20                date: 2013-10-01
-!
-! abstract: resets variances for bias correction predictors
-!
-! program history log:
-!   output argument list:
-!   2013-10-01  zhu
-!
-! attributes:
-!   language: f90
-!   machine:  ibm RS/6000 SP
-!
-!$$$
-    use constants, only:  one,one_tenth
-    use radinfo, only: newpc4pred,jpch_rad,npred,ostats,inew_rad,iuse_rad
-    use aircraftinfo, only: aircraft_t_bc_pof,aircraft_t_bc,biaspredt,ntail,npredt,ostats_t
-    use gridmod, only: twodvar_regional
-    implicit none
-
-    integer(i_kind) i,j,ii,obs_count
-    real(r_kind) stndev
-    
-    stndev = one/biaspredt
-
-!   reset variances for bias predictor coeff. based on current data count
-    if (.not. twodvar_regional .and. newpc4pred) then
-       ii=0
-       do i=1,jpch_rad
-          do j=1,npred
-             ii=ii+1
-             if (.not.inew_rad(i) .and. iuse_rad(i)>0 .and. ostats(i)<=20.0_r_kind) then
-                varprd(ii)=1.0e-6_r_kind
-             end if
-          end do
-       end do
-
-       if ((aircraft_t_bc_pof .or. aircraft_t_bc) .and. ntclen>0) then
-          ii=nrclen-ntclen
-          do i=1,ntail
-             do j=1,npredt
-                ii=ii+1
-
-                if (aircraft_t_bc_pof) obs_count = ostats_t(j,i)
-                if (aircraft_t_bc) obs_count = ostats_t(1,i)
-
-                if (obs_count<=3.0_r_kind .and. varprd(ii)>stndev) then
-                   varprd(ii)=stndev
-                   if (aircraft_t_bc .and. j==2) varprd(ii)=one_tenth*stndev
-                   if (aircraft_t_bc .and. j==3) varprd(ii)=one_tenth*one_tenth*stndev
-                end if
-             end do
-          end do
-       end if
-    end if
-
-    return
-  end subroutine reset_predictors_var
 
   subroutine pcinfo
 !$$$  subprogram documentation block
@@ -605,6 +480,7 @@ contains
     use m_kinds, only: r_kind,i_kind
     use radinfo, only: ostats,rstats,varA,jpch_rad,npred,newpc4pred
     use aircraftinfo, only: aircraft_t_bc_pof,aircraft_t_bc,ntail,npredt,ostats_t,rstats_t,varA_t
+    use jfunc, only: nclen,nrclen,step_start,ntclen,diag_precon
     use constants, only:  zero,one
     implicit none
 
@@ -618,10 +494,10 @@ contains
 !   Only diagonal elements are considered
 
 !   set a coeff. factor for variances of control variables
-    if(diag_precon)then
-      lfact=step_start
-      vprecond=lfact
+    lfact=step_start
+    vprecond=lfact
 
+    if(diag_precon)then
       if(newpc4pred)then
 !       for radiance bias predictor coeff.
         nclen1=nclen-nrclen
@@ -634,7 +510,7 @@ contains
                  if (rstats(j,i)>zero) then
                     varA(j,i)=one/(one/varprd(ii)+rstats(j,i))
                  else
-                    varA(j,i)=10000.0_r_kind
+                    if(varA(j,i) <= zero)varA(j,i)=10000.0_r_kind
                  end if
               end if
            end do
@@ -650,12 +526,18 @@ contains
                 ii=ii+1
                 jj=jj+1
 
-                if (aircraft_t_bc_pof) obs_count = ostats_t(j,i)
-                if (aircraft_t_bc) obs_count = ostats_t(1,i)
+                obs_count=0
+                if (aircraft_t_bc_pof) then
+                   obs_count = ostats_t(j,i)
+                else if (aircraft_t_bc) then
+                   obs_count = ostats_t(1,i)
+                end if
 
                 if (obs_count>zero) vprecond(nclen1+ii)=one/(one+rstats_t(j,i)*varprd(jj))
                 if (obs_count>3.0_r_kind) then
                    varA_t(j,i)=one/(one/varprd(jj)+rstats_t(j,i))
+                else
+                   if(varA_t(j,i) <= zero)varA_t(j,i)=10000.0_r_kind
                 end if
              end do
           end do
@@ -784,7 +666,7 @@ contains
 
     ihwlb=hwlb/tin
     hwlb=ihwlb*tin
-!   tin=(hwle-hwlb)/float(nta-1)
+!   tin=(hwle-hwlb)/real(nta-1,r_kind)
     ntax=(hwle-hwlb)/tin+2
 !   write(6,*)'INIT_RFTABLE:  tin ',ntax,ihwlb,tin,hwlb,hwle
 
@@ -824,7 +706,7 @@ contains
        if(iuse(i))then
           nta=nta+1
           ipoint(i)=nta
-          dsh(nta)=one/(float(i-1+ihwlb)*tin)
+          dsh(nta)=one/(real(i-1+ihwlb,r_kind)*tin)
        end if
     end do
 !   write(6,*)'INIT_RFTABLE:  ntax,nta = ',ntax,nta
@@ -853,7 +735,7 @@ contains
 
     deallocate(iuse,ipoint)
 
-    if(.not.allocated(table)) allocate(table(nta,ndeg)) 
+    allocate(table(nta,ndeg)) 
 
     call rfdparv(dsh,rate,table,nta,ndeg)
 
@@ -862,9 +744,6 @@ contains
     return
   end subroutine init_rftable
 
-  subroutine final_rftable
-    if(allocated(table)) deallocate(table)
-  end subroutine final_rftable
   
   subroutine initable(nxdim,nydim,sli,ntax,ihwlb,iix,jjx,factor,tin,ipoint)
 !$$$  subprogram documentation block
@@ -944,7 +823,7 @@ contains
 !   2009-01-04  todling - remove mype
 !   2010-03-05  zhu - use nrf3 and nvars,remove dssvt
 !                   - change lat dimension of dssv and dssvs
-!                   - change the order of dssv''s dimensions
+!                   - change the order of dssv's dimensions
 !   2010-10-22  zhu - allocate vprecond for new preconditioner of predictors
 !
 !   input argument list:
@@ -959,6 +838,7 @@ contains
     use constants, only: zero
     use balmod, only: llmin,llmax
     use gridmod, only: nlat,nlon,nsig,nnnn1o,lat2,lon2
+    use jfunc, only: nrclen,nclen
     implicit none
     
     nx=nlon
@@ -969,8 +849,7 @@ contains
     
 !   Grid constant for background error
 
-    allocate(be(ndeg), &
-         qvar3d(lat2,lon2,nsig))
+    allocate(be(ndeg),qvar3d(lat2,lon2,nsig))
     if(nc3d>0)then
        allocate(alv(llmin:llmax,ndeg,nsig,nc3d), &
             dssv(lat2,lon2,nsig,nc3d))
@@ -980,10 +859,8 @@ contains
        endif
     endif
     
-#ifdef USE_ALL_ORIGINAL
     allocate(varprd(max(1,nrclen) ) )     
-    if(diag_precon)allocate(vprecond(nclen))
-#endif /* USE_ALL_ORIGINAL */
+    allocate(vprecond(nclen))
 
     allocate(slw(ny*nx,nnnn1o) )
     allocate(ii(ny,nx,3,nnnn1o),jj(ny,nx,3,nnnn1o) )
@@ -1025,10 +902,8 @@ contains
     if(allocated(dssvs)) deallocate(dssvs)
     deallocate(ii,jj)
     deallocate(slw)
-#ifdef USE_ALL_ORIGINAL
     deallocate(varprd)
-    if(diag_precon)deallocate(vprecond)
-#endif /* USE_ALL_ORIGINAL */
+    deallocate(vprecond)
 
     return
   end subroutine destroy_berror_vars_reg

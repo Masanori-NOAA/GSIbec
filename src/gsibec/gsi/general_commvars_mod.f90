@@ -19,8 +19,8 @@ module general_commvars_mod
 !   def s2g_raf - used for subdomain to horizontal grid transfers of full control vector with motley variables
 !   def s2g_cv  - used in bkerror.f90 (full control vector without motley variables)
 !   def s2g2    - used in getprs.f90
-!   def s2g4    - used in get_derivatives2.f90
-!   def s1g4    - used in get_derivatives2.f90 (uv versions)
+!   def s2g4    - used in get_derivatives2.f90 
+!   def s1g4    - used in get_derivatives2.f90 
 !   def s2guv   - used in getuv.f90
 !   def s2g_d   - used in get_derivatives.f90
 !   def g1      - used in get_derivatives.f90
@@ -41,10 +41,7 @@ module general_commvars_mod
 
 ! set default to private
    private
-   save
 ! set subroutines to public
-   public :: init_general_commvars_dims
-   public :: final_general_commvars_dims
    public :: init_general_commvars
    public :: destroy_general_commvars
 ! set passed variables to public
@@ -67,6 +64,7 @@ module general_commvars_mod
    public :: load_grid
    public :: ltosj_s,ltosi_s,ltosj,ltosi
 
+   public :: init_general_commvars_dims
    interface init_general_commvars_dims
      module procedure init_dims_
    end interface init_general_commvars_dims
@@ -78,7 +76,7 @@ module general_commvars_mod
 
 ! Declare types
 
-   type(sub2grid_info) :: s2g_raf,s2g_cv,s2g2,s1q4,s1g4,s2g4,s2guv,s2g_d,g1,g3,g33p1
+   type(sub2grid_info),save :: s2g_raf,s2g_cv,s2g2,s1q4,s1g4,s2g4,s2guv,s2g_d,g1,g3,g33p1
 
    integer :: mvars
    character(len=max_varname_length),allocatable,dimension(:) :: nrf_var
@@ -90,7 +88,6 @@ module general_commvars_mod
    character(len=max_varname_length),allocatable,dimension(:) :: dvars2d
    character(len=max_varname_length),allocatable,dimension(:) :: dvars3d
 contains
-
 !   create general_sub2grid structure variables currently made locally for get_derivatives, etc.
 
    subroutine init_dims_ (cvars2d_in,cvars3d_in,cvarsmd_in,nrf_var_in, &
@@ -98,7 +95,7 @@ contains
 !  Todling: Add to relax code dependency
    character(len=*),intent(in) :: cvars2d_in(:),cvars3d_in(:),cvarsmd_in(:),nrf_var_in(:)
    character(len=*),intent(in) :: dvars2d_in(:),dvars3d_in(:)
-   
+
    if(size(cvars2d_in)>=0) then
      if(.not.allocated(cvars2d)) allocate(cvars2d(size(cvars2d_in)))
      cvars2d = cvars2d_in
@@ -127,15 +124,8 @@ contains
 
    end subroutine init_dims_
 
-   subroutine final_general_commvars_dims
-   if(allocated(dvars3d)) deallocate(dvars3d)
-   if(allocated(dvars2d)) deallocate(dvars2d)
-   if(allocated(cvarsmd)) deallocate(cvarsmd)
-   if(allocated(nrf_var)) deallocate(nrf_var)
-   if(allocated(cvars3d)) deallocate(cvars3d)
-   if(allocated(cvars2d)) deallocate(cvars2d)
-   end subroutine final_general_commvars_dims
-  
+!   create general_sub2grid structure variables currently made locally for get_derivatives, etc.
+
    subroutine init_general_commvars
 !$$$  subprogram documentation block
 !                .      .    .                                       .
@@ -149,6 +139,8 @@ contains
 !   2012-06-25  parrish
 !   2013-10-28  todling - rename p3d to prse
 !   2018-05-09  mtong - use derivative vector to structure variable s2g_d
+!   2018-05-09  eliu - construct variable s2g_d for derivatives when derivative variables
+!                      are set (drv_set_ = .true.)   
 !
 !   input argument list:
 !
@@ -164,13 +156,15 @@ contains
       use gridmod, only: displs_s,ird_s,itotsub,&
                          ijn_s,irc_s,ijn,displs_g,isc_g,isd_g,vlevs
       use m_mpimod, only: npe,levs_id,nvar_id,nvar_pe
+      !use control_vectors, only: cvars2d,cvars3d,mvars,cvarsmd,nrf_var
+      use derivsmod, only: dvars2d, dvars3d, drv_set_ 
       use general_sub2grid_mod, only: general_sub2grid_create_info
       use mpeu_util, only: getindex
 
       implicit none
 
 !  Local Variables
-      integer(i_kind) i,j,k,kk,num_fields,inner_vars,l,n,n_one,n2d,n3d,mvars
+      integer(i_kind) i,j,k,kk,num_fields,inner_vars,l,n,n_one,n2d,n3d
       character(len=64),allocatable,dimension(:,:) :: names_s2g_d,names_s2g_raf
       integer(i_kind),allocatable,dimension(:,:) :: lnames_s2g_raf
       logical,allocatable,dimension(:) :: vector_s2g_d
@@ -188,7 +182,6 @@ contains
       inner_vars=1
       n2d=size(cvars2d)
       n3d=size(cvars3d)
-      mvars=size(cvarsmd)
       num_fields=n2d+nsig*n3d+mvars
       vlevs=num_fields
       allocate(names_s2g_raf(inner_vars,num_fields),lnames_s2g_raf(inner_vars,num_fields))
@@ -214,15 +207,12 @@ contains
       call general_sub2grid_create_info(s2g_raf,inner_vars,nlat,nlon,nsig,num_fields,regional, &
              names=names_s2g_raf,lnames=lnames_s2g_raf)
 
-      deallocate(names_s2g_raf,lnames_s2g_raf)
-
 !   set various constants previously defined in init_mpi_vars
 
       nsig1o=s2g_raf%nlevs_alloc
       nnnn1o=s2g_raf%nlevs_loc
-      if(.not.allocated(levs_id)) allocate(levs_id(nsig1o))
-      if(.not.allocated(nvar_id)) allocate(nvar_id(nsig1o))
-      if(.not.allocated(nvar_pe)) allocate(nvar_pe(s2g_raf%num_fields,2))
+      allocate(levs_id(nsig1o),nvar_id(nsig1o))
+      allocate(nvar_pe(s2g_raf%num_fields,2))
       levs_id=0
       nvar_id=0
       nvar_pe=-999
@@ -247,8 +237,7 @@ contains
       ijn_s=s2g_raf%ijn_s
       irc_s=s2g_raf%irc_s
       isc_g=s2g_raf%isc_g
-      if(.not.allocated(ltosi)) allocate(ltosi(nlat*nlon))
-      if(.not.allocated(ltosj)) allocate(ltosj(nlat*nlon))
+      allocate(ltosi(nlat*nlon),ltosj(nlat*nlon))
       ltosi=s2g_raf%ltosi
       ltosj=s2g_raf%ltosj
       isd_g=s2g_raf%isd_g
@@ -256,8 +245,7 @@ contains
       ird_s=s2g_raf%ird_s
       displs_s=s2g_raf%displs_s
       itotsub=s2g_raf%itotsub
-      if(.not.allocated(ltosi_s)) allocate(ltosi_s(itotsub))
-      if(.not.allocated(ltosj_s)) allocate(ltosj_s(itotsub))
+      allocate(ltosi_s(itotsub),ltosj_s(itotsub))
       ltosi_s=s2g_raf%ltosi_s
       ltosj_s=s2g_raf%ltosj_s
 
@@ -270,35 +258,31 @@ contains
 
 !  create general_sub2grid structure variable s2g_d, which is used in get_derivatives.f90
 
-      if (allocated(dvars2d).and.allocated(dvars3d).and. &
-         size(dvars2d)+size(dvars3d)>0) then 
+      if (drv_set_) then 
 
          inner_vars=1
          num_fields=size(dvars2d)+nsig*size(dvars3d)
-         if(num_fields>0) then
 
 !  obtain pointer to each variable in bundle, then populate corresponding names in names_s2g_d for
 !        general_sub2grid_create_info.  this is needed for replacing nvar_id.
-           allocate(names_s2g_d(inner_vars,num_fields),vector_s2g_d(num_fields))
-!                   bundlemod stores 3d fields first, followed by 2d fields, followed by 1d fields
-           i=0
-           do k=1,size(dvars3d)
-              do j=1,nsig
-                 i=i+1
-                 names_s2g_d(1,i)=dvars3d(k)
-                 vector_s2g_d(i)=names_s2g_d(1,i) == 'u'.or.names_s2g_d(1,i) == 'v'
-              end do
-           end do
-           do k=1,size(dvars2d)
-              i=i+1
-              names_s2g_d(1,i)=dvars2d(k)
-              vector_s2g_d(i)=names_s2g_d(1,i) == 'u'.or.names_s2g_d(1,i) == 'v'
-           end do
-           call general_sub2grid_create_info(s2g_d,inner_vars,nlat,nlon,nsig,num_fields,regional, &
-                                          vector=vector_s2g_d,names=names_s2g_d,s_ref=s2g_raf)
-           deallocate(names_s2g_d,vector_s2g_d)
-
-         endif ! num_fields
+         allocate(names_s2g_d(inner_vars,num_fields),vector_s2g_d(num_fields))
+!                 bundlemod stores 3d fields first, followed by 2d fields, followed by 1d fields
+         i=0
+         do k=1,size(dvars3d)
+            do j=1,nsig
+               i=i+1
+               names_s2g_d(1,i)=dvars3d(k)
+               vector_s2g_d(i)=names_s2g_d(1,i) == 'u'.or.names_s2g_d(1,i) == 'v'
+            end do
+         end do
+         do k=1,size(dvars2d)
+            i=i+1
+            names_s2g_d(1,i)=dvars2d(k)
+            vector_s2g_d(i)=names_s2g_d(1,i) == 'u'.or.names_s2g_d(1,i) == 'v'
+         end do
+         call general_sub2grid_create_info(s2g_d,inner_vars,nlat,nlon,nsig,num_fields,regional, &
+                                        vector=vector_s2g_d,names=names_s2g_d,s_ref=s2g_raf)
+         deallocate(names_s2g_d,vector_s2g_d)
 
       endif
 
@@ -321,7 +305,8 @@ contains
       num_fields=3*nsig+1
       call general_sub2grid_create_info(g33p1,inner_vars,nlat,nlon,nsig,num_fields,regional,s_ref=s2g_raf)
 
-!  create general_sub2grid structure variable s2g4, which is used in get_derivatives2.f90
+!  create general_sub2grid structure variable s2g4, which is used in
+!  get_derivatives2.f90
 
       num_fields=2*nsig+1
       inner_vars=2
@@ -417,13 +402,8 @@ contains
        use m_mpimod, only: levs_id,nvar_id,nvar_pe
        implicit none
  
-       deallocate(ltosj_s)
-       deallocate(ltosi_s)
-       deallocate(ltosj)
-       deallocate(ltosi)
-       deallocate(nvar_pe)
-       deallocate(nvar_id)
-       deallocate(levs_id)
+       deallocate(ltosi,ltosj,ltosi_s,ltosj_s)
+       deallocate(levs_id,nvar_id,nvar_pe)
        call general_sub2grid_destroy_info(s2g_cv,s_ref=s2g_raf)
        call general_sub2grid_destroy_info(s2g2,s_ref=s2g_raf)
        call general_sub2grid_destroy_info(s2g4,s_ref=s2g_raf)
@@ -586,7 +566,7 @@ contains
       sumn=sumn+grid_in(i,1)
       sums=sums+grid_in(i,nlatm2)
    end do
-   rnlon=one/float(nlon)
+   rnlon=one/real(nlon,r_kind)
    sumn=sumn*rnlon
    sums=sums*rnlon
 
@@ -691,7 +671,7 @@ contains
       sumn=sumn+grid_in(i,1)
       sums=sums+grid_in(i,nlatm2)
    end do
-   rnlon=one/float(nlon)
+   rnlon=one/real(nlon,r_kind)
    sumn=sumn*rnlon
    sums=sums*rnlon
 
@@ -803,10 +783,10 @@ contains
       polsu=polsu+grid(i,2        )*coslon(i)+grid2(i,2        )*sinlon(i)
       polsv=polsv+grid(i,2        )*sinlon(i)-grid2(i,2        )*coslon(i)
    end do
-   polnu=polnu/float(nlon)
-   polnv=polnv/float(nlon)
-   polsu=polsu/float(nlon)
-   polsv=polsv/float(nlon)
+   polnu=polnu/real(nlon,r_kind)
+   polnv=polnv/real(nlon,r_kind)
+   polsu=polsu/real(nlon,r_kind)
+   polsv=polsv/real(nlon,r_kind)
    do i=1,nlon
       grid (i,nlat)= polnu*coslon(i)+polnv*sinlon(i)
       grid2(i,nlat)=-polnu*sinlon(i)+polnv*coslon(i)
@@ -916,10 +896,10 @@ contains
       polsu=polsu+grid(i,2        )*coslon(i)+grid2(i,2        )*sinlon(i)
       polsv=polsv+grid(i,2        )*sinlon(i)-grid2(i,2        )*coslon(i)
    end do
-   polnu=polnu/float(nlon)
-   polnv=polnv/float(nlon)
-   polsu=polsu/float(nlon)
-   polsv=polsv/float(nlon)
+   polnu=polnu/real(nlon,r_kind)
+   polnv=polnv/real(nlon,r_kind)
+   polsu=polsu/real(nlon,r_kind)
+   polsv=polsv/real(nlon,r_kind)
    do i=1,nlon
       grid (i,nlat)= polnu*coslon(i)+polnv*sinlon(i)
       grid2(i,nlat)=-polnu*sinlon(i)+polnv*coslon(i)

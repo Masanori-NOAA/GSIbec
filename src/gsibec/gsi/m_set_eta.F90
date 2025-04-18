@@ -58,8 +58,8 @@ CONTAINS
       subroutine set_eta_r8_ (km, ks, ptop, pint, ak, bk)
       use m_kinds, only : r8 => r_double
       use m_kinds, only : r4 => r_single
-!     use m_realkinds, only : r8 => kind_r8  ! from mpeu
-!     use m_realkinds, only : r4 => kind_r4  ! from mpeu
+!     use m_realm_kinds, only : r8 => kind_r8  ! from mpeu
+!     use m_realm_kinds, only : r4 => kind_r4  ! from mpeu
 
 #else
 
@@ -1278,8 +1278,8 @@ CONTAINS
 #ifdef HERMES
       use m_kinds, only : r8 => r_double  ! from mpeu
       use m_kinds, only : r4 => r_single  ! from mpeu
-!     use m_realkinds, only : r8 => kind_r8  ! from mpeu
-!     use m_realkinds, only : r4 => kind_r4  ! from mpeu
+!     use m_realm_kinds, only : r8 => kind_r8  ! from mpeu
+!     use m_realm_kinds, only : r4 => kind_r4  ! from mpeu
 #else
       subroutine set_eta_r8_(km, ks, ptop, pint, ak, bk)
       use shr_kind_mod, only : r8 => shr_kind_r8 ! from gvgcm

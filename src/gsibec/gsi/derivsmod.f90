@@ -12,6 +12,8 @@ module derivsmod
 !   2015-07-10 Pondeca - add cldchgues and dcldchdlog
 !   2016-05-10 Thomas - remove references to cwgues0
 !   2019-05-08 mtong - replace set_ with init_anadv 
+!   2019-05-08 eliu - recover logic (drv_set_) to indicate the derivative
+!                     vars are allocated and defined
 !
 ! public subroutines:
 !  drv_initialized         - initialize name of fields to calc derivs for
@@ -24,6 +26,7 @@ module derivsmod
 !  dvars2d, dvars3d        - names of 2d/3d derivatives
 !  dsrcs2d, dsrcs3d        - names of where original fields reside
 !  drv_initialized         - flag indicating initialization status
+!  drv_set_                - flag indicating the variables are allocated and defined 
 !
 ! attributes:
 !   language: f90
@@ -49,12 +52,12 @@ use GSI_MetGuess_Mod, only: gsi_metguess_bundle
 use GSI_ChemGuess_Mod, only: gsi_chemguess_bundle
 
 use mpeu_util, only: getindex
-use mpeu_util, only: die
 implicit none
 save
 private
 
 public :: drv_initialized
+public :: drv_set_         
 public :: create_ges_derivatives
 public :: destroy_ges_derivatives
 
@@ -67,10 +70,8 @@ public :: ggues,vgues,pgues,lgues,dvisdlog,dlcbasdlog
 public :: w10mgues,howvgues,cldchgues,dcldchdlog
 public :: qsatg,qgues,dqdt,dqdrh,dqdp
 public :: init_anadv
-public :: final_anadv
 
 logical :: drv_initialized = .false.
-logical :: llinit = .false.
 
 type(gsi_bundle),pointer :: gsi_xderivative_bundle(:)
 type(gsi_bundle),pointer :: gsi_yderivative_bundle(:)
@@ -85,10 +86,11 @@ real(r_kind),target,allocatable,dimension(:,:,:):: cwgues,cfgues
 ! below this point: declare vars not to be made public
 
 character(len=*),parameter:: myname='derivsmod'
+logical,save :: drv_set_=.false.  
 integer(i_kind),allocatable,dimension(:):: levels
 contains
 
-subroutine init_anadv(rcname)
+subroutine init_anadv
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:	 define derivatives
@@ -102,6 +104,8 @@ subroutine init_anadv(rcname)
 !   2013-09-27  todling  - initial code
 !   2014-02-03  todling  - negative levels mean rank-3 array
 !   2019-05-08  mtong    - replace set_ with init_anadv 
+!   2019-05-08  eliu     - recover logic (drv_set_) to indicate the derivative
+!                          vars are allocated and defined
 !
 !   input argument list: see Fortran 90 style document below
 !
@@ -117,9 +121,7 @@ use mpeu_util, only: gettable
 use mpeu_util, only: getindex
 implicit none
 
-character(len=*),optional,intent(in) :: rcname
-
-character(len=*),parameter:: rcname_def='anavinfo'
+character(len=*),parameter:: rcname='anavinfo'
 
 character(len=*),parameter::myname_=myname//'*set_'
 character(len=*),parameter:: tbname='state_derivatives::'
@@ -131,17 +133,17 @@ character(len=max_varname_length),allocatable,dimension(:):: vars
 character(len=max_varname_length),allocatable,dimension(:):: sources
 logical matched
 
-if(llinit) return 
+if(drv_set_) return 
 
-if(present(rcname)) then
- open(newunit=luin,file=trim(rcname),form='formatted')
-else
- open(newunit=luin,file=trim(rcname_def),form='formatted')
-endif
+open(newunit=luin,file=trim(rcname),form='formatted')
 
 ! Scan file for desired table first
 ! and get size of table
 call gettablesize(tbname,luin,ntot,nrows)
+if(nrows==0) then
+   if(luin/=5) close(luin)
+   return
+endif
 
 ! Get contents of table
 allocate(utable(nrows))
@@ -169,11 +171,8 @@ enddo
 
 deallocate(utable)
 
-allocate(dvars2d(n2d))
-allocate(dvars3d(n3d))
-allocate(dsrcs2d(n2d))
-allocate(dsrcs3d(n3d))
-allocate(levels(n3d))
+allocate(dvars2d(n2d),dvars3d(n3d),&
+         dsrcs2d(n2d),dsrcs3d(n3d),levels(n3d))
 
 ! loop over variables and identify them by comparison
 i2d=0; i3d=0
@@ -235,19 +234,19 @@ do ii=1,nrows
 enddo
 
 if (mype == 0) then
-    if(n2d>0.or.n3d>0) write(6,*) myname_,':  DERIVATIVE VARIABLES: '
-    if(n2d>0) write(6,*) myname_,':  2D-DERV STATE VARIABLES: '
+    write(6,*) myname_,':  DERIVATIVE VARIABLES: '
+    write(6,*) myname_,':  2D-DERV STATE VARIABLES: '
     do ii=1,n2d
        write(6,*) trim(dvars2d(ii))
     enddo
-    if(n3d>0) write(6,*) myname_,':  3D-DERV STATE VARIABLES:'
+    write(6,*) myname_,':  3D-DERV STATE VARIABLES:'
     do ii=1,n3d
        write(6,*) trim(dvars3d(ii))
     enddo
 end if
 
 deallocate(vars,nlevs,sources)
-llinit=.true.  
+drv_set_=.true.  
 
  end subroutine init_anadv
 
@@ -312,9 +311,6 @@ llinit=.true.
 
   enddo
 
-! destroy derivative grid
-! call GSI_GridDestroy()
-
   drv_initialized = .true.
 
   if(mype==0) write(6,*) 'create_ges_derivatives: successfully complete'
@@ -345,12 +341,11 @@ llinit=.true.
   use m_mpimod, only: gsi_mpi_comm_world
   implicit none
   integer(i_kind) nt,ierror
-  character(len=*), parameter :: myname_ = 'destroy_ges_derivatives'
+
+  if(.not.drv_initialized) return
 
 ! destroy mambo-jambo
   call destroy_auxiliar_
-
-  if(.not.drv_initialized) return
 
 ! destroy each instance of derivatives
   do nt=1,size(gsi_yderivative_bundle)
@@ -359,37 +354,28 @@ llinit=.true.
      call GSI_BundleDestroy(gsi_yderivative_bundle(nt),ierror)
      if(ierror/=0) then
         if(mype==0) write(6,*)'warning: y-derivative not properly destroyed'
-        call die(myname_,'y-derivative not properly destroyed')
      endif
 
 !    create latidutinal derivative bundle
      call GSI_BundleDestroy(gsi_xderivative_bundle(nt),ierror)
      if(ierror/=0) then
         if(mype==0) write(6,*)'warning: x-derivative not properly destroyed'
-        call die(myname_,'x-derivative not properly destroyed')
      endif
 
   enddo
 
 ! deallocate structures
-  if(associated(gsi_xderivative_bundle)) deallocate(gsi_xderivative_bundle)
-  if(associated(gsi_yderivative_bundle)) deallocate(gsi_yderivative_bundle)
+  deallocate(gsi_xderivative_bundle)
+  deallocate(gsi_yderivative_bundle)
 
-  drv_initialized=.false.
+! destroy derivative grid
+! call GSI_GridDestroy(grid,lat2,lon2,nsig)
+
+  deallocate(dvars2d,dvars3d,&
+             dsrcs2d,dsrcs3d,levels)
 
   if(mype==0) write(6,*) 'destroy_ges_derivatives: successfully complete'
   end subroutine destroy_ges_derivatives
-
-  subroutine final_anadv
-
-  if(allocated(dvars2d)) deallocate(dvars2d)
-  if(allocated(dvars3d)) deallocate(dvars3d)
-  if(allocated(dsrcs2d)) deallocate(dsrcs2d)
-  if(allocated(dsrcs3d)) deallocate(dsrcs3d)
-  if(allocated(levels))  deallocate(levels)
-  llinit=.false.
-
-  end subroutine final_anadv
 
   subroutine create_auxiliar_
 !$$$  subprogram documentation block
@@ -433,7 +419,7 @@ llinit=.true.
     integer(i_kind) i,j,k
 
     if (getindex(svars3d,'q')>0) then
-       if(.not.allocated(qsatg)) allocate(qsatg(lat2,lon2,nsig),&
+       allocate(qsatg(lat2,lon2,nsig),&
             dqdt(lat2,lon2,nsig),dqdrh(lat2,lon2,nsig),&
             dqdp(lat2,lon2,nsig),&
             qgues(lat2,lon2,nsig))
@@ -451,7 +437,7 @@ llinit=.true.
        end do
     endif
 
-    if(.not.allocated(cwgues)) allocate(cwgues(lat2,lon2,nsig))
+    allocate(cwgues(lat2,lon2,nsig))
     do k=1,nsig
        do j=1,lon2
           do i=1,lat2
@@ -460,7 +446,7 @@ llinit=.true.
         end do
     end do
 
-    if(.not.allocated(cfgues)) allocate(cfgues(lat2,lon2,nsig))
+    allocate(cfgues(lat2,lon2,nsig))
     do k=1,nsig
        do j=1,lon2
           do i=1,lat2

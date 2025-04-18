@@ -103,8 +103,6 @@ module smooth_polcarf
   integer(i_kind),allocatable,dimension(:,:,:):: ixwtxys,iywtxys
   integer(i_kind),allocatable,dimension(:,:):: nxwtxys,nywtxys
 
-  logical, save :: smooth_polcas_set_ = .false.
-
 contains
 
   subroutine init_smooth_polcas
@@ -155,14 +153,7 @@ contains
 !$$$ end documentation block
     implicit none
 
-    if(allocated(xwtxys)) deallocate(xwtxys)
-    if(allocated(ywtxys)) deallocate(ywtxys)
-    if(allocated(ixwtxys)) deallocate(ixwtxys)
-    if(allocated(iywtxys)) deallocate(iywtxys)
-    if(allocated(nxwtxys)) deallocate(nxwtxys)
-    if(allocated(nywtxys)) deallocate(nywtxys)
-
-    smooth_polcas_set_ = .false.
+    deallocate(xwtxys,ywtxys,ixwtxys,iywtxys,nxwtxys,nywtxys)
 
   end subroutine destroy_smooth_polcas
 
@@ -201,8 +192,6 @@ contains
   integer(i_kind) ii,iord1,iord2,nord_evenmax2,nord_oddmax2
   real(r_kind) tin,xin,yin
   real(r_kind) slon(nlon),clon(nlon)
-
-  if ( smooth_polcas_set_ ) return
 
 !              define lat-lon grid lats in polar stereographic units (distance from pole)
   do i=1,nr
@@ -305,8 +294,6 @@ contains
         end do
      end do
   end do
-
-  smooth_polcas_set_ = .true.
 
   end subroutine setup_smooth_polcas
 

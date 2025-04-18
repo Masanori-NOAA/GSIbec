@@ -67,7 +67,6 @@ subroutine tpause(mype,method)
   integer(i_kind) i,j,k,mm1,nt,istatus
   integer(i_kind) latrad
   integer(i_kind) ifound_pv,ifound_oz,itrp_pv,itrp_oz,itrop_k
-  integer(i_kind) ifound_tv,ifound_vor
 
   real(r_kind) pm1,pp1
   real(r_kind) thetam1,thetap1,pv,wgt1,ptrop
@@ -93,27 +92,20 @@ subroutine tpause(mype,method)
   call gsi_bundlegetpointer (gsi_metguess_bundle(nt),'ps',ges_ps_nt,istatus)
   if(istatus/=0) return ! if ps not defined forget it ...
 
-  call gsi_bundlegetpointer (gsi_metguess_bundle(nt),'tv',ges_tv_nt,ifound_tv)
-  if (ifound_tv/=0) then
-     if (mype==0) then
-         write(6,*) trim(myname), ': Warning, tv-not avail not t-pause calc'
-     endif
-     return
-  endif
-  pvoz_capable=ifound_tv==0
-  call gsi_bundlegetpointer (gsi_metguess_bundle(nt),'oz',ges_oz_nt,ifound_oz)
-  pvoz_capable=pvoz_capable.and.ifound_oz==0
-  call gsi_bundlegetpointer (gsi_metguess_bundle(nt),'vor',ges_vor_nt,ifound_vor)
-  pvoz_capable=pvoz_capable.and.ifound_vor==0
+  call gsi_bundlegetpointer (gsi_metguess_bundle(nt),'tv',ges_tv_nt,istatus)
+  pvoz_capable=istatus==0
+  call gsi_bundlegetpointer (gsi_metguess_bundle(nt),'oz',ges_oz_nt,istatus)
+  pvoz_capable=pvoz_capable.and.istatus==0
+  call gsi_bundlegetpointer (gsi_metguess_bundle(nt),'vor',ges_vor_nt,istatus)
+  pvoz_capable=pvoz_capable.and.istatus==0
 
   if (trim(method)=='pvoz') then
      if(.not.pvoz_capable) then
        if (mype==0) then
          write(6,*) trim(myname), ': Warning, user request pv-based method to',&
-              ' identify tropaupose,'
+              'identify tropaupose,'
          write(6,*) 'but not all fields needed are available, resetting',&
                'method to temperature-based one'
-         write(6,*) '(tv,oz,vor) = (',ifound_tv,ifound_oz,ifound_vor, ')'
        endif
        t_method=.true.
      endif

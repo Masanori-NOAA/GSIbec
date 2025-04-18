@@ -31,7 +31,6 @@ module constants
 !   2016-02-15 Johnson, Y. Wang, X. Wang - define additional constant values for
 !                                          radar DA, POC: xuguang.wang@ou.edu
 !   2019-09-25  X.Su     - put stndrd_atmos_ps constant values
-!   2020-07-17 Todling   - redefined constoz (in agreement w/ Haixia); not sure where previous value came from!
 !
 ! Subroutines Included:
 !   sub init_constants_derived - compute derived constants
@@ -55,8 +54,6 @@ module constants
 ! set subroutines as public
   public :: init_constants_derived
   public :: init_constants
-  public :: final_constants_derived
-  public :: final_constants
   public :: gps_constants
 ! set passed variables to public
   public :: one,two,half,zero,deg2rad,pi,three,quarter,one_tenth
@@ -77,22 +74,28 @@ module constants
   public :: psv_a, psv_b, psv_c, psv_d
   public :: ef_alpha, ef_beta, ef_gamma
   public :: max_varname_length
+  public :: max_filename_length
   public :: z_w_max,tfrozen
   public :: qmin,qcmin,tgmin
   public :: i_missing, r_missing
   public :: tice,t_wfr,e00,rvgas,rdgas,hlv,hlf,cp_vap,c_liq,c_ice,cp_air,cv_air
-
-  public :: kPa_per_Pa
-  public :: Pa_per_kPa
 
   public :: izero, qimin, qsmin, qgmin,qrmin
   public :: partialSnowThreshold
   public :: soilmoistmin
   public :: stndrd_atmos_ps
 
+! ------ EFSOI relevant parameters -------- !
+  public :: tref, pref
+  public :: constants_initialized
+
+  public :: kPa_per_Pa
+  public :: Pa_per_kPa
+
 ! Declare derived constants
   integer(i_kind):: huge_i_kind
-  integer(i_kind), parameter :: max_varname_length=32
+  integer(i_kind), parameter :: max_varname_length=20
+  integer(i_kind), parameter :: max_filename_length=80
   real(r_single):: tiny_single, huge_single
   real(r_kind):: xai, xa, xbi, xb, dldt, rozcon,ozcon,fv, tpwcon,eps, rd_over_g
   real(r_kind):: el2orc, g_over_rd, rd_over_cp, cpr, omeps, epsm1, factor2
@@ -115,6 +118,8 @@ module constants
   real(r_kind),parameter::  ttp    = 2.7316e+2_r_kind            !  temperature at h2o triple point (K)
   real(r_kind),parameter::  jcal   = 4.1855e+0_r_kind            !  joules per calorie              ()
   real(r_kind),parameter::  stndrd_atmos_ps = 1013.25e2_r_kind   ! 1976 US standard atmosphere ps   (Pa)
+  real(r_kind),parameter::  tref   = 2.8000e+2_r_kind            ! reference T for total energy
+  real(r_kind),parameter::  pref   = 1.0000e+5_r_kind            ! reference P for total energy
   real(r_kind),parameter::  kPa_per_Pa = 0.001_r_kind            ! convert from Pa to cb
   real(r_kind),parameter::  Pa_per_kPa = 1000._r_kind            ! convert from cb to Pa
 
@@ -240,11 +245,9 @@ module constants
   real(r_kind),parameter::  ke2 = 0.00002_r_kind
   real(r_kind),parameter::  row = r1000
   real(r_kind),parameter::  rrow = one/row
-! real(r_kind),parameter::  qmin = 1.e-7_r_kind  !lower bound on ges_q
 
 ! Constant used to process ozone
-! real(r_kind),parameter::  constoz = 604229.0_r_kind ! Where did this come from?
-  real(r_kind),parameter::  constoz = 603447.6_r_kind ! ((28.9644 g/mol o3)/((47.9982 g/mol air))*1e6(mol/mol)
+  real(r_kind),parameter::  constoz = 604229.0_r_kind
 
 ! Constants used in cloud liquid water correction for AMSU-A
 ! brightness temperatures
@@ -292,8 +295,8 @@ module constants
   integer(i_kind),parameter:: i_missing=-9999
   integer(r_kind),parameter:: r_missing=-9999._r_kind
 
-  logical :: cnts_derived_initialized_=.false.
-  logical :: cnts_initialized_=.false.
+! Constants initialized
+  logical :: constants_initialized = .true.
 
 contains
 
@@ -320,8 +323,6 @@ contains
 !$$$
     implicit none
 
-    if(cnts_derived_initialized_) return
-
 !   Trigonometric constants
     pi      = acos(-one)
     deg2rad = pi/180.0_r_kind
@@ -340,13 +341,8 @@ contains
     eccentricity_linear = sqrt(semi_major_axis**2 - semi_minor_axis**2)
     eccentricity = eccentricity_linear / semi_major_axis
 
-    cnts_derived_initialized_=.true.
     return
   end subroutine init_constants_derived
-
-  subroutine final_constants_derived
-    cnts_derived_initialized_=.false.
-  end subroutine final_constants_derived
 
   subroutine init_constants(regional)
 !$$$  subprogram documentation block
@@ -382,8 +378,6 @@ contains
     logical,intent(in   ) :: regional
 
     real(r_kind) reradius,g,r_d,r_v,cliq_wrf
-
-    if(cnts_initialized_) return
 
 !   Define regional constants here
     if (regional) then
@@ -445,13 +439,8 @@ contains
     rd_over_cp = rd/cp
     g_over_rd  = grav/rd
 
-    cnts_initialized_=.true.
     return
   end subroutine init_constants
-
-  subroutine final_constants
-    cnts_initialized_=.false.
-  end subroutine final_constants
 
   subroutine gps_constants(use_compress)
 !$$$  subprogram documentation block

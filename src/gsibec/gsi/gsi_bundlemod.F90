@@ -17,7 +17,6 @@ module GSI_BundleMod
    use m_kinds, only: i_kind,r_single,r_kind,r_double,r_quad
    use constants, only: zero_single,zero,zero_quad
    use m_rerank, only: rerank
-   use m_mpimod, only: mype
    use mpeu_util, only: perr, die
 
    implicit none
@@ -279,7 +278,7 @@ module GSI_BundleMod
 ! !REVISION HISTORY:
 !
 !  22Apr2010 Todling - initial code, based on discussion w/ Arlindo da Silva 
-!                      and his f90/ESMF''s SimpleBundle.
+!                      and his f90/ESMF's SimpleBundle.
 !  18Aug2010      Hu - declared GSI_1D, GSI_2D, and GSI_3D as public.
 !  28Apr2011 Todling - complete overload to support REAL*4 and REAL*8
 !  04Jul2011 Todling - large revision of REAL*4 or REAL*8 implementation
@@ -295,7 +294,7 @@ module GSI_BundleMod
 ! !REMARKS: 
 !
 !  1. This module should never depend on more than the following GSI modules:
-!      kinds
+!      m_kinds
 !      constants
 !      m_rerank
 !
@@ -1672,7 +1671,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !
 !  05May2010 Todling  Initial code.
-!  07Jul2010 Todling  Fixed interface (no optionals, per Guo''s suggestion) to
+!  07Jul2010 Todling  Fixed interface (no optionals, per Guo's suggestion) to
 !                     avoid problem found Kokron of referencing undef variables
 !
 !EOP
@@ -1680,7 +1679,6 @@ CONTAINS
 !noBOC
     
     integer(i_kind) :: i, n1d, n2d, n3d
-
     istatus=0
     n1d = Bundle%n1d
     n2d = Bundle%n2d
@@ -3382,7 +3380,7 @@ subroutine hadamard_upd_(zst,yst,xst)
 
   if(yst%ndim/=xst%ndim.or.yst%ndim/=zst%ndim) then
      write(6,*)trim(myname_), ': error length'
-     call stop2(998)
+     call stop2(313)
   endif
 
   if (zst%AllKinds<0.or.xst%AllKinds<0.or.yst%AllKinds<0 ) then
@@ -3475,7 +3473,7 @@ subroutine self_add_st(yst,xst)
 
   if(yst%ndim/=xst%ndim) then
      write(6,*)trim(myname_),': error length'
-     call stop2(998)
+     call stop2(313)
   endif
   if (xst%AllKinds<0.or.yst%AllKinds<0 ) then
      write(6,*)trim(myname_),': error bundle precision ',xst%AllKinds,yst%AllKinds
@@ -3541,7 +3539,7 @@ subroutine self_add_R8scal(yst,pa,xst)
 
   if(yst%ndim/=xst%ndim) then
      write(6,*)trim(myname_),': error length'
-     call stop2(998)
+     call stop2(313)
   endif
   if (xst%AllKinds<0.or.yst%AllKinds<0 ) then
      write(6,*)trim(myname_),': error bundle precision ',xst%AllKinds,yst%AllKinds
@@ -3607,7 +3605,7 @@ subroutine self_add_R4scal(yst,pa,xst)
 
   if(yst%ndim/=xst%ndim) then
      write(6,*)trim(myname_),': error length'
-     call stop2(998)
+     call stop2(313)
   endif
   if (xst%AllKinds<0.or.yst%AllKinds<0 ) then
      write(6,*)trim(myname_),': error bundle precision ',xst%AllKinds,yst%AllKinds
@@ -4141,12 +4139,11 @@ end function sum3dR4_
 !
 ! !INTERFACE:
 
-  subroutine print_ ( Bundle, thispe )
+  subroutine print_ ( Bundle )
 
 ! !INPUT PARAMETERS:
 
     type(GSI_Bundle) :: Bundle
-    integer(i_kind),optional,intent(in) :: thispe
     
 ! !DESCRIPTION: Summarize contents of bundle by echoing max/min values.
 !
@@ -4165,48 +4162,41 @@ end function sum3dR4_
 !noBOC
     integer(i_kind) :: i 
     character(len=*),parameter::myname_='print_'
-    logical showthis
     if (Bundle%AllKinds<0 ) then
        write(6,*) myname_, ':trouble with bundle precision bundle ', Bundle%AllKinds
        call stop2(999)
     endif
-    showthis=.true.
-    if(present(thispe)) then
-       showthis=mype==thispe
-    endif
-    if (.not.showthis) return
     print *
     print *, 'Bundle: ', trim(Bundle%name)
-    print *, 'Bundle: n1d, n2d, n3d', Bundle%n1d, Bundle%n2d, Bundle%n3d
     do i = 1, Bundle%n1d
        if (Bundle%r1(i)%myKind==r_single) then
-           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [1d] '//trim(Bundle%r1(i)%shortname), &
+           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [1d] '//Bundle%r1(i)%shortname, &
                        minval(Bundle%r1(i)%qr4), &
                        maxval(Bundle%r1(i)%qr4)
        else if (Bundle%r1(i)%myKind==r_double) then
-           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [1d] '//trim(Bundle%r1(i)%shortname), &
+           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [1d] '//Bundle%r1(i)%shortname, &
                        minval(Bundle%r1(i)%qr8), &
                        maxval(Bundle%r1(i)%qr8)
        endif
     end do
     do i = 1, Bundle%n2d
        if (Bundle%r2(i)%myKind==r_single) then
-           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [2d] '//trim(Bundle%r2(i)%shortname), &
+           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [2d] '//Bundle%r2(i)%shortname, &
                        minval(Bundle%r2(i)%qr4), &
                        maxval(Bundle%r2(i)%qr4)
        else if (Bundle%r2(i)%myKind==r_double) then
-           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [2d] '//trim(Bundle%r2(i)%shortname), &
+           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [2d] '//Bundle%r2(i)%shortname, &
                        minval(Bundle%r2(i)%qr8), &
                        maxval(Bundle%r2(i)%qr8)
        endif
     end do
     do i = 1, Bundle%n3d
        if (Bundle%r3(i)%myKind==r_single) then
-           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [3d] '//trim(Bundle%r3(i)%shortname), &
+           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [3d] '//Bundle%r3(i)%shortname, &
                        minval(Bundle%r3(i)%qr4), &
                        maxval(Bundle%r3(i)%qr4)
        else if (Bundle%r3(i)%myKind==r_double) then
-           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [3d] '//trim(Bundle%r3(i)%shortname), &
+           write(*,'(a20,2x,1p,e11.4,2x,e11.4)') '  [3d] '//Bundle%r3(i)%shortname, &
                        minval(Bundle%r3(i)%qr8), &
                        maxval(Bundle%r3(i)%qr8)
        endif

@@ -88,33 +88,16 @@ subroutine compute_derived(mype,init_pass)
 
   use m_kinds, only: r_kind,i_kind
   use jfunc, only: jiter,jiterstart,&
-       switch_on_derivatives,&
-       tendsflag,clip_supersaturation
+       qoption,switch_on_derivatives,&
+       tendsflag,superfact,clip_supersaturation
   use control_vectors, only: cvars3d
   use control_vectors, only: nrf_var
-  use jfunc, only: qoption
-  use gridmod, only: regional
-#ifdef USE_ALL_ORIGINAL
   use control_vectors, only: an_amp0
-  use cloud_efr_mod, only: efr_ql
-  use gridmod, only: twodvar_regional
-  use gridmod, only: wrf_mass_regional
-  use berror, only: hswgt
-  use gsi_4dvar, only: idmodel
-  use gsi_4dcouplermod, only: gsi_4dcoupler_init_traj
-! for anisotropic mode
-  use sub2fslab_mod, only: setup_sub2fslab, sub2fslab, sub2fslab_glb, destroy_sub2fslab
-  use anberror, only: anisotropic, idvar, kvar_start, ngauss, indices, indices_p, &
-                      filter_all,   filter_p2,   filter_p3, &
-                      pf2aP1, pf2aP2, pf2aP3, rtma_subdomain_option
-  use anisofilter, only: rh0f, corz, ensamp, mlat, rllatf, fact_qopt2
-  use anisofilter_glb, only: rh2f, rh3f, ensamp0f, ensamp2f, ensamp3f, &
-                             p0ilatf, p2ilatf, p3ilatf, p2ilatfm, p3ilatfm, get_stat_factk
-#endif
   use m_mpimod, only: levs_id
   use guess_grids, only: ges_tsen,ges_qsat,ges_prsl,ntguessig,nfldsig,&
        ges_teta,fact_tv
   use guess_grids, only: nfldsig
+  use cloud_efr_mod, only: efr_ql
   use derivsmod, only: drv_initialized
   use derivsmod, only: gsi_xderivative_bundle
   use derivsmod, only: gsi_yderivative_bundle
@@ -123,8 +106,13 @@ subroutine compute_derived(mype,init_pass)
   use tendsmod, only: tnd_initialized
   use tendsmod, only: gsi_tendency_bundle
   use gridmod, only: lat2,lon2,nsig,nsig1o  
+  use gridmod, only: regional
+  use gridmod, only: twodvar_regional
+  use gridmod, only: wrf_mass_regional
+  use berror, only: hswgt
 #ifdef TLNMC
   use mod_strong, only: l_tlnmc,baldiag_full
+  use obsmod, only: write_diag
 #endif
   use gsi_4dvar, only: l4dvar
 
@@ -132,8 +120,20 @@ subroutine compute_derived(mype,init_pass)
   use gsi_bundlemod, only: gsi_bundlegetpointer
 
   use constants, only: zero,one,one_tenth,half,fv,qmin,qcmin,ten,t0c,five,r0_05 
-
-
+#ifdef USE_ALL_ORIGINAL
+! for anisotropic mode
+  use sub2fslab_mod, only: setup_sub2fslab, sub2fslab, sub2fslab_glb, destroy_sub2fslab
+  use anberror, only: anisotropic, idvar, kvar_start, ngauss, indices, indices_p, &
+                      filter_all,   filter_p2,   filter_p3, &
+                      pf2aP1, pf2aP2, pf2aP3, rtma_subdomain_option
+  use anisofilter, only: rh0f, corz, ensamp, mlat, rllatf, fact_qopt2
+  use anisofilter_glb, only: rh2f, rh3f, ensamp0f, ensamp2f, ensamp3f, &
+                             p0ilatf, p2ilatf, p3ilatf, p2ilatfm, p3ilatfm, get_stat_factk
+#endif /* USE_ALL_ORIGINAL */
+  use gsi_4dvar, only: idmodel
+#ifdef USE_ALL_ORIGINAL
+  use gsi_4dcouplermod, only: gsi_4dcoupler_init_traj
+#endif
   use mpeu_util, only: getindex
   use mpeu_util, only: die, tell
   use gsi_io, only: verbose
@@ -182,7 +182,6 @@ subroutine compute_derived(mype,init_pass)
   if(init_pass .and. (ntguessig<1 .or. ntguessig>nfldsig)) &
      call die(myname,'invalid init_pass, ntguessig =',ntguessig)
 
-
 ! Get required indexes from control vector names
   nrf3_q=getindex(cvars3d,'q')
   iq_loc=getindex(nrf_var,'q')
@@ -208,12 +207,12 @@ subroutine compute_derived(mype,init_pass)
 ! Limit q to be >= qmin
               ges_q(i,j,k)=max(ges_q(i,j,k),qmin)
 ! limit q to be <= ges_qsat
-              if(clip_supersaturation) ges_q(i,j,k) = min(ges_q(i,j,k),ges_qsat(i,j,k,ii))
+              if(clip_supersaturation) ges_q(i,j,k) = min(ges_q(i,j,k),superfact*ges_qsat(i,j,k,ii))
            end do
         end do
      end do
   end do
-
+ 
 ! Load guess cw for use in inner loop
 ! Get pointer to cloud water mixing ratio
   it=ntguessig
@@ -242,7 +241,6 @@ subroutine compute_derived(mype,init_pass)
         endif
      end if  ! end of ier==0
 
-#ifdef USE_ALL_ORIGINAL
 !    update efr_ql
      if(regional .and. (.not. wrf_mass_regional) .and. jiter>jiterstart) then
        do ii=1,nfldsig
@@ -257,7 +255,6 @@ subroutine compute_derived(mype,init_pass)
           end do
        end do
      end if  ! jiter
-#endif
   else
      if(associated(ges_cwmr)) ges_cwmr => cwgues
   end if  ! end of n_actual_clouds
@@ -276,9 +273,7 @@ subroutine compute_derived(mype,init_pass)
 
 !-----------------------------------------------------------------------------------
 ! Compute derivatives for .not. twodvar_regional case
-#ifdef USE_ALL_ORIGINAL
   if (.not. twodvar_regional)then
-#endif
 
      if (switch_on_derivatives) then
         if(.not.drv_initialized) &
@@ -295,11 +290,7 @@ subroutine compute_derived(mype,init_pass)
                                 gsi_yderivative_bundle(nt))
         enddo
 
-#ifdef USE_ALL_ORIGINAL
         if(.not. wrf_mass_regional .and. tendsflag)then
-#else
-        if(tendsflag)then
-#endif
           if(.not.tnd_initialized) &
             call die(myname,'unexpected tnd_initialized =',tnd_initialized)
 
@@ -314,7 +305,7 @@ subroutine compute_derived(mype,init_pass)
                           gsi_tendency_bundle)
 
 #ifdef TLNMC
-           if(l_tlnmc .and. baldiag_full) then
+           if(l_tlnmc .and. write_diag(jiter) .and. baldiag_full) then
               fullfield=.true.
 
               call init_vars_('tendency')
@@ -327,8 +318,8 @@ subroutine compute_derived(mype,init_pass)
            end if
 #endif /* TLNMC */
           end if       ! (init_pass)
-        end if     ! tendsflag
-     end if     ! switch_on_derivatives
+        end if
+     end if
 
      if(init_pass) then
 
@@ -347,9 +338,7 @@ subroutine compute_derived(mype,init_pass)
   
      endif       ! (init_pass)
 
-#ifdef USE_ALL_ORIGINAL
   endif         ! (!twodvar_regional)
-#endif
 
   if(.not. init_pass) return
 
@@ -489,7 +478,7 @@ subroutine compute_derived(mype,init_pass)
                     do i=indices%ips,indices%ipe
                        l =max(min(int(rllatf(i,j)),mlat),1)
                        l2=min((l+1),mlat)
-                       dl2=rllatf(i,j)-float(l)
+                       dl2=rllatf(i,j)-real(l,r_kind)
                        dl1=one-dl2
 
                        factk=dl1*corz(l,kvar,nrf3_q)+dl2*corz(l2,kvar,nrf3_q)
@@ -574,16 +563,14 @@ subroutine compute_derived(mype,init_pass)
 
               end if
            end do
-           deallocate(rh3f)
-           deallocate(rh2f)
-           deallocate(rh0f)
+           deallocate(rh0f,rh2f,rh3f)
         end if
         call destroy_sub2fslab
      end if
 
 ! End of qoption block
   endif
-#endif
+#endif /* USE_ALL_ORIGINAL */
 
 ! End of routine
   return

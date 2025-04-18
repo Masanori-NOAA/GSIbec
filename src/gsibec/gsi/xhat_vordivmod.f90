@@ -41,12 +41,12 @@ module xhat_vordivmod
   public xhat_vordiv_init
   public xhat_vordiv_calc
   public xhat_vordiv_calc2
-  public xhat_vordiv_final
+  public xhat_vordiv_clean
 
   interface xhat_vordiv_init;  module procedure init_ ; end interface
   interface xhat_vordiv_calc;  module procedure calc_ ; end interface
   interface xhat_vordiv_calc2; module procedure calc2_; end interface
-  interface xhat_vordiv_final; module procedure clean_; end interface
+  interface xhat_vordiv_clean; module procedure clean_; end interface
 
   real(r_kind),public,allocatable,dimension(:,:,:,:):: xhat_vor
   real(r_kind),public,allocatable,dimension(:,:,:,:):: xhat_div
@@ -75,8 +75,10 @@ subroutine init_
 !$$$ end documentation block
   implicit none
 
-  if(.not.allocated(xhat_vor)) allocate(xhat_vor(lat2,lon2,nsig,nobs_bins))
-  if(.not.allocated(xhat_div)) allocate(xhat_div(lat2,lon2,nsig,nobs_bins))
+  allocate(xhat_vor(lat2,lon2,nsig,nobs_bins))
+  allocate(xhat_div(lat2,lon2,nsig,nobs_bins))
+  xhat_vor=zero
+  xhat_div=zero
 end subroutine init_
 
 subroutine clean_
@@ -139,25 +141,12 @@ subroutine calc_(sval)
 
 ! Declare local variables
   integer(i_kind) i,j,k,ii,istatus
-  real(r_kind),dimension(:,:),allocatable:: usm,vsm
+  real(r_kind),dimension(nlat,nlon):: usm,vsm
   real(r_kind),dimension(:,:,:,:),allocatable:: work1,worksub
-  real(r_kind),pointer,dimension(:,:,:):: uptr=>NULL()
-  real(r_kind),pointer,dimension(:,:,:):: vptr=>NULL()
+  real(r_kind),pointer,dimension(:,:,:):: uptr,vptr
   logical docalc
 
 !*******************************************************************************
-
-! Initialize local arrays
-  do ii=1,nobs_bins
-     do k=1,nsig
-        do j=1,lon2
-           do i=1,lat2
-              xhat_vor(i,j,k,ii) = zero
-              xhat_div(i,j,k,ii) = zero
-           end do
-        end do
-     end do
-  end do
 
 ! The GSI analyzes stream function (sf) and velocity potential (vp).  
 ! Wind field observations are in terms of zonal (u) and meridional 
@@ -178,7 +167,6 @@ subroutine calc_(sval)
 
      allocate(work1(2,s2guv%nlat,s2guv%nlon,s2guv%kbegin_loc:s2guv%kend_alloc))
      allocate(worksub(2,s2guv%lat2,s2guv%lon2,s2guv%nsig))
-     allocate(usm(nlat,nlon),vsm(nlat,nlon))
      do ii=1,nobs_bins
 !       NCEP GFS interface
   
@@ -234,7 +222,6 @@ subroutine calc_(sval)
 
 !    End of NCEP GFS block
      end do
-     deallocate(usm,vsm)
      deallocate(work1,worksub)
   endif
 
@@ -278,7 +265,7 @@ subroutine calc2_(u,v,vor,div)
 
 ! Declare local variables
   integer(i_kind) i,j,k
-  real(r_kind),dimension(:,:),allocatable:: usm,vsm
+  real(r_kind),dimension(nlat,nlon):: usm,vsm
   real(r_kind),dimension(:,:,:,:),allocatable:: work1,worksub
 
 !*******************************************************************************
@@ -312,7 +299,6 @@ subroutine calc2_(u,v,vor,div)
 
      allocate(work1(2,s2guv%nlat,s2guv%nlon,s2guv%kbegin_loc:s2guv%kend_alloc))
      allocate(worksub(2,s2guv%lat2,s2guv%lon2,s2guv%nsig))
-     allocate(usm(nlat,nlon),vsm(nlat,nlon))
 !    NCEP GFS interface
 
      do k=1,nsig
@@ -358,7 +344,6 @@ subroutine calc2_(u,v,vor,div)
      end do
 
 ! End of NCEP GFS block
-     deallocate(usm,vsm)
      deallocate(work1,worksub)
 
   endif

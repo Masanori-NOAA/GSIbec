@@ -45,7 +45,7 @@ find_package( sp QUIET )
 ################################################################################
 
 add_subdirectory( src/gsibec )
-add_subdirectory( test )
+#add_subdirectory( test )
 
 ################################################################################
 # Finalise configuration

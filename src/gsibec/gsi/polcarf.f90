@@ -1,5 +1,4 @@
-subroutine polcasl(sl,sl1,sl2,mf,nf,mrr,nrr,nor,rs,df,nxe,nxg,nlat,nlon) !  RT_INTERFACE_CHG
-!subroutine polcasl(sl,sl1,sl2,mf,nf,mrr,nrr,nor,rs,df,nxe,nxg) !  RT_INTERFACE_CHG
+subroutine polcasl(sl,sl1,sl2,mf,nf,mrr,nrr,nor,rs,df,nxe,nxg)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    polcasl  interpolate to polar patches
@@ -28,10 +27,9 @@ subroutine polcasl(sl,sl1,sl2,mf,nf,mrr,nrr,nor,rs,df,nxe,nxg,nlat,nlon) !  RT_I
 !   machine:  ibm rs/6000 sp
 !$$$
   use m_kinds, only: r_kind,i_kind
-!_RT  use gridmod, only: nlat,nlon
+  use gridmod, only: nlat,nlon
   implicit none
 
-  integer(i_kind)                      ,intent(in   ) :: nlat,nlon
   integer(i_kind)                      ,intent(in   ) :: mf,nf,nor,nrr,mrr
 
   real(r_kind)                         ,intent(in   ) :: df
@@ -619,7 +617,7 @@ subroutine polcas(afg,axr,nxem,norm,naxr,wtaxs,wtxrs,inaxs,inxrs,nf,mr,nr)
   do i=0,naxr-1
      valp=valp+axr(i,mr+1)
   end do
-  valp=valp/float(naxr)
+  valp=valp/real(naxr,r_kind)
   do i=0,naxr-1
      axr(i,mr)=valp
   end do
@@ -694,7 +692,7 @@ subroutine polcasa(afg,axr,nxem,norm,naxr,wtaxs,wtxrs,inaxs,inxrs,nf,mr,nr)
   do i=0,naxr-1
      valp=valp+axr(i,mr)
   end do
-  valp=valp/float(naxr)
+  valp=valp/real(naxr,r_kind)
   do i=0,naxr-1
      axr(i,mr)=zero
      axr(i,mr+1)=axr(i,mr+1)+valp

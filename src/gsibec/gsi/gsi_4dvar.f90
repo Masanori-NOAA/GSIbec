@@ -24,8 +24,7 @@ module gsi_4dvar
 !   2015-02-23 Rancic/Thomas - iwinbgn changed from hours to mins, added thin4d
 !                         option to remove thinning in time       
 !   2015-10-01 Guo      - trigger for redistribution of obs when applicable
-!   2017-05-06 todling  - add tau_fcst to determine EnVarFSOI-like calculation
-!   2020-02-26 todling  - obsbin time now in minutes
+!   2017-05-06 todling  - add tau_fcst to determine EFSOI-like calculation
 !
 ! Subroutines Included:
 !   sub init_4dvar    -
@@ -58,9 +57,9 @@ module gsi_4dvar
 !   winlen            - Length of 4dvar window (hours)
 !   winoff            - Main analysis time within 4dvar window (hours)
 !
-!   nmn_obsbin        - Length of observation bins (temporary control)
+!   nhr_obsbin        - Length of observation bins (temporary control)
 !   nobs_bins         - Number of observation bins in assimilation window
-!   mn_obsbin         - Length of observation bins (minutes)
+!   hr_obsbin         - Length of observation bins (hours)
 !
 !   nhr_subwin        - Length of 4dvar sub-windows (weak constraint)
 !   nsubwin           - Number of time-points in 4D control variable
@@ -75,8 +74,8 @@ module gsi_4dvar
 !   idmodel           - Run w/ identity GCM TLM and ADM; test mode
 !
 !   l4densvar         - Logical flag for 4d-ensemble-var option
-!   ens_nmn           - Time between time levels for ensemble (currently same as nmn_obsbins)
-!   ens_fmnlevs       - Forecast length for each time level for ensemble perturbations
+!   ens_nhr           - Time between time levels for ensemble (currently same as nhr_obsbins)
+!   ens_fhrlevs       - Forecast length for each time level for ensemble perturbations
 !                       this variable defines the assumed filenames for ensemble
 !   ens_nstarthr      - Integer namelist option for first time level for ensemble
 !                       this should generally match with min_offset
@@ -97,7 +96,7 @@ module gsi_4dvar
 
 ! --------------------------------------------------------------------
   use m_kinds, only: r_kind,i_kind
-  use constants, only: r60
+  use constants, only: one
 ! --------------------------------------------------------------------
 
   implicit none
@@ -107,21 +106,20 @@ module gsi_4dvar
 ! set subroutines to public
   public :: init_4dvar
   public :: setup_4dvar
-  public :: time_4dvar
   public :: clean_4dvar
 ! set passed variables to public
   public :: iadatebgn,l4dvar,nobs_bins,nhr_assimilation,lsqrtb,lbicg,nsubwin
-  public :: mn_obsbin,ltlint,idmodel,iwrtinc,winsub,winlen,iwinbgn
+  public :: hr_obsbin,ltlint,idmodel,iwrtinc,winsub,winlen,iwinbgn
   public :: min_offset,iadateend,ibdate,iedate,lanczosave,lbfgsmin
-  public :: ladtest,ladtest_obs,lgrtest,lcongrad,nmn_obsbin,nhr_subwin,nwrvecs
+  public :: ladtest,ladtest_obs,lgrtest,lcongrad,nhr_obsbin,nhr_subwin,nwrvecs
   public :: jsiga,ltcost,iorthomax,liauon,lnested_loops
-  public :: l4densvar,ens_fmnlevs,ens_nstarthr,ibin_anl
+  public :: l4densvar,ens_nhr,ens_fhrlevs,ens_nstarthr,ibin_anl
   public :: lwrite4danl,thin4d,nhr_anal
   public :: mPEs_observer
   public :: tau_fcst
-  public :: evfsoi_order
-  public :: evfsoi_afcst
-  public :: evfsoi_ana
+  public :: efsoi_order
+  public :: efsoi_afcst
+  public :: efsoi_ana
 
   logical         :: l4dvar
   logical         :: lsqrtb
@@ -140,28 +138,28 @@ module gsi_4dvar
   logical         :: lnested_loops
   logical         :: lwrite4danl
   logical         :: thin4d
-  logical         :: evfsoi_afcst
-  logical         :: evfsoi_ana
+  logical         :: efsoi_afcst
+  logical         :: efsoi_ana
 
   integer(i_kind),dimension(21) ::  nhr_anal
 
   integer(i_kind) :: iwrtinc
   integer(i_kind) :: iadatebgn, iadateend
   integer(i_kind) :: ibdate(5), iedate(5)
-  integer(i_kind) :: nmn_obsbin, nobs_bins
+  integer(i_kind) :: nhr_obsbin, nobs_bins
   integer(i_kind) :: nhr_subwin, nsubwin
   integer(i_kind) :: nhr_assimilation,min_offset
   integer(i_kind) :: nwrvecs
   integer(i_kind) :: iorthomax
   integer(i_kind) :: jsiga
-  integer(i_kind) :: ens_nstarthr,ibin_anl
-  integer(i_kind),allocatable,dimension(:) :: ens_fmnlevs
+  integer(i_kind) :: ens_nhr,ens_nstarthr,ibin_anl
+  integer(i_kind),allocatable,dimension(:) :: ens_fhrlevs
   integer(i_kind) :: tau_fcst
-  integer(i_kind) :: evfsoi_order
+  integer(i_kind) :: efsoi_order
 
   integer(i_kind),save:: mPEs_observer=0
 
-  real(r_kind) :: iwinbgn, winlen, winoff, winsub, mn_obsbin
+  real(r_kind) :: iwinbgn, winlen, winoff, winsub, hr_obsbin
 
 ! --------------------------------------------------------------------
 contains
@@ -207,7 +205,7 @@ nhr_assimilation=6
 min_offset=180
 
 nhr_subwin=-1
-nmn_obsbin=-1
+nhr_obsbin=-1
 ladtest=.false.
 ladtest_obs=.false.
 lgrtest=.false.
@@ -218,6 +216,7 @@ nwrvecs=-1
 jsiga  =-1
 iorthomax=0
 
+ens_nhr = 0
 ens_nstarthr = 6
 ibin_anl = 1
 
@@ -227,10 +226,10 @@ thin4d = .false.
 ! if > 0, output specific fcst time given by nhr_anal
 nhr_anal = 0 
 
-tau_fcst = -1           ! ensemble of forecast at hour current+tau_fcst 
-evfsoi_order = 1        ! order of appox used in EnVarFSOI-like settings
-evfsoi_afcst = .false.  ! internal EnVarFSOI-like parameter (NEVER to be in namelist)
-evfsoi_ana   = .false.  ! internal EnVarFSOI-like parameter (NEVER to be in namelist)
+tau_fcst = -1          ! ensemble of forecast at hour current+tau_fcst 
+efsoi_order = 1        ! order of appox used in EFSOI-like settings
+efsoi_afcst = .false.  ! internal EFSOI-like parameter (NEVER to be in namelist)
+efsoi_ana   = .false.  ! internal EFSOI-like parameter (NEVER to be in namelist)
 
 end subroutine init_4dvar
 ! --------------------------------------------------------------------
@@ -259,38 +258,34 @@ subroutine setup_4dvar(mype)
 !$$$ end documentation block
 
 use hybrid_ensemble_parameters, only: ntlevs_ens
-use jfunc, only: ljc4tlevs
+use jcmod, only: ljc4tlevs
 implicit none
 integer(i_kind),intent(in   ) :: mype
 
 ! local variables
 integer(i_kind) :: ibin,k
-integer(i_kind) :: nmn_assimilation
-integer(i_kind) :: ens_nmn
 
-ens_nmn = 0
-nmn_assimilation = 60 * nhr_assimilation
 winlen = real(nhr_assimilation,r_kind)
-winoff = real(min_offset/r60,r_kind)
+winoff = real(min_offset/60._r_kind,r_kind)
 
-if (nmn_obsbin>0.and.nmn_obsbin<=nmn_assimilation) then
-   mn_obsbin = real(nmn_obsbin,r_kind)
+if (nhr_obsbin>0.and.nhr_obsbin<=nhr_assimilation) then
+   hr_obsbin = real(nhr_obsbin,r_kind)
 else
    if (l4dvar) then
 !     Should depend on resolution of TLM, etc...
-      mn_obsbin = r60
+      hr_obsbin = one
    else if(l4densvar) then
-      mn_obsbin = r60
+      hr_obsbin = one   
    else
-      mn_obsbin = winlen * r60
+      hr_obsbin = winlen
    end if
 end if
 
 ! Setup observation bins
-IF (mn_obsbin<winlen*r60) THEN
-   ibin = NINT(winlen*r60/mn_obsbin)
-   IF (NINT(ibin*mn_obsbin)/=nmn_assimilation) THEN
-      write(6,*)'SETUP_4DVAR: Error=',ibin,mn_obsbin,nmn_assimilation
+IF (hr_obsbin<winlen) THEN
+   ibin = NINT(winlen/hr_obsbin)
+   IF (NINT(ibin*hr_obsbin)/=nhr_assimilation) THEN
+      write(6,*)'SETUP_4DVAR: Error=',ibin,hr_obsbin,nhr_assimilation
       write(6,*)'SETUP_4DVAR: Error in observation binning'
       call stop2(132)
    ENDIF
@@ -343,13 +338,13 @@ end if
 if ( l4densvar ) then
 
    ntlevs_ens = nobs_bins
-   ens_nmn    = nmn_obsbin
+   ens_nhr    = nhr_obsbin
 
    if ( mype == 0 ) &
       write(6,'(A)')' SETUP_4DVAR: 4densvar mode, resetting nsubwin to 1'
    nsubwin = 1
 
-   ibin_anl = (nmn_assimilation/(2*nmn_obsbin))+1
+   ibin_anl = (nhr_assimilation/(2*nhr_obsbin))+1
    if ( mype == 0 ) &
       write(6,'(A,I4)')' SETUP_4DVAR: 4densvar mode, ibin_anl = ', ibin_anl
 
@@ -368,11 +363,11 @@ if ( mype == 0 ) &
 ! Set up the time levels (nobs_bins) for the ensemble
 if ( mype == 0 ) &
     write(6,'(A)')' SETUP_4DVAR: allocate array containing time levels for ensemble'
-if(.not.allocated(ens_fmnlevs)) allocate(ens_fmnlevs(ntlevs_ens))
+allocate(ens_fhrlevs(ntlevs_ens))
 do k=1,ntlevs_ens
-   ens_fmnlevs(k) = ens_nstarthr*60 + (k-1)*ens_nmn
+   ens_fhrlevs(k) = ens_nstarthr + (k-1)*ens_nhr
    if ( mype == 0 ) &
-      write(6,'(2(A,I5))')' SETUP_4DVAR: timelevel = ', k, ' , ens_fmnlevs = ', ens_fmnlevs(k)
+      write(6,'(2(A,I5))')' SETUP_4DVAR: timelevel = ', k, ' , ens_fhrlevs = ', ens_fhrlevs(k)
 enddo
 
 if ( (.not. l4dvar) .and. (.not. l4densvar) ) then
@@ -386,7 +381,7 @@ if (mype==0) then
    write(6,*)'SETUP_4DVAR: l4densvar=',l4densvar
    write(6,*)'SETUP_4DVAR: winlen=',winlen
    write(6,*)'SETUP_4DVAR: winoff=',winoff
-   write(6,*)'SETUP_4DVAR: mn_obsbin=',mn_obsbin
+   write(6,*)'SETUP_4DVAR: hr_obsbin=',hr_obsbin
    write(6,*)'SETUP_4DVAR: nobs_bins=',nobs_bins
    write(6,*)'SETUP_4DVAR: ntlevs_ens=',ntlevs_ens
    write(6,*)'SETUP_4DVAR: nsubwin,nhr_subwin=',nsubwin,nhr_subwin
@@ -409,65 +404,6 @@ if (mype==0) then
 endif
 
 end subroutine setup_4dvar
-! --------------------------------------------------------------------
-subroutine time_4dvar(idate,step4d)
-!$$$  subprogram documentation block
-!                .      .    .                                       .
-! subprogram:   time_4dvar
-!   prgmmr:
-!
-! abstract:
-!
-! program history log:
-!   2009-08-04  lueken - added subprogram doc block
-!
-!   input argument list:
-!    idate    - Date (yyyymmddhh)
-!
-!   output argument list:
-!    step4d   - Time since start of 4D-Var window (hours)
-!
-! attributes:
-!   language: f90
-!   machine:
-!
-!$$$ end documentation block
-
-use constants, only: r60inv
-implicit none
-
-integer(i_kind),intent(in   ) :: idate   ! Date (yyyymmddhh)
-real(r_kind)   ,intent(  out) :: step4d  ! Time since start of 4D-Var window (hours)
-
-integer(i_kind) iyr,imo,idy,ihr,nmin_obs,nhrobs,nhrbgn,nhroff
-integer(i_kind),dimension(5) :: idate5
-
-ihr=idate
-iyr=ihr/1000000
-ihr=ihr-1000000*iyr
-imo=ihr/10000
-ihr=ihr-10000*imo
-idy=ihr/100
-ihr=ihr-100*idy
-idate5(1)=iyr
-idate5(2)=imo
-idate5(3)=idy
-idate5(4)=ihr
-idate5(5)=0
-!call w3fs21(idate5,nmin_obs)
-!if (MOD(nmin_obs,60)/=0) then
-!   write(6,*)'time_4dvar: minutes should be 0',nmin_obs
-!   call stop2(136)
-!end if
-
-nhrobs=nmin_obs*r60inv
-nhrbgn=NINT(real(iwinbgn,r_kind)*r60inv)
-nhroff=nhrobs-nhrbgn
-
-step4d=real(nhroff,r_kind)
-
-return
-end subroutine time_4dvar
 ! --------------------------------------------------------------------
 subroutine clean_4dvar()
 !$$$  subprogram documentation block
@@ -494,7 +430,7 @@ subroutine clean_4dvar()
 
    implicit none
    ! no-op left
-   deallocate(ens_fmnlevs)
+   deallocate(ens_fhrlevs)
    return
 end subroutine clean_4dvar
 ! --------------------------------------------------------------------

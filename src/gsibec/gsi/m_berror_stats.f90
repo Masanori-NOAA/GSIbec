@@ -11,7 +11,6 @@ module m_berror_stats
 ! program history log:
 !   2010-03-24  j guo   - added this document block
 !   2011-08-01  lueken  - changed F90 to f90 (no machine logic) and fix indentation
-!   2014-04-01  weir    - added some chem support
 !
 !   input argument list: see Fortran 90 style document below
 !
@@ -35,42 +34,33 @@ module m_berror_stats
 !
 ! !INTERFACE:
 
-   use m_kinds,        only: i_kind,r_kind
+   use m_kinds,          only : i_kind
    use constants,      only: one,zero
    use control_vectors,only: cvars2d,cvars3d
-   use mpeu_util,      only: getindex,check_iostat,die
-
-   use m_nc_berror, only: nc_berror_dims
-   use m_nc_berror, only: nc_berror_read
-   use m_nc_berror, only: nc_berror_vars
-   use m_nc_berror, only: nc_berror_vars_final
-   use m_nc_berror, only: nc_berror_getpointer
+   use mpeu_util,      only: getindex,check_iostat
 
    implicit none
 
    private    ! except
 
-   ! reconfigurable parameters, via NAMELIST/setup/
-   public :: berror_stats    ! reconfigurable filename
+!   def usenewgfsberror - use modified gfs berror stats for global and regional.
+!                        for global skips extra record
+!                        for regional properly defines array sizes, etc.
+!   def berror_stats  - reconfigurable filename via NAMELIST/setup/
 
+   public :: usenewgfsberror
+   public :: berror_stats,inquire_berror
    ! interfaces to file berror_stats.
    public :: berror_get_dims ! get dimensions, jfunc::createj_func()
    public :: berror_read_bal ! get cross-cov.stats., balmod::prebal()
    public :: berror_read_wgt ! get auto-cov.stats., prewgt()
    public :: berror_set      ! set internal parameters
-   public :: berror_init     ! initialize internal variables
-   public :: berror_final    ! finalize internal variables
-
-   public :: varq
-   public :: varcw
 
    ! external interfaces relating to internal procedures.
    interface berror_get_dims; module procedure get_dims; end interface
    interface berror_read_bal; module procedure read_bal; end interface
    interface berror_read_wgt; module procedure read_wgt; end interface
    interface berror_set;      module procedure lset;     end interface
-   interface berror_init;     module procedure init_;    end interface
-   interface berror_final;    module procedure final_;   end interface
 
 ! !REVISION HISTORY:
 !       30Jul08 - Jing Guo <guo@gmao.gsfc.nasa.gov>
@@ -84,7 +74,6 @@ module m_berror_stats
 !       18Dec15 - Rahul.Mahajan <rahul.mahajan@noaa.gov>
 !               - replace die calls with check_iostat to clean code
 !               - fix haphazard indentation and add return to all sub-routines
-!       30Aug21 - Todling - introduce netcdf capability
 !EOP ___________________________________________________________________
 
    character(len=*),parameter :: myname='m_berror_stats'
@@ -92,34 +81,12 @@ module m_berror_stats
    integer(i_kind),parameter :: default_unit_ = 22
    integer(i_kind),parameter :: default_rc_   = 2
 
-   character(len=256),save :: berror_stats = "berror_stats"      ! filename
    logical,save :: cwcoveqqcov_
+   logical usenewgfsberror
 
-   logical,save :: bin_berror=.false.
-
-   real(r_kind),allocatable,dimension(:,:):: varq
-   real(r_kind),allocatable,dimension(:,:):: varcw
+   character(len=256),save :: berror_stats = "berror_stats"      ! filename
 
 contains
-
-subroutine init_(mlat,msig)
-   integer,intent(in) :: mlat,msig
-   if(.not.allocated(varq)) then
-     if (getindex(cvars3d,'q')>0) then
-        allocate(varq(mlat,msig))
-        varq=zero
-     endif
-   endif
-   if(.not.allocated(varcw)) then
-      allocate(varcw(mlat,msig))
-      varcw=zero
-   endif
-end subroutine init_
-
-subroutine final_
-  if(allocated(varq))  deallocate(varq)
-  if(allocated(varcw)) deallocate(varcw)
-end subroutine final_
 
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ! NASA/GSFC, Global Modeling and Assimilation Office, 900.3, GEOS/DAS  !
@@ -131,11 +98,10 @@ end subroutine final_
 !
 ! !INTERFACE:
 
-subroutine get_dims(mype,msig,mlat,mlon,lunit)
+subroutine get_dims(msig,mlat,mlon,lunit)
 
    implicit none
 
-   integer(i_kind)         ,intent(   in) :: mype  ! proc identifier
    integer(i_kind)         ,intent(  out) :: msig  ! dimension of levels
    integer(i_kind)         ,intent(  out) :: mlat  ! dimension of latitudes
    integer(i_kind),optional,intent(  out) :: mlon  ! dimension of longitudes
@@ -148,31 +114,7 @@ subroutine get_dims(mype,msig,mlat,mlon,lunit)
 !EOP ___________________________________________________________________
 
    character(len=*),parameter :: myname_=myname//'::get_dims'
-   integer(i_kind) :: inerr,mlon_,status
-
-!  Try reading as NetCDF ...
-   if(mype==0) print*, myname_, ": Try reading berror from NetCDF file"
-   call nc_(status)
-   if (status==0) then
-      if(mype==0) print*, myname_, ": Reading berror from NetCDF file"
-      bin_berror = .false.
-   else ! if failed, read as NetCDF
-     call bin_(status)
-     if (status==0) then
-        bin_berror = .true.
-        if(mype==0) print*, myname_, ": Read berror from Binary file"
-     else
-        if(mype==0) call die(myname_,'Failed reading Berror file', 99)
-     endif
-   endif
-   if ( present(mlon) ) mlon = mlon_
-
-   return
-
-   contains
-
-   subroutine bin_(ier)
-   integer,intent(inout) :: ier
+   integer(i_kind) :: inerr,mlon_,ier
 
    ! Read dimension of stats file
    inerr = default_unit_
@@ -181,27 +123,59 @@ subroutine get_dims(mype,msig,mlat,mlon,lunit)
    call check_iostat(ier,myname_,'open('//trim(berror_stats)//')')
    rewind inerr
    read(inerr,iostat=ier) msig,mlat,mlon_
-   if (ier/=0) return
    call check_iostat(ier,myname_,'read header')
+   close(inerr,iostat=ier)
+   call check_iostat(ier,myname_,'close('//trim(berror_stats)//')')
+   if ( present(mlon) ) mlon = mlon_
+
+   return
+end subroutine get_dims
+
+subroutine inquire_berror(lunit,mype)
+
+   use m_kinds,    only: r_single
+
+   implicit none
+
+   integer(i_kind),intent(in   ) :: lunit ! logical unit [22]
+   integer(i_kind),intent(in   ) :: mype
+
+   character(len=*),parameter :: myname_=myname//'::inquire_berror'
+   integer(i_kind) :: inerr,msig,mlat,mlon_,ier,errtot,i
+   real(r_single),dimension(:),allocatable::  clat_avn,sigma_avn
+
+   ! Read dimension of stats file
+   inerr = lunit
+   open(inerr,file=berror_stats,form='unformatted',status='old',iostat=ier)
+   call check_iostat(ier,myname_,'open('//trim(berror_stats)//')')
+   rewind inerr
+   read(inerr,iostat=ier) msig,mlat,mlon_
+   call check_iostat(ier,myname_,'read header')
+   errtot=ier
+
+   errtot=0
+   allocate ( clat_avn(mlat) )
+   allocate ( sigma_avn(1:msig) )
+   read(inerr,iostat=ier)clat_avn,sigma_avn
+!  Checking to see if sigma_avn fits required format if so newgfsberror file.
+   do i=1,msig-1
+     if(sigma_avn(i) < sigma_avn(i+1) .or. sigma_avn(i) < zero .or. sigma_avn(i) > one)then
+         errtot=1
+     end if
+   end do
+   deallocate(clat_avn,sigma_avn)
+   if(errtot /= 0)then
+     usenewgfsberror=.false.
+     if(mype == 0)write(6,*) 'usenewgfsberror = .false. old format file '
+   else
+     usenewgfsberror=.true.
+     if(mype == 0)write(6,*) 'usenewgfsberror = .true. new format file '
+   end if
    close(inerr,iostat=ier)
    call check_iostat(ier,myname_,'close('//trim(berror_stats)//')')
 
    return
-   end subroutine bin_
-
-   subroutine nc_(ier)
-   integer,intent(inout) :: ier
-
-   integer :: mlat_, mlev_
-
-   call nc_berror_dims (berror_stats,mlat_,mlon_,mlev_,ier, mype,0)
-
-   mlat = mlat_
-   msig = mlev_
-
-   return
-   end subroutine nc_
-end subroutine get_dims
+end subroutine inquire_berror
 
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ! NASA/GSFC, Global Modeling and Assimilation Office, 900.3, GEOS/DAS  !
@@ -280,19 +254,6 @@ subroutine read_bal(agvin,bvin,wgvin,pputin,fut2ps,mype,lunit)
    integer(i_kind) :: nsigstat,nlatstat
    integer(i_kind) :: inerr,ier
 
-   ier=0
-   if (bin_berror) then
-      call bin_
-   else
-      call nc_(mype)
-   endif
-
-   return
-
-   contains
-
-   subroutine bin_
-
    ! Open background error statistics file
    inerr = default_unit_
    if ( present(lunit) ) inerr = lunit
@@ -304,9 +265,10 @@ subroutine read_bal(agvin,bvin,wgvin,pputin,fut2ps,mype,lunit)
 
    rewind inerr
    read(inerr,iostat=ier) nsigstat,nlatstat
-   if (ier/=0) return
    call check_iostat(ier,myname_,'read('//trim(berror_stats)//') for (nsigstat,nlatstat)')
 
+!  dummy read to skip lats,sigma
+   if(usenewgfsberror)read(inerr)
    if ( mype==0 ) then
       if ( nsig/=nsigstat .or. nlat/=nlatstat ) then
          write(6,*) myname_,'(PREBAL):  ***ERROR*** resolution of ', &
@@ -336,25 +298,7 @@ subroutine read_bal(agvin,bvin,wgvin,pputin,fut2ps,mype,lunit)
    close(inerr,iostat=ier)
    call check_iostat(ier,myname_,'close('//trim(berror_stats)//')')
 
-   end subroutine bin_
-
-   subroutine nc_(myid)
-   integer, intent(in) :: myid
-   type(nc_berror_vars) bvars
-   if ( fut2ps ) then
-      call die(myname_," fut2ps not available in this form "//trim(berror_stats), 99)
-   endif
-   call nc_berror_read (berror_stats,bvars,ier, myid=myid,root=0)
-   if (nlat/=bvars%nlat .or. nsig/=bvars%nsig ) then
-      call die(myname_," inconsistent dims in "//trim(berror_stats), 99)
-   endif
-   agvin = bvars%tcon
-   bvin  = bvars%vpcon
-   wgvin = bvars%pscon
-   pputin=zero
-   call nc_berror_vars_final(bvars)
-   end subroutine nc_
-
+   return
 end subroutine read_bal
 
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -367,12 +311,12 @@ end subroutine read_bal
 !
 ! !INTERFACE:
 
-subroutine read_wgt(corz,corp,hwll,hwllp,vz,corsst,hsst,qoption,cwoption,mype, &
+subroutine read_wgt(corz,corp,hwll,hwllp,vz,corsst,hsst,varq,qoption,varcw,cwoption,mype, &
                     n_clouds_fwd,cloud_names_fwd,lunit)
 
    use m_kinds,only : r_single,r_kind
    use gridmod,only : nlat,nlon,nsig
-!_RT  use radiance_mod, only: n_clouds_fwd,cloud_names_fwd
+   !use radiance_mod, only: n_clouds_fwd,cloud_names_fwd
 
    implicit none
 
@@ -386,13 +330,14 @@ subroutine read_wgt(corz,corp,hwll,hwllp,vz,corsst,hsst,qoption,cwoption,mype, &
    real(r_single),dimension(nlat,nlon),intent(out  ) :: corsst
    real(r_single),dimension(nlat,nlon),intent(out  ) :: hsst
 
+   real(r_kind),  dimension(:,:)      ,intent(out  ) :: varq
+   real(r_kind),  dimension(:,:)      ,intent(out  ) :: varcw
+
    integer(i_kind)                    ,intent(in   ) :: qoption
    integer(i_kind)                    ,intent(in   ) :: cwoption
    integer(i_kind)                    ,intent(in   ) :: mype  ! "my" processor ID
-
-!  Optionals
    integer(i_kind),optional           ,intent(in   ) :: lunit ! an alternative unit
-   integer(i_kind), optional          ,intent(in   ) :: n_clouds_fwd 
+   integer(i_kind), optional          ,intent(in   ) :: n_clouds_fwd
    character(len=*),optional          ,intent(in   ) :: cloud_names_fwd(:)
 
 ! !REVISION HISTORY:
@@ -421,99 +366,18 @@ subroutine read_wgt(corz,corp,hwll,hwllp,vz,corsst,hsst,qoption,cwoption,mype, &
 
    integer(i_kind) :: i,n,k,iq,icw,ivar,ic
    integer(i_kind) :: inerr,istat,ier
-   integer(i_kind) :: nsigstat,nlatstat
+   integer(i_kind) :: nsigstat,nlatstat,mlon_
    integer(i_kind) :: isig
    real(r_kind) :: corq2x
    character(len=5) :: var
    logical,allocatable,dimension(:) :: found3d
    logical,allocatable,dimension(:) :: found2d
 
+!  real(r_single),allocatable,dimension(:)  :: clat,sigma
    real(r_single),allocatable,dimension(:,:):: hwllin
    real(r_single),allocatable,dimension(:,:):: corzin
    real(r_single),allocatable,dimension(:,:):: corq2
    real(r_single),allocatable,dimension(:,:):: vscalesin
-
-   allocate(found3d(size(cvars3d)),found2d(size(cvars2d)))
-   found3d=.false.
-   found2d=.false.
-
-   if ( bin_berror ) then
-     call bin_()
-   else
-     call nc_(mype)
-   endif
-
-   ! corz, hwll & vz for undefined 3d variables
-   do n=1,size(cvars3d)
-      if ( .not.found3d(n) ) then
-         if ( n>0 ) then
-            if ( trim(cvars3d(n))=='oz' ) then
-               call setcoroz_(corz(:,:,n),mype)
-               call sethwlloz_(hwll(:,:,n),mype)
-            else
-               call setcorchem_(cvars3d(n),corz(:,:,n),ier)
-               call sethwllchem_(hwll(:,:,n),mype)
-               if(ier/=0) cycle ! if this happens, code will crash later
-            endif
-            call setvscalesoz_(vz(:,:,n))
-         endif
-         if ( mype==0 ) write(6,*) myname_, ': WARNING, using general Berror template for ', cvars3d(n)
-      endif
-   enddo
-
-!  if so, overwrite cw-cov with q-cov
-   iq=-1;icw=-1
-   do n=1,size(cvars3d)
-      if(trim(cvars3d(n))=='q' ) iq =n
-      if(trim(cvars3d(n))=='cw') icw=n
-   enddo
-   if (cwcoveqqcov_) then
-      if(iq>0.and.icw>0) then
-        hwll(:,:,icw)=hwll(:,:,iq)
-        vz  (:,:,icw)=vz  (:,:,iq)
-      end if
-   end if
-   if (cwoption==1 .or. cwoption==3) then
-      if (iq>0.and.icw>0) then
-         do k=1,nsig
-            do i=1,nlat
-               corz(i,k,icw)=one
-            end do
-         end do
-         hwll(:,:,icw)=0.5_r_kind*hwll(:,:,iq)
-         vz  (:,:,icw)=0.5_r_kind*vz  (:,:,iq)
-      end if 
-
-      if (present(n_clouds_fwd) .and. present(cloud_names_fwd)) then
-       if (n_clouds_fwd>0 .and. icw<=0) then
-         do n=1,size(cvars3d)
-            do ic=1,n_clouds_fwd
-               if(trim(cvars3d(n))==trim(cloud_names_fwd(ic))) then
-                  ivar=n
-                  do k=1,nsig
-                     do i=1,nlat
-                        corz(i,k,ivar)=one
-                     end do
-                  end do
-                  hwll(:,:,ivar)=0.5_r_kind*hwll(:,:,iq)
-                  vz  (:,:,ivar)=0.5_r_kind*vz  (:,:,iq)
-                  exit
-               end if   
-            end do
-         end do
-       end if
-      end if
-   endif
-
-   ! need simliar general template for undefined 2d variables ...
-
-   deallocate(found3d,found2d)
-
-  return
- 
-  contains
-
-  subroutine bin_
 
    ! Open background error statistics file
    inerr = default_unit_
@@ -525,8 +389,9 @@ subroutine read_wgt(corz,corp,hwll,hwllp,vz,corsst,hsst,qoption,cwoption,mype, &
    ! with that specified via the user namelist
 
    rewind inerr
-   read(inerr,iostat=ier)nsigstat,nlatstat
+   read(inerr,iostat=ier)nsigstat,nlatstat,mlon_
    call check_iostat(ier,myname_,'read('//trim(berror_stats)//') for (nsigstat,nlatstat)')
+   if(usenewgfsberror)read(inerr,iostat=ier)
 
    if ( mype==0 ) then
       if ( nsigstat/=nsig .or. nlatstat/=nlat ) then
@@ -545,6 +410,9 @@ subroutine read_wgt(corz,corp,hwll,hwllp,vz,corsst,hsst,qoption,cwoption,mype, &
    call check_iostat(ier,myname_,'read('//trim(berror_stats)//') for (agvin,bvin,wgvin)')
 
    ! Read amplitudes
+   allocate(found3d(size(cvars3d)),found2d(size(cvars2d)))
+   found3d=.false.
+   found2d=.false.
    readloop: do
       read(inerr,iostat=istat) var, isig
       if ( istat/=0 ) exit
@@ -636,104 +504,70 @@ subroutine read_wgt(corz,corp,hwll,hwllp,vz,corsst,hsst,qoption,cwoption,mype, &
    enddo readloop 
    close(inerr)
 
+   ! corz, hwll & vz for undefined 3d variables
+   do n=1,size(cvars3d)
+      if ( .not.found3d(n) ) then
+         if ( n>0 ) then
+            if ( cvars3d(n)=='oz' ) then
+               call setcoroz_(corz(:,:,n),mype)
+            else
+               call setcorchem_(cvars3d(n),corz(:,:,n),ier)
+               if ( ier/=0 ) cycle ! if this happens, code will crash later
+            endif
+            call sethwlloz_(hwll(:,:,n),mype)
+            call setvscalesoz_(vz(:,:,n))
+         endif
+         if ( mype==0 ) write(6,*) myname_, ': WARNING, using general Berror template for ', cvars3d(n)
+      endif
+   enddo
 
-  end subroutine bin_
+!  if so, overwrite cw-cov with q-cov
+   iq=-1;icw=-1
+   do n=1,size(cvars3d)
+      if(trim(cvars3d(n))=='q' ) iq =n
+      if(trim(cvars3d(n))=='cw') icw=n
+   enddo
+   if (cwcoveqqcov_) then
+      if(iq>0.and.icw>0) then
+        hwll(:,:,icw)=hwll(:,:,iq)
+        vz  (:,:,icw)=vz  (:,:,iq)
+      end if
+   end if
+   if (cwoption==1 .or. cwoption==3) then
+      if (iq>0.and.icw>0) then
+         do k=1,nsig
+            do i=1,nlat
+               corz(i,k,icw)=one
+            end do
+         end do
+         hwll(:,:,icw)=0.5_r_kind*hwll(:,:,iq)
+         vz  (:,:,icw)=0.5_r_kind*vz  (:,:,iq)
+      end if 
 
-  subroutine nc_(myid)
-
-   integer,intent(in) :: myid
-   type(nc_berror_vars) bvars
-   real(r_single), pointer :: ptr1d(:)
-   real(r_single), pointer :: ptr2d(:,:)
-   integer :: nv 
-   call nc_berror_read (berror_stats,bvars,ier, myid=myid,root=0)
-   if (nlat/=bvars%nlat .or. nlon/=bvars%nlon .or.  nsig/=bvars%nsig ) then
-      call die(myname_," inconsistent dims in "//trim(berror_stats), 99)
+      if (n_clouds_fwd>0 .and. icw<=0) then
+         do n=1,size(cvars3d)
+            do ic=1,n_clouds_fwd
+               if(trim(cvars3d(n))==trim(cloud_names_fwd(ic))) then
+                  ivar=n
+                  do k=1,nsig
+                     do i=1,nlat
+                        corz(i,k,ivar)=one
+                     end do
+                  end do
+                  hwll(:,:,ivar)=0.5_r_kind*hwll(:,:,iq)
+                  vz  (:,:,ivar)=0.5_r_kind*vz  (:,:,iq)
+                  exit
+               end if   
+            end do
+         end do
+      end if
    endif
-   isig=bvars%nsig
 
-!  RTodling: the following is bad since it wires all naming conventions ... to be revised
-   do nv=1,size(cvars2d)
-      if (trim(cvars2d(nv))=='sst') then
-         n = getindex(cvars2d,'sst')
-         found2d(n)=.true.
-         call nc_berror_getpointer (cvars2d(nv),bvars,ptr2d,ier)
-         if(ier==0) corsst=ptr2d
-         call nc_berror_getpointer ('h'//cvars2d(nv),bvars,ptr2d,ier)
-         if(ier==0) hsst=ptr2d
-      endif
-      if (trim(cvars2d(nv))=='ps') then
-         n = getindex(cvars2d,'ps')
-         found2d(n)=.true.
-         call nc_berror_getpointer (cvars2d(nv),bvars,ptr1d,ier)
-         if(ier==0) corp(:,n)=ptr1d
-         call nc_berror_getpointer ('h'//cvars2d(nv),bvars,ptr1d,ier)
-         if(ier==0) hwllp(:,n)=ptr1d
-      endif
-   enddo
-   do nv=1,size(cvars3d)
-      call nc_berror_getpointer (cvars3d(nv),bvars,ptr2d,ier)
-      if (ier==0) then
-          n = getindex(cvars3d,cvars3d(nv))
-          found3d(n)=.true.
-          corz(:,:,n)=ptr2d
-          call nc_berror_getpointer ('h'//trim(cvars3d(nv)),bvars,ptr2d,ier)
-          if(ier==0) hwll(:,:,n)=ptr2d
-          call nc_berror_getpointer ('v'//trim(cvars3d(nv)),bvars,ptr2d,ier)
-          if(ier==0) vz(:,:,n)=transpose(ptr2d)
-          if (trim(cvars3d(nv))=='cw' .and. cwoption==2) then
-             allocate(corq2(bvars%nlat,bvars%nsig))
-             call nc_berror_getpointer ('nrh',bvars,ptr2d,ier)
-             if (ier==0) then
-                corq2=ptr2d
-                do k=1,bvars%nsig
-                   do i=1,bvars%nlat
-                      corq2x=corq2(i,k)
-                      varcw(i,k)=max(corq2x,zero)
-                   enddo
-                enddo
-             else
-                call die(myname_," in cw, failed to find bvar nrh ", 99)
-             endif
-             corz(:,:,n)=one
-             deallocate(corq2)
-          endif
-          if (trim(cvars3d(nv))=='q' .and. qoption==2) then
-             allocate(corq2(bvars%nlat,bvars%nsig))
-             call nc_berror_getpointer ('nrh',bvars,ptr2d,ier)
-             if (ier==0) then
-                corq2=ptr2d
-!               corq2=max(0.0_r_kind,corq2) ! hack 1
-!               corq2=min(1.0_r_kind,2*corq2) ! hack 2
-!               print *, 'DEBUG (berr): ', minval(corq2),maxval(corq2)
-                do k=1,bvars%nsig
-                   do i=1,bvars%nlat
-                      corq2x=corq2(i,k)
-                      varq(i,k)=min(max(corq2x,0.00015_r_kind),one)
-                   enddo
-                enddo
-             else
-                call die(myname_," in q, failed to find bvar nrh ", 99)
-             endif
-             corz(:,:,n)=one
-             deallocate(corq2)
-          endif
-          cycle
-      endif
-      if (trim(cvars3d(nv))=='q') then
-          n = getindex(cvars3d,'q')
-          found3d(n)=.true.
-          corz(:,:,n)=bvars%qvar
-          if (qoption == 2) then
-          endif
-          hwll(:,:,n)=bvars%qhln
-          vz(:,:,n)=transpose(bvars%qvln)
-          cycle
-      endif
-   enddo
-   call nc_berror_vars_final(bvars)
-  end subroutine nc_
+   ! need simliar general template for undefined 2d variables ...
 
+   deallocate(found3d,found2d)
+
+  return
 end subroutine read_wgt
 
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -815,7 +649,7 @@ subroutine setcoroz_(coroz,mype)
          enddo
       enddo
    enddo
-   work_oz(nsig+1,mm1)=float(lon1*lat1)
+   work_oz(nsig+1,mm1)=real(lon1*lat1,r_kind)
 
    call mpi_allreduce(work_oz,work_oz1,(nsig+1)*npe,mpi_rtype,mpi_sum,&
       gsi_mpi_comm_world,ierror)
@@ -894,7 +728,7 @@ subroutine sethwlloz_(hwlloz,mype)
    do k=1,nnnn1o
       k1=levs_id(k)
       if ( k1>0 ) then
-      if(mype==0) write(6,*) myname_,'(PREWGT): mype = ',mype, k1
+      write(6,*) myname_,'(PREWGT): mype = ',mype, k1
          if ( k1<=nsig*3/4 ) then
            ! fact=1./hwl
            fact=r40000/(r400*nlon)
@@ -978,9 +812,7 @@ subroutine setcorchem_(cname,corchem,rc)
    integer(i_kind)                    ,intent(  out) :: rc      ! return error code
 
 ! !REVISION HISTORY:
-!    15Jul2010 - Todling - created from Guo's OZ routine
-!    20Apr2015 - Weir    - relaced chemz with a constant, old approach
-!                          wasn't appropriate for CO
+!    15Jul20010 - Todling - created from Guo's OZ routine
 !
 !EOP ___________________________________________________________________
 
@@ -1040,7 +872,7 @@ subroutine setcorchem_(cname,corchem,rc)
          enddo
       enddo
    enddo
-   work_chem(nsig+1,mm1)=float(lon1*lat1)
+   work_chem(nsig+1,mm1)=real(lon1*lat1,r_kind)
   
    call mpi_allreduce(work_chem,work_chem1,(nsig+1)*npe,mpi_rtype,mpi_sum,&
         gsi_mpi_comm_world,ierror)
@@ -1063,10 +895,7 @@ subroutine setcorchem_(cname,corchem,rc)
       do n=1,npe
          asum=asum+work_chem1(k,n)
       enddo
-!      Not appropriate for co, just replacing with a constant, will revisit
-!      later (bweir)
-!      if (bsum>zero) chemz(k)=asum/bsum
-      chemz(k) = 1._r_kind
+      if ( bsum>zero ) chemz(k)=asum/bsum
    enddo
 
    ! now this part is taken from prewgt().
@@ -1081,62 +910,4 @@ subroutine setcorchem_(cname,corchem,rc)
    return
 end subroutine setcorchem_
 
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-! NASA/GSFC, Global Modeling and Assimilation Office, 900.3, GEOS/DAS  !
-!BOP -------------------------------------------------------------------
-!
-! !IROUTINE: sethwllchem_ - a modeled hwll of chem
-!
-! !DESCRIPTION:
-!
-! !INTERFACE:
-
-   subroutine sethwllchem_(hwll, mype)
-
-      use m_kinds,     only: r_single, r_kind
-      use m_mpimod,    only: levs_id
-      use gridmod,   only: nnnn1o, nsig, nlon, nlat
-      use constants, only: two, three, pi, rearth_equator
-
-      implicit none
-
-      real(r_single),  intent(  out) :: hwll(nlat,nsig)
-      integer(i_kind), intent(in   ) :: mype
-
-! !REVISION HISTORY:
-!       20May14 - Weir    - Initial code, based on sethwlloz_
-!EOP ___________________________________________________________________
-
-      character(len=*), parameter :: myname_ = myname//'::sethwllchem_'
-
-      real(r_kind),     parameter :: r400    =   400._r_kind
-      real(r_kind),     parameter :: r800    =   800._r_kind
-      real(r_kind),     parameter :: r40000  = 40000._r_kind
-
-      integer(i_kind) :: k, k1
-      real(r_kind)    :: fact
-      real(r_kind)    :: s2u
-    
-      if (mype == 0) then
-         write(6,*) myname_, '(PREWGT): mype = ', mype
-      end if
-
-      s2u = (two*pi*rearth_equator)/nlon
-      do k = 1,nnnn1o
-         k1 = levs_id(k)
-         if (k1 > 0) then
-            if (mype == 0) write(6,*) myname_, '(PREWGT): mype = ', mype, k1
-!           make everything constant
-!           fact = real(k1,r_kind)**2._r_kind
-            fact = 1._r_kind
-            fact = r40000/(r400*nlon*fact)
-            hwll(:,k1) = s2u/fact
-         end if
-      end do
-
-      if (mype == 0) then
-         write(6,*) myname_, '(PREWGT): mype = ', mype, 'finish sethwllchem_'
-      end if
-
-   end subroutine sethwllchem_
 end module m_berror_stats

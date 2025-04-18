@@ -33,6 +33,8 @@ module control_vectors
 !                          in obs operator and analysis 
 !   2019-07-11  Todling  - move WRF specific variables w_exist and dbz_exit to a new wrf_vars_mod.f90.
 !                        . move imp_physics and lupp to ncepnems_io.f90.
+!   2019-09-13  martin   - added incvars_to_zero variable for writing out fv3 netCDF increments
+!   2019-10-28  martin   - added incvars_zero_strat variable for zeroing out increments above tropopause
 !
 ! subroutines included:
 !   sub init_anacv   
@@ -75,14 +77,14 @@ module control_vectors
 use m_kinds, only: r_kind,r_double,r_single,i_kind,r_quad
 use m_mpimod, only: gsi_mpi_comm_world,mpi_max,mpi_rtype,mype,npe,ierror
 use constants, only: zero, one, two, three, zero_quad, tiny_r_kind
-!_RTuse gsi_4dvar, only: iadatebgn
-!_RT use file_utility, only : get_lun
+use gsi_4dvar, only: iadatebgn
+!use file_utility, only : get_lun
 use mpeu_util, only: get_lun => luavail
-use mpeu_util, only: warn
 use mpl_allreducemod, only: mpl_allreduce
-use hybrid_ensemble_parameters, only: l_hyb_ens
+use hybrid_ensemble_parameters, only: beta_s0,l_hyb_ens
 use hybrid_ensemble_parameters, only: grd_ens
 use constants, only : max_varname_length
+use gridmod, only : minmype
 
 use m_rerank, only : rerank
 use GSI_BundleMod, only : GSI_BundleCreate
@@ -112,7 +114,7 @@ public assignment(=)
 public dot_product  
 public prt_control_norms, axpy, random_cv, setup_control_vectors, &
      write_cv, read_cv, inquire_cv, maxval, qdot_prod_sub, init_anacv, &
-     final_anacv
+     final_anacv,c2sset_flg,e2sset_flg
 
 ! 
 ! Public variables
@@ -126,13 +128,16 @@ public nvars       ! total number of static plus motley fields
 public nrf_3d      ! when .t., indicates 3d-fields
 public as3d        ! normalized scale factor for background error 3d-variables
 public as2d        ! normalized scale factor for background error 2d-variables
-public be3d        ! normalized scale factor for ensemble background error 3d-variables
-public be2d        ! normalized scale factor for ensemble background error 2d-variables
 public atsfc_sdv   ! standard deviation of surface temperature error over (1) land (and (2) ice
 public an_amp0     ! multiplying factors on reference background error variances
 public lcalc_gfdl_cfrac ! when .t., calculate and use GFDL cloud fraction in obs operator 
 
+public nrf2_loc,nrf3_loc,nmotl_loc   ! what are these for??
 public ntracer
+
+public :: incvars_to_zero ! array of fieldnames to zero out increments for
+public :: incvars_zero_strat ! array of fieldnames to zero out increments above tropopause
+public :: incvars_efold ! scale factor x in which e^(-(k-ktrop)/x) for above fields
 
 type control_vector
    integer(i_kind) :: lencv
@@ -141,7 +146,7 @@ type control_vector
    type(GSI_Bundle), pointer :: step(:)
    type(GSI_Bundle), pointer :: motley(:)
    type(GSI_Grid)  :: grid_aens
-   type(GSI_Bundle), pointer :: aens(:,:)
+   type(GSI_Bundle), pointer :: aens(:,:,:)
    real(r_kind), pointer :: predr(:) => NULL()
    real(r_kind), pointer :: predp(:) => NULL()
    real(r_kind), pointer :: predt(:) => NULL()
@@ -153,11 +158,13 @@ character(len=*),parameter:: myname='control_vectors'
 integer(i_kind) :: nclen,nclen1,nsclen,npclen,ntclen,nrclen,nsubwin,nval_len
 integer(i_kind) :: latlon11,latlon1n,lat2,lon2,nsig,n_ens
 integer(i_kind) :: nval_lenz_en
-logical :: lsqrtb,lcalc_gfdl_cfrac  
+logical,save :: lsqrtb,lcalc_gfdl_cfrac  
+logical :: c2sset_flg,e2sset_flg  
 
 integer(i_kind) :: m_vec_alloc, max_vec_alloc, m_allocs, m_deallocs
 
 logical,allocatable,dimension(:):: nrf_3d
+integer(i_kind),allocatable,dimension(:):: nrf2_loc,nrf3_loc,nmotl_loc
 integer(i_kind) nrf,nvars
 integer(i_kind) ntracer
 
@@ -170,13 +177,13 @@ character(len=max_varname_length),allocatable,dimension(:) :: evars3d  ! 3-d fie
 character(len=max_varname_length),allocatable,dimension(:) :: cvarsmd  ! motley variable names
 real(r_kind)    ,allocatable,dimension(:) :: as3d
 real(r_kind)    ,allocatable,dimension(:) :: as2d
-real(r_kind)    ,allocatable,dimension(:) :: be3d
-real(r_kind)    ,allocatable,dimension(:) :: be2d
-real(r_kind)    ,allocatable,dimension(:) :: bemo ! not public; not needed
 real(r_kind)    ,allocatable,dimension(:) :: atsfc_sdv
 real(r_kind)    ,allocatable,dimension(:) :: an_amp0
 
 logical :: llinit = .false.
+character(len=12),allocatable,dimension(:) :: incvars_to_zero 
+character(len=12),allocatable,dimension(:) :: incvars_zero_strat 
+real(r_kind) :: incvars_efold
 
 ! ----------------------------------------------------------------------
 INTERFACE ASSIGNMENT (=)
@@ -260,6 +267,7 @@ subroutine setup_control_vectors(ksig,klat,klon,katlon11,katlon1n, &
   n_ens=k_ens
   nval_lenz_en=kval_lenz_en
 
+  llinit = .true.
   m_vec_alloc=0
   max_vec_alloc=0
   m_allocs=0
@@ -270,7 +278,7 @@ subroutine setup_control_vectors(ksig,klat,klon,katlon11,katlon1n, &
   return
 end subroutine setup_control_vectors
 ! ----------------------------------------------------------------------
-subroutine init_anacv(rcname)
+subroutine init_anacv
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    init_anacv
@@ -291,31 +299,21 @@ subroutine init_anacv(rcname)
 !   language: f90
 !   machine:  ibm rs/6000 sp
 !
+use hybrid_ensemble_parameters,only:idaen3d,idaen2d
 implicit none
-character(len=*),optional,intent(in) :: rcname
-!character(len=*),parameter:: rcname_def='anavinfo.txt'
-character(len=*),parameter:: rcname_def='anavinfo'  ! filename should have extension
+!character(len=*),parameter:: rcname='anavinfo.txt'
+character(len=*),parameter:: rcname='anavinfo'  ! filename should have extension
 character(len=*),parameter:: tbname='control_vector::'
 character(len=256),allocatable,dimension(:):: utable
 character(len=20) var,source,funcof
 character(len=*),parameter::myname_=myname//'*init_anacv'
 integer(i_kind) luin,ii,ntot
-integer(i_kind) ioflag
 integer(i_kind) ilev, itracer
-real(r_kind) aas,amp,bes
-
-if(llinit) then
-  if(mype==0) call warn(myname_,': CV already initialized')
-  return
-endif
+real(r_kind) aas,amp
 
 ! load file
 luin=get_lun()
-if(present(rcname)) then
-  open(luin,file=trim(rcname),form='formatted')
-else
-  open(luin,file=rcname_def,form='formatted')
-endif
+open(luin,file=rcname,form='formatted')
 
 ! Scan file for desired table first
 ! and get size of table
@@ -334,10 +332,7 @@ close(luin)
 ! Count variables first
 nc3d=0; nc2d=0;mvars=0
 do ii=1,nvars
-   read(utable(ii),*,IOSTAT=ioflag) var, ilev, itracer, aas, amp, source, funcof, bes
-   if (ioflag/=0) then
-      read(utable(ii),*) var, ilev, itracer, aas, amp, source, funcof
-   endif
+   read(utable(ii),*) var, ilev, itracer, aas, amp, source, funcof
    if(trim(adjustl(source))=='motley') then
       mvars=mvars+1
    else
@@ -351,41 +346,52 @@ enddo
 
 allocate(nrf_var(nvars),cvars3d(nc3d),cvars2d(nc2d))
 allocate(as3d(nc3d),as2d(nc2d))
-allocate(be3d(nc3d),be2d(nc2d),bemo(mvars))
 allocate(cvarsmd(mvars))
 allocate(atsfc_sdv(mvars))
 allocate(an_amp0(nvars))
+allocate(idaen3d(nc3d),idaen2d(nc2d))
+allocate(incvars_to_zero(nvars))
+allocate(incvars_zero_strat(nvars))
+incvars_to_zero(:) = 'NONE'
+incvars_zero_strat(:) = 'NONE'
+incvars_efold = 5.0_r_kind
 
 ! want to rid code from the following ...
 nrf=nc2d+nc3d
-allocate(nrf_3d(nrf))
+allocate(nrf_3d(nrf),nrf2_loc(nc2d),nrf3_loc(nc3d),nmotl_loc(max(1,mvars)))
 
 ! Now load information from table
 nc3d=0;nc2d=0;mvars=0
 nrf_3d=.false.
 do ii=1,nvars
-   read(utable(ii),*,IOSTAT=ioflag) var, ilev, itracer, aas, amp, source, funcof, bes
-   if (ioflag/=0) then
-      read(utable(ii),*) var, ilev, itracer, aas, amp, source, funcof
-      bes=-one
-   endif
+   read(utable(ii),*) var, ilev, itracer, aas, amp, source, funcof
    if(trim(adjustl(source))=='motley') then
        mvars=mvars+1
        cvarsmd(mvars)=trim(adjustl(var))
+       nmotl_loc(mvars)=ii
        atsfc_sdv(mvars)=aas
-       bemo(mvars)=bes
    else
       if(ilev==1) then
          nc2d=nc2d+1
          cvars2d(nc2d)=trim(adjustl(var))
+         nrf2_loc(nc2d)=ii  ! rid of soon
          as2d(nc2d)=aas
-         be2d(nc2d)=bes
+         if(itracer>10) then
+            idaen2d(nc2d)=2
+         else
+            idaen2d(nc2d)=1
+         endif
       else
          nc3d=nc3d+1
          cvars3d(nc3d)=trim(adjustl(var))
+         nrf3_loc(nc3d)=ii  ! rid of soon
          nrf_3d(ii)=.true.
          as3d(nc3d)=aas
-         be3d(nc3d)=bes
+         if(itracer>10) then
+            idaen3d(nc3d)=2
+         else
+            idaen3d(nc3d)=1
+         endif
       endif
    endif
    nrf_var(ii)=trim(adjustl(var))
@@ -410,20 +416,20 @@ if (mype==0) then
     write(6,*) myname_,': ALL CONTROL VARIABLES    ', nrf_var
 end if
 lcalc_gfdl_cfrac = .false.
-llinit = .true.
+c2sset_flg = .true.   ! set to true in setup.  set to false after first (only) call to c2sset
+e2sset_flg = .true.   ! set to true in setup.  set to false after first (only) call to ensctl2state_set
 
 end subroutine init_anacv
 subroutine final_anacv
   implicit none
-  deallocate(evars2d,evars3d)
-  deallocate(nrf_3d)
+  deallocate(nrf_var)
+  deallocate(nrf_3d,nrf2_loc,nrf3_loc,nmotl_loc)
+  deallocate(as3d,as2d)
   deallocate(an_amp0)
   deallocate(atsfc_sdv)
   deallocate(cvarsmd)
-  deallocate(be3d,be2d,bemo)
-  deallocate(as3d,as2d)
-  deallocate(nrf_var,cvars2d,cvars3d)
-  llinit=.false.
+  deallocate(cvars2d,cvars3d)
+  deallocate(evars2d,evars3d)
 end subroutine final_anacv
 
 ! ----------------------------------------------------------------------
@@ -456,9 +462,12 @@ subroutine allocate_cv(ycv)
 !
 !$$$ end documentation block
 
+  use hybrid_ensemble_parameters, only: grd_ens
+  use hybrid_ensemble_parameters, only: naensgrp
   implicit none
   type(control_vector), intent(  out) :: ycv
   integer(i_kind) :: ii,jj,nn,ndim,ierror,n_step,n_aens
+  integer(i_kind) :: ig
   character(len=256)::bname
   character(len=max_varname_length)::ltmp(1) 
   type(gsi_grid) :: grid_motley
@@ -491,8 +500,8 @@ subroutine allocate_cv(ycv)
 ! If so, define grid of ensemble control vector
   n_aens=0
   if (l_hyb_ens) then
-      ALLOCATE(ycv%aens(nsubwin,n_ens))
-         call GSI_GridCreate(ycv%grid_aens,grd_ens%lat2,grd_ens%lon2,grd_ens%nsig)
+      ALLOCATE(ycv%aens(nsubwin,naensgrp,n_ens))
+      call GSI_GridCreate(ycv%grid_aens,grd_ens%lat2,grd_ens%lon2,grd_ens%nsig)
          if (lsqrtb) then
             n_aens=nval_lenz_en
          else
@@ -512,7 +521,7 @@ subroutine allocate_cv(ycv)
          call GSI_BundleSet(ycv%step(jj),ycv%grid_step,bname,ierror,names2d=cvars2d,names3d=cvars3d,bundle_kind=r_kind)
          if (ierror/=0) then
              write(6,*)'allocate_cv: error alloc(static bundle)'
-             call stop2(106)
+             call stop2(109)
          endif
          ndim=ndim+ycv%step(jj)%ndim
 
@@ -525,7 +534,7 @@ subroutine allocate_cv(ycv)
             call GSI_BundleCreate(ycv%motley(jj),grid_motley,bname,ierror,names2d=cvarsmd,bundle_kind=r_kind)
             if (ierror/=0) then
                 write(6,*)'allocate_cv: error alloc(motley bundle)'
-                call stop2(107)
+                call stop2(109)
             endif
          endif
 !    endif ! beta_s0
@@ -534,38 +543,36 @@ subroutine allocate_cv(ycv)
      if (l_hyb_ens) then
 
          ltmp(1)='a_en'
-         do nn=1,n_ens
-            ycv%aens(jj,nn)%values => ycv%values(ii+1:ii+n_aens)
-            write(bname,'(a,i3.3,a,i4.4)') 'Ensemble Control Bundle subwin-',jj,' and member-',nn
-            call GSI_BundleSet(ycv%aens(jj,nn),ycv%grid_aens,bname,ierror,names3d=ltmp,bundle_kind=r_kind)
-            if (ierror/=0) then
-                write(6,*)'allocate_cv: error alloc(ensemble bundle)'
-                call stop2(108)
-            endif
-            ndim=ndim+ycv%aens(jj,nn)%ndim
+         do ig=1,naensgrp
+            do nn=1,n_ens
+               ycv%aens(jj,ig,nn)%values => ycv%values(ii+1:ii+n_aens)
+               write(bname,'(a,i3.3,a,i4.4)') 'Ensemble Control Bundle subwin-',jj,' and member-',nn
+               call GSI_BundleSet(ycv%aens(jj,ig,nn),ycv%grid_aens,bname,ierror,names3d=ltmp,bundle_kind=r_kind)
+               if (ierror/=0) then
+                  write(6,*)'allocate_cv: error alloc(ensemble bundle)'
+                  call stop2(109)
+               endif
+               ndim=ndim+ycv%aens(jj,ig,nn)%ndim
 
-            ii=ii+n_aens
+               ii=ii+n_aens
+            enddo
          enddo
 
      endif
 
   enddo
 
-  if (nsclen>0) then
-     ycv%predr => ycv%values(ii+1:ii+nsclen)
-     ii=ii+nsclen
-  endif
-  if (npclen>0) then
-     ycv%predp => ycv%values(ii+1:ii+npclen)
-     ii=ii+npclen
-  endif
+  ycv%predr => ycv%values(ii+1:ii+nsclen)
+  ii=ii+nsclen
+  ycv%predp => ycv%values(ii+1:ii+npclen)
+  ii=ii+npclen
   if (ntclen>0) then
      ycv%predt => ycv%values(ii+1:ii+ntclen)
      ii=ii+ntclen
   end if
 
   if (ii/=nclen) then
-     write(6,*)'allocate_cv: error length',ii,nclen,n_step,n_aens
+     write(6,*)'allocate_cv: error length',ii,nclen
      call stop2(109)
   end if
 
@@ -602,7 +609,6 @@ subroutine allocate_cv(ycv)
   m_vec_alloc=m_vec_alloc+1
   max_vec_alloc=MAX(max_vec_alloc,m_vec_alloc)
 
-  ycv=zero
   return
 end subroutine allocate_cv
 ! ----------------------------------------------------------------------
@@ -635,15 +641,19 @@ subroutine deallocate_cv(ycv)
 !
 !$$$ end documentation block
 
+  use hybrid_ensemble_parameters, only: naensgrp
   implicit none
   type(control_vector), intent(inout) :: ycv
   integer(i_kind) :: ii,nn,ierror
+  integer(i_kind) :: ig
 
   if (ycv%lallocated) then
      do ii=1,nsubwin
         if (l_hyb_ens) then
-           do nn=n_ens,1,-1
-              call GSI_BundleUnset(ycv%aens(ii,nn),ierror)
+           do ig=1,naensgrp
+              do nn=n_ens,1,-1
+                 call GSI_BundleUnset(ycv%aens(ii,ig,nn),ierror)
+              enddo
            enddo
         endif
 !       if (beta_s0>tiny_r_kind) then
@@ -860,9 +870,11 @@ real(r_quad) function qdot_prod_sub(xcv,ycv)
 !
 !$$$ end documentation block
 
+  use hybrid_ensemble_parameters, only: naensgrp
   implicit none
   type(control_vector), intent(in   ) :: xcv, ycv
   integer(i_kind) :: ii,nn,m3d,m2d,i,j,itot
+  integer(i_kind) :: ig,nigtmp
   real(r_quad),allocatable,dimension(:) :: partsum
 
   qdot_prod_sub=zero_quad
@@ -873,42 +885,49 @@ real(r_quad) function qdot_prod_sub(xcv,ycv)
         qdot_prod_sub=qdot_prod_sub+qdot_product( xcv%step(ii)%values(:) ,ycv%step(ii)%values(:) )
      end do
      if(l_hyb_ens) then
-        do nn=1,n_ens
-           do ii=1,nsubwin
-              qdot_prod_sub=qdot_prod_sub+qdot_product( xcv%aens(ii,nn)%values(:) ,ycv%aens(ii,nn)%values(:) )
+        do ig=1,naensgrp
+           do nn=1,n_ens
+              do ii=1,nsubwin
+                 qdot_prod_sub=qdot_prod_sub+qdot_product( xcv%aens(ii,ig,nn)%values(:) ,ycv%aens(ii,ig,nn)%values(:) )
+              end do
            end do
         end do
      endif
   else
+     m3d=xcv%step(1)%n3d
+     m2d=xcv%step(1)%n2d
+     itot=max(m3d,0)+max(m2d,0)
+     if(l_hyb_ens)itot=itot+n_ens*naensgrp
+     allocate(partsum(itot))
+     partsum=zero_quad
      do ii=1,nsubwin
-        m3d=xcv%step(ii)%n3d
-        m2d=xcv%step(ii)%n2d
-        itot=max(m3d,0)+max(m2d,0)
-        if(l_hyb_ens)itot=itot+n_ens
-        allocate(partsum(itot))
 !$omp parallel do  schedule(dynamic,1) private(i)
         do i = 1,m3d
-           partsum(i) = dplevs(xcv%step(ii)%r3(i)%q,ycv%step(ii)%r3(i)%q,ihalo=1)
+           partsum(i) = partsum(i)+dplevs(xcv%step(ii)%r3(i)%q,ycv%step(ii)%r3(i)%q,ihalo=1)
         enddo
 !$omp parallel do  schedule(dynamic,1) private(i)
         do i = 1,m2d
-           partsum(m3d+i) = dplevs(xcv%step(ii)%r2(i)%q,ycv%step(ii)%r2(i)%q,ihalo=1)
+           partsum(m3d+i) = partsum(m3d+i)+dplevs(xcv%step(ii)%r2(i)%q,ycv%step(ii)%r2(i)%q,ihalo=1)
         enddo
         if(l_hyb_ens) then
+           do ig=1,naensgrp
+              nigtmp=n_ens*(ig-1)
 !$omp parallel do  schedule(dynamic,1) private(i)
-           do i = 1,n_ens
-              partsum(m3d+m2d+i) = dplevs(xcv%aens(ii,i)%r3(1)%q,ycv%aens(ii,i)%r3(1)%q,ihalo=1)
+              do i = 1,n_ens
+                 partsum(m3d+m2d+nigtmp+i) = partsum(m3d+m2d+nigtmp+i) + &
+                        dplevs(xcv%aens(ii,ig,i)%r3(1)%q,ycv%aens(ii,ig,i)%r3(1)%q,ihalo=1)
+              end do
            end do
         end if
         do i=1,itot
           qdot_prod_sub = qdot_prod_sub + partsum(i)
         end do
-        deallocate(partsum)
      end do
+     deallocate(partsum)
   end if
 
 ! Duplicated part of vector
-  if(mype == 0)then
+  if(mype == minmype)then
      do j=nclen1+1,nclen
         qdot_prod_sub=qdot_prod_sub+xcv%values(j)*ycv%values(j) 
      end do
@@ -948,38 +967,41 @@ subroutine qdot_prod_vars_eb(xcv,ycv,prods,eb)
 !
 !$$$ end documentation block
 
+  use hybrid_ensemble_parameters, only: naensgrp
   implicit none
   type(control_vector), intent(in   ) :: xcv, ycv
   character(len=*)    , intent(in   ) :: eb
   real(r_quad)        , intent(  out) :: prods(nsubwin+1)
 
-  real(r_quad) :: zz(nsubwin)
   integer(i_kind) :: ii,i,nn,m3d,m2d
   real(r_quad),allocatable,dimension(:) :: partsum
+  integer(i_kind) :: ig
+  integer(i_kind) ::ngtmp,nn0
 
   prods(:)=zero_quad
-  zz(:)=zero_quad
 
 ! Independent part of vector
   if (lsqrtb) then
      if(trim(eb) == 'cost_b') then
         do ii=1,nsubwin
-           zz(ii)=zz(ii)+qdot_product( xcv%step(ii)%values(:) ,ycv%step(ii)%values(:) )
+           prods(ii)=prods(ii)+qdot_product( xcv%step(ii)%values(:) ,ycv%step(ii)%values(:) )
         end do
      endif
      if(trim(eb) == 'cost_e') then
-        do nn=1,n_ens
-           do ii=1,nsubwin
-              zz(ii)=zz(ii)+qdot_product( xcv%aens(ii,nn)%values(:) ,ycv%aens(ii,nn)%values(:) )
+        do ig=1,naensgrp
+           do nn=1,n_ens
+              do ii=1,nsubwin
+                 prods(ii)=prods(ii)+qdot_product( xcv%aens(ii,ig,nn)%values(:) ,ycv%aens(ii,ig,nn)%values(:) )
+              end do
            end do
         end do
      endif
   else
      if(trim(eb) == 'cost_b') then
+        m3d=xcv%step(1)%n3d
+        m2d=xcv%step(1)%n2d
+        allocate(partsum(m2d+m3d))
         do ii=1,nsubwin                                                         
-           m3d=xcv%step(ii)%n3d
-           m2d=xcv%step(ii)%n2d
-           allocate(partsum(m2d+m3d))
 !$omp parallel do  schedule(dynamic,1) private(i)
            do i = 1,m3d
               partsum(i)= dplevs(xcv%step(ii)%r3(i)%q,ycv%step(ii)%r3(i)%q,ihalo=1)
@@ -989,41 +1011,42 @@ subroutine qdot_prod_vars_eb(xcv,ycv,prods,eb)
               partsum(m3d+i)= dplevs(xcv%step(ii)%r2(i)%q,ycv%step(ii)%r2(i)%q,ihalo=1)
            enddo
            do i = 1,m2d+m3d
-              zz(ii)=zz(ii) + partsum(i)
+              prods(ii)=prods(ii) + partsum(i)
            end do
-           deallocate(partsum)
         end do
+        deallocate(partsum)
      end if
      if(trim(eb) == 'cost_e') then
-        do ii=1,nsubwin ! RTod: somebody could work in opt/zing this ...
-           allocate(partsum(n_ens))
-!$omp parallel do  schedule(dynamic,1) private(nn,m3d,m2d)
-           do nn=1,n_ens
-              partsum(nn) = zero_quad
-              m3d=xcv%aens(ii,nn)%n3d
-              do i = 1,m3d
-                 partsum(nn)= partsum(nn) + dplevs(xcv%aens(ii,nn)%r3(i)%q,ycv%aens(ii,nn)%r3(i)%q,ihalo=1)
+        allocate(partsum(n_ens*naensgrp))
+        do ii=1,nsubwin 
+!$omp parallel do  schedule(dynamic,1) private(nn,m3d,m2d,ig,ngtmp,nn0)
+           do ig=1,naensgrp
+              ngtmp=(ig-1)*n_ens
+              do nn=1,n_ens
+                 nn0=nn+ngtmp
+                 partsum(nn0) = zero_quad
+                 m3d=xcv%aens(ii,ig,nn)%n3d
+                 do i = 1,m3d
+                    partsum(nn0)= partsum(nn0) + dplevs(xcv%aens(ii,ig,nn)%r3(i)%q,ycv%aens(ii,ig,nn)%r3(i)%q,ihalo=1)
+                 enddo
+                 m2d=xcv%aens(ii,ig,nn)%n2d
+                 do i = 1,m2d
+                    partsum(nn0)= partsum(nn0) + dplevs(xcv%aens(ii,ig,nn)%r2(i)%q,ycv%aens(ii,ig,nn)%r2(i)%q,ihalo=1)
+                 enddo
               enddo
-              m2d=xcv%aens(ii,nn)%n2d
-              do i = 1,m2d
-                 partsum(nn)= partsum(nn) + dplevs(xcv%aens(ii,nn)%r2(i)%q,ycv%aens(ii,nn)%r2(i)%q,ihalo=1)
-              enddo
-           enddo
-           do nn=1,n_ens
-             zz(ii)=zz(ii)+partsum(nn)
            end do
-           deallocate(partsum)
+           do nn=1,n_ens*naensgrp
+              prods(ii)=prods(ii)+partsum(nn)
+           end do
         end do
+        deallocate(partsum)
      end if
   end if
 
-  call mpl_allreduce(nsubwin,qpvals=zz)
-  prods(1:nsubwin) = zz(1:nsubwin)
-
 ! Duplicated part of vector
-  if(trim(eb) == 'cost_b') then
+  if(mype == minmype .and. trim(eb) == 'cost_b' ) then
      if (nsclen>0) then
-        prods(nsubwin+1) = prods(nsubwin+1) + qdot_product(xcv%predr(:),ycv%predr(:))
+        prods(nsubwin+1) = qdot_product(xcv%predr(:),ycv%predr(:))
      endif
      if (npclen>0) then
         prods(nsubwin+1) = prods(nsubwin+1) + qdot_product(xcv%predp(:),ycv%predp(:))
@@ -1032,6 +1055,9 @@ subroutine qdot_prod_vars_eb(xcv,ycv,prods,eb)
         prods(nsubwin+1) = prods(nsubwin+1) + qdot_product(xcv%predt(:),ycv%predt(:))
      endif
   end if
+
+  call mpl_allreduce(nsubwin+1,qpvals=prods)
+
 
   return
 end subroutine qdot_prod_vars_eb
@@ -1205,7 +1231,7 @@ subroutine prt_norms(xcv,sgrep)
   zt=sqrt(zt)
 
   if (mype==0) then
-     write(6,*)sgrep,' global  norm =',real(zt,r_kind)
+     write(6,*)sgrep,' global  norm =',zt
   endif
 
 !_RT  call prt_norms_vars(xcv,sgrep) --->> this routine is hanging
@@ -1340,7 +1366,7 @@ subroutine axpy(alpha,xcv,ycv)
   return
 end subroutine axpy
 ! ----------------------------------------------------------------------
-subroutine random_cv(ycv,kseed,iadatebgn)
+subroutine random_cv(ycv,kseed)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    random_cv
@@ -1363,20 +1389,17 @@ subroutine random_cv(ycv,kseed,iadatebgn)
 !
 !$$$ end documentation block
 
+use hybrid_ensemble_parameters, only: naensgrp
 implicit none
 type(control_vector)     , intent(inout) :: ycv
-integer(i_kind), optional, intent(in   ) :: iadatebgn
 integer(i_kind), optional, intent(in   ) :: kseed
 
 integer(i_kind):: ii,jj,nn,iseed
 integer, allocatable :: nseed(:) ! Intentionaly default integer
 real(r_kind), allocatable :: zz(:)
+integer(i_kind) :: ig
 
-if(present(iadatebgn)) then
-  iseed=iadatebgn
-else
-  iseed=17760704
-endif
+iseed=iadatebgn
 if (present(kseed)) iseed=iseed+kseed
 call random_seed(size=jj)
 allocate(nseed(jj))
@@ -1401,10 +1424,12 @@ deallocate(zz)
 if (nval_lenz_en>0) then
    allocate(zz(nval_lenz_en))
    do nn=1,n_ens
-      do jj=1,nsubwin
-         call random_number(zz)
-         do ii=1,nval_lenz_en
-            ycv%aens(jj,nn)%values(ii) = two*zz(ii)-one
+      do ig=1,naensgrp
+         do jj=1,nsubwin
+            call random_number(zz)
+            do ii=1,nval_lenz_en
+               ycv%aens(jj,ig,nn)%values(ii) = two*zz(ii)-one
+            enddo
          enddo
       enddo
    enddo

@@ -53,7 +53,6 @@ module tendsmod
   use constants, only: max_varname_length
   use gridmod, only: lat2,lon2,nsig
   use m_mpimod, only : mype
-  use mpeu_util, only: die,warn
   use GSI_BundleMod, only : GSI_BundleCreate
   use GSI_BundleMod, only : GSI_Bundle
   use GSI_BundleMod, only : GSI_BundleGetPointer
@@ -124,6 +123,7 @@ subroutine set_ (iamroot,rcname)
 !   machine:
 !
 !$$$  end subprogram documentation block
+!use file_utility, only : get_lun
 use mpeu_util, only: get_lun => luavail
 use mpeu_util, only: gettablesize
 use mpeu_util, only: gettable
@@ -310,12 +310,10 @@ subroutine create_tendvars
     return
 end subroutine create_tendvars
 
-subroutine create_ges_tendencies(tendsflag,rcfile)
+subroutine create_ges_tendencies(tendsflag)
   implicit none
   logical,intent(in) :: tendsflag
-  character(len=*), intent(in) :: rcfile
 
-  character(len=*),parameter::myname_=myname//'*create_ges_tendencies'
   character(len=32) bname
   integer(i_kind) ierror
   type(gsi_grid) :: grid
@@ -324,7 +322,7 @@ subroutine create_ges_tendencies(tendsflag,rcfile)
   if(tnd_initialized) return
 
 ! set variables in tendency bundle
-  call set_(rcname=rcfile)
+  call set_(rcname='anavinfo')
 
 ! create tendency bundle
   call GSI_GridCreate(grid,lat2,lon2,nsig)
@@ -339,9 +337,8 @@ subroutine create_ges_tendencies(tendsflag,rcfile)
       call GSI_BundleCreate(gsi_tendency_bundle,grid,bname,ierror, &
                             names3d=tvars3d,levels=levels,bundle_kind=r_kind)
   else
-      if(mype==0) call warn(myname_,'no tendency fields requested')
+       call stop2(999) ! should never get here
   endif
-! call GSI_GridDestroy(
 
 ! create wired-in fields
   call create_tendvars
@@ -385,6 +382,7 @@ subroutine destroy_tendvars
 end subroutine destroy_tendvars
 
 subroutine destroy_ges_tendencies
+  use m_mpimod, only: gsi_mpi_comm_world
   implicit none
   integer(i_kind) ierror
 
@@ -397,19 +395,14 @@ subroutine destroy_ges_tendencies
      if(mype==0) write(6,*)'destroy_ges_tendencies warning: vector not allocated'
   endif
 
-  call unset_
+  if(allocated(tvars2d))deallocate(tvars2d)
+  if(allocated(tvars3d))deallocate(tvars3d)
+  if(allocated(tsrcs2d))deallocate(tsrcs2d)
+  if(allocated(tsrcs3d))deallocate(tsrcs3d)
+  if(allocated(levels))deallocate(levels)
 
   tnd_initialized = .false.
   if(mype==0) write(6,*) 'destroy_ges_tendencies: successfully complete'
 end subroutine destroy_ges_tendencies
-
-subroutine unset_
-if(allocated(tvars2d)) deallocate(tvars2d)
-if(allocated(tvars3d)) deallocate(tvars3d)
-if(allocated(tsrcs2d)) deallocate(tsrcs2d)
-if(allocated(tsrcs3d)) deallocate(tsrcs3d)
-if(allocated(levels)) deallocate(levels)
-tnd_set_= .false.
-end subroutine unset_
 
 end module tendsmod
