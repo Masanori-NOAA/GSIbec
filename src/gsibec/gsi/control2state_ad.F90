@@ -54,8 +54,9 @@ use m_kinds, only: i_kind,r_kind
 use control_vectors, only: control_vector
 use control_vectors, only: cvars3d,cvars2d
 use bias_predictors, only: predictors
-use gridmod, only: regional,lat2,lon2,nsig,twodvar_regional
+use gridmod, only: regional,lat2,lon2,nsig,twodvar_regional,mpas_regional
 use jfunc, only: nsclen,npclen,ntclen
+use jfunc, only: qoption
 use gsi_4dvar, only: nsubwin, lsqrtb
 #ifdef USE_ALL_ORIGINAL
 use cwhydromod, only: cw2hydro_ad
@@ -279,7 +280,11 @@ do jj=1,nsubwin
 
 !  Adjoint of control to initial state
    call gsi_bundleputvar ( wbundle, 't' ,  rv_tv,  istatus )
-   call gsi_bundleputvar ( wbundle, 'q' ,  zero,   istatus )
+   if(mpas_regional .and. qoption==1) then
+     call gsi_bundleputvar ( wbundle, 'q' ,  rv_q,   istatus )
+   else
+     call gsi_bundleputvar ( wbundle, 'q' ,  zero,   istatus )
+   endif
    call gsi_bundleputvar ( wbundle, 'ps',  rv_ps,  istatus )
 
    if (do_cw_to_hydro_ad .and. .not.do_cw_to_hydro_ad_hwrf) then
