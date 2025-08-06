@@ -303,7 +303,7 @@ do jj=1,nsubwin
 !  Calculate sensible temperature
    if(do_tv_to_tsen .and. .not.regional) call tv_to_tsen(cv_t,sv_q,sv_tsen)
 
-   if(mpas_regional .and. qoption==1) sv_q = cv_rh 
+   if(mpas_regional .and. qoption==1) sv_q = cv_rh * 100. 
 
 !  Copy other variables
    call gsi_bundlegetvar ( wbundle, 't'  , sv_tv,  istatus )  

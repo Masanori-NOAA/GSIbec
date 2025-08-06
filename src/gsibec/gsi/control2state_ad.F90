@@ -281,6 +281,7 @@ do jj=1,nsubwin
 !  Adjoint of control to initial state
    call gsi_bundleputvar ( wbundle, 't' ,  rv_tv,  istatus )
    if(mpas_regional .and. qoption==1) then
+     rv_q = rv_q * 100.
      call gsi_bundleputvar ( wbundle, 'q' ,  rv_q,   istatus )
    else
      call gsi_bundleputvar ( wbundle, 'q' ,  zero,   istatus )
