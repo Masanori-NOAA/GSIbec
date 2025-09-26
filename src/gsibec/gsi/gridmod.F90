@@ -162,6 +162,7 @@ module gridmod
   public :: use_sp_eqspace,jcap_cut
   public :: wrf_mass_hybridcord
   public :: mpas_regional
+  public :: rlat_start,rlat_end,rlon_start,rlon_end,north_pole_lat,north_pole_lon
 
   interface gridmod_vgrid
      module procedure load_vert_coord_
@@ -329,6 +330,14 @@ module gridmod
   real(r_kind) rlon_min_dd,rlon_max_dd,rlat_min_dd,rlat_max_dd
   real(r_kind) dt_ll,pdtop_ll,pt_ll
 
+! variables to define a regional rotated lat-lon grid
+  real(r_kind):: rlat_start
+  real(r_kind):: rlat_end
+  real(r_kind):: rlon_start
+  real(r_kind):: rlon_end
+  real(r_kind):: north_pole_lat
+  real(r_kind):: north_pole_lon
+
   integer(i_kind) nlon_regional,nlat_regional,nlon_regionalens,nlat_regionalens
   real(r_kind) regional_fhr,regional_fmin
   integer(i_kind) regional_time(6)
@@ -480,6 +489,13 @@ contains
     lon1 = nlon
     lat2 = lat1+2
     lon2 = lon1+2
+
+    rlat_start = 0.
+    rlat_end = 0.
+    rlon_start = 0.
+    rlon_end = 0.
+    north_pole_lat = 0.
+    north_pole_lon = 0.
 
     diagnostic_reg = .false.
     if(verbose)diagnostic_reg = .true.
