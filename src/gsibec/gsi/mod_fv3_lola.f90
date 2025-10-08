@@ -896,7 +896,7 @@ subroutine m_generate_anl_grid_mpas_regional(gsi_lats,gsi_lons)
   bilinear=.false.
 
 ! centlat/lon from the JEDI yaml
-  centlat = north_pole_lat - 90.0
+  centlat = 90.0 - north_pole_lat 
   centlon = north_pole_lon - 180.0
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
