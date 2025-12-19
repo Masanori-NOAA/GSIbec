@@ -714,7 +714,7 @@ end subroutine final_
              ges_prslavg(k)=aeta1_ll(k)*ten+r1013*aeta2_ll(k)
           end do
        endif
-       if (fv3_regional .and. mpas_regional) then
+       if (mpas_regional) then
           open(10,file="mpas_pave.txt")
           do k=1,nsig
             read(10,*)ges_prslavg(k)
