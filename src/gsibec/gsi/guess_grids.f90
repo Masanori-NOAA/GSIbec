@@ -600,6 +600,7 @@ end subroutine final_
     real(r_kind) kap1,kapr,trk
     real(r_kind),dimension(:,:)  ,pointer::ges_ps=>NULL()
     real(r_kind),dimension(:,:,:),pointer::ges_tv=>NULL()
+    real(r_kind),dimension(:,:,:),pointer::ges_prse=>NULL()
     real(r_kind) pinc(lat2,lon2)
     integer(i_kind) i,j,k,ii,jj,itv,ips,kp
     logical ihaveprs(nfldsig)
@@ -656,6 +657,7 @@ end subroutine final_
        ihaveprs(jj)=.true.
     end do
 
+    if(regional) then
        if (fv3_regional) then
           do jj=1,nfldsig
              do k=1,nsig
@@ -670,6 +672,23 @@ end subroutine final_
              end do
           end do
        end if   ! end if fv3 regional
+
+       if (mpas_regional) then
+          do jj=1,nfldsig
+            call gsi_bundlegetpointer(gsi_metguess_bundle(jj),'prse' ,ges_prse,ips)
+            if(ips/=0) call die(myname_,': prse not available in guess, abort',ips)
+             do k=1,nsig
+                do j=1,lon2
+                   do i=1,lat2
+                      ges_prsl(i,j,k,jj)=ges_prse(i,j,k)
+                      ges_lnprsl(i,j,k,jj)=log(ges_prsl(i,j,k,jj))
+                   end do
+                end do
+             end do
+          end do
+       endif
+
+    else   
 
 !      load mid-layer pressure by using phillips vertical interpolation
        if (idsl5/=2) then
@@ -704,6 +723,8 @@ end subroutine final_
              end do
           end do
        endif
+
+    endif
 
 ! For regional applications only, load variables containing mean
 ! surface pressure and pressure profile at the layer midpoints
@@ -1280,6 +1301,7 @@ end subroutine final_
     endif
   endif
   ptr=var
+  if ( trim(vname) == 'prse' ) ptr=kPa_per_Pa*ptr ! To read 3D pressure from MPAS-JEDI 
   if ( trim(vname) == 'oz' ) then
       call gsi_metguess_get ( 'usrvar::o3ppmv', uvar, ier )
       if (trim(uvar)=='o3ppmv') then
